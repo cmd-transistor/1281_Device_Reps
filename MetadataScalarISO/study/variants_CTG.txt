@@ -1,0 +1,710 @@
+families: {'CTG': 50, 'DIFFCHN': 62, 'DIFFOGD': 10, 'EPIEPI': 78, 'TCNTCN': 36, 'GATEGATE': 25, 'VIA_CHAIN': 369}
+
+##############################################################################################################
+# CTG: 50 variants; differing columns: ['BufferSizeL', 'BufferSizeR', 'FTITracksUnit', 'FTITracksGlobal', 'PolyPlugsUnit', 'TcnPlugsUnit', 'VcrPatternUnit', 'VcrnubPatternUnit', 'TcnExtensionUnit', 'M0CutPatternUnit', 'VcxPatternUnit', 'LO1ActiveTracks', 'HI1ActiveTracks', 'DrawMiscIDsUnit']
+
+[A] CTG<CH>-<MOS><Z>-<VT>-A:SDR:OGD:REF:2TRK  rows=36  FailModes=21600
+    ex: CTG110-NZ1-H-A:SDR:OGD:REF:2TRK | SDR CTGOGD, N-Diff, type a
+    BufferSizeL       = 4
+    BufferSizeR       = 4
+    FTITracksUnit     = 0:24[3],0:r0
+    FTITracksGlobal   = 0/2/r2/r0,0:r0;
+    PolyPlugsUnit     = 1:3/5:7/9:11/13:15/17:19/21:23,3/4
+    TcnPlugsUnit      = 0:r0,4/5
+    M0CutPatternUnit  = 2:r2[5],1:3[1]/r3:r1[1]
+    VcxPatternUnit    = vg,1:3/5:7/9:11/13:15/17:19/21:23,6;vt,0:r0[3],14;vt,1:r0[3],14;vt,2:r0[3],14;
+    LO1ActiveTracks   = 14
+    HI1ActiveTracks   = 6
+
+[A] CTG<CH>-<MOS><Z>-<VT>-A:SDR:OGD:REF:2TRK  rows=18  FailModes=21600
+    ex: CTG110-NPZ1-H-A:SDR:OGD:REF:2TRK | SDR CTGOGD, NP-Diff, type a
+    BufferSizeL       = 4
+    BufferSizeR       = 4
+    FTITracksUnit     = 0:24[3],2:5
+    FTITracksGlobal   = 0/2/r2/r0,0:r0;
+    PolyPlugsUnit     = 1:3/5:7/9:11/13:15/17:19/21:23,3/4
+    TcnPlugsUnit      = 0:r0,4/5
+    M0CutPatternUnit  = 2:r2[5],1:3[1]/r3:r1[1]
+    VcxPatternUnit    = vg,1:3/5:7/9:11/13:15/17:19/21:23,6;vt,0:r0[3],14;vt,1:r0[3],14;vt,2:r0[3],14;
+    LO1ActiveTracks   = 14
+    HI1ActiveTracks   = 6
+
+[A] CTG<CH>-<MOS><Z>-<VT>-A:SDR:OGD:REF:2TRK  rows=12  FailModes=21600
+    ex: CTG165-NZ7-H-A:SDR:OGD:REF:2TRK | SDR CTGOGD, N-Diff, type a
+    BufferSizeL       = 4
+    BufferSizeR       = 4
+    FTITracksUnit     = 0:24[3],0:r0
+    FTITracksGlobal   = 0/2/r2/r0,0:r0;
+    PolyPlugsUnit     = 1:3/5:7/9:11/13:15/17:19/21:23,3/4
+    TcnPlugsUnit      = 0:r0,4/5
+    M0CutPatternUnit  = 2:r2[5],2:4[1]/r4:r2[1]
+    VcxPatternUnit    = vg,1:3/5:7/9:11/13:15/17:19/21:23,7;vt,0:r0[3],17;vt,1:r0[3],17;vt,2:r0[3],17;
+    LO1ActiveTracks   = 15
+    HI1ActiveTracks   = 6
+
+[A] CTG<CH>-<MOS><Z>-<VT>-A:SDR:OGD:REF:2TRK  rows=6  FailModes=21600
+    ex: CTG165-NPZ7-H-A:SDR:OGD:REF:2TRK | SDR CTGOGD, NP-Diff, type a
+    BufferSizeL       = 4
+    BufferSizeR       = 4
+    FTITracksUnit     = 0:24[3],2:5
+    FTITracksGlobal   = 0/2/r2/r0,0:r0;
+    PolyPlugsUnit     = 1:3/5:7/9:11/13:15/17:19/21:23,3/4
+    TcnPlugsUnit      = 0:r0,4/5
+    M0CutPatternUnit  = 2:r2[5],2:4[1]/r4:r2[1]
+    VcxPatternUnit    = vg,1:3/5:7/9:11/13:15/17:19/21:23,7;vt,0:r0[3],17;vt,1:r0[3],17;vt,2:r0[3],17;
+    LO1ActiveTracks   = 17
+    HI1ActiveTracks   = 7
+
+[B] CTG<CH>-<MOS><Z>-<VT>-B:NGLK:OGD:REF:2TRK  rows=3  FailModes=21600
+    ex: CTG132-NZ5-L-B:NGLK:OGD:REF:2TRK | SDR CTGOGD,  N-Diff,type b - Leakage in OGD between single diff length gate, and 2 diff length TCN/epi
+    BufferSizeL       = 4
+    BufferSizeR       = 4
+    FTITracksUnit     = 0:24[3],2:5
+    FTITracksGlobal   = 0/2/r2/r0,0:r0;
+    TcnPlugsUnit      = 0:r0,3/5
+    M0CutPatternUnit  = 2:r2[5],1:3[1]/r3:r1[1]
+    VcxPatternUnit    = vg,1:3/5:7/9:11/13:15/17:19/21:23,9/11;vt,0:r0[3],6/14;vt,1:r0[3],6/14;vt,2:r0[3],6/14
+    LO1ActiveTracks   = 6;14
+    HI1ActiveTracks   = 9;11
+
+[B] CTG<CH>-<MOS><Z>-<VT>-B:NGLK:OGD:REF:2TRK  rows=3  FailModes=21600
+    ex: CTG165-NZ7-L-B:NGLK:OGD:REF:2TRK | SDR CTGOGD,  N-Diff,type b - Leakage in OGD between single diff length gate, and 2 diff length TCN/epi
+    BufferSizeL       = 4
+    BufferSizeR       = 4
+    FTITracksUnit     = 0:24[3],2:5
+    FTITracksGlobal   = 0/2/r2/r0,0:r0;
+    TcnPlugsUnit      = 0:r0,3/5
+    M0CutPatternUnit  = 2:r2[5],2:4[1]/r4:r2[1]
+    VcxPatternUnit    = vg,1:3/5:7/9:11/13:15/17:19/21:23,11/13;vt,0:r0[3],7/17;vt,1:r0[3],7/17;vt,2:r0[3],7/17
+    LO1ActiveTracks   = 7;17
+    HI1ActiveTracks   = 11;13
+
+[C] CTG<CH>-<MOS><Z>-<VT>-C:NTLK:OGD:REF:2TRK  rows=3  FailModes=21600
+    ex: CTG132-NZ5-L-C:NTLK:OGD:REF:2TRK | SDR CTGOGD,  N-Diff,type c  - Leakage in OGD between double diff length gate, and single diff length TCN/epi
+    BufferSizeL       = 4
+    BufferSizeR       = 4
+    FTITracksUnit     = 0:24[3],2:5
+    FTITracksGlobal   = 0/2/r2/r0,0:r0;
+    PolyPlugsUnit     = 1:3/5:7/9:11/13:15/17:19/21:23,3/5
+    M0CutPatternUnit  = 2:r2[5],1:3[1]/r3:r1[1]
+    VcxPatternUnit    = vg,1:3/5:7/9:11/13:15/17:19/21:23,9/11;vt,0:r0[3],6/14;vt,1:r0[3],6/14;vt,2:r0[3],6/14
+    LO1ActiveTracks   = 6;14
+    HI1ActiveTracks   = 9;11
+
+[C] CTG<CH>-<MOS><Z>-<VT>-C:NTLK:OGD:REF:2TRK  rows=3  FailModes=21600
+    ex: CTG165-NZ7-L-C:NTLK:OGD:REF:2TRK | SDR CTGOGD,  N-Diff,type c  - Leakage in OGD between double diff length gate, and single diff length TCN/epi
+    BufferSizeL       = 4
+    BufferSizeR       = 4
+    FTITracksUnit     = 0:24[3],2:5
+    FTITracksGlobal   = 0/2/r2/r0,0:r0;
+    PolyPlugsUnit     = 1:3/5:7/9:11/13:15/17:19/21:23,3/5
+    M0CutPatternUnit  = 2:r2[5],2:4[1]/r4:r2[1]
+    VcxPatternUnit    = vg,1:3/5:7/9:11/13:15/17:19/21:23,11/13;vt,0:r0[3],7/17;vt,1:r0[3],7/17;vt,2:r0[3],7/17
+    LO1ActiveTracks   = 7;17
+    HI1ActiveTracks   = 11;13
+
+[D] CTG<CH>-<MOS><Z>-<VT>-D:NLNK:OGD:REF:1TRK  rows=3  FailModes=43200
+    ex: CTG132-NZ5-L-D:NLNK:OGD:REF:1TRK | SDR CTGOGD,  N-Diff,type d - Leakage in OGD between single diff length gate, and single diff length TCN/epi
+    BufferSizeL       = 4
+    BufferSizeR       = 4
+    FTITracksUnit     = 0:24[3],2:5
+    FTITracksGlobal   = 0/2/r2/r0,0:r0;
+    M0CutPatternUnit  = 2:r2[5],1/r1
+    VcxPatternUnit    = vg,1:3/5:7/9:11/13:15/17:19/21:23,3/7-bottom/13/17-bottom;vt,0:r0[3],4/6/14/16;vt,1:r0[3],4/6/14/16;vt,2:r0[3],4/6/14/16
+    LO1ActiveTracks   = 4;6;14;16
+    HI1ActiveTracks   = 3;7;13;17
+
+[D] CTG<CH>-<MOS><Z>-<VT>-D:NLNK:OGD:REF:1TRK  rows=3  FailModes=43200
+    ex: CTG165-NZ7-L-D:NLNK:OGD:REF:1TRK | SDR CTGOGD,  N-Diff,type d - Leakage in OGD between single diff length gate, and single diff length TCN/epi
+    BufferSizeL       = 4
+    BufferSizeR       = 4
+    FTITracksUnit     = 0:24[3],2:5
+    FTITracksGlobal   = 0/2/r2/r0,0:r0;
+    M0CutPatternUnit  = 2:r2[5],2:4[1]/r4:r2[1]
+    VcxPatternUnit    = vg,1:3/5:7/9:11/13:15/17:19/21:23,8-bottom/10/14-bottom/16;vt,0:r0[3],7/11/13/17;vt,1:r0[3],7/11/13/17;vt,2:r0[3],7/11/13/17
+    LO1ActiveTracks   = 7;11;13;17
+    HI1ActiveTracks   = 8;10;14;16
+
+[E] CTG<CH>-<MOS><Z>-<VT>-E:VCR:PGD:CD:<SKEW>  rows=27  FailModes=21600
+    ex: CTG110-NZ1-L-E:VCR:PGD:CD:N4 | SDR CTGOGD, VCR between N-Diff, type e, VCR PGD CD skew (-4nm)
+    notes: type E is a fail-mode variant; SDR (type A) overlap=2 used per slide 4
+    BufferSizeL       = 4
+    BufferSizeR       = 4
+    FTITracksUnit     = 0:24[3],2:5
+    FTITracksGlobal   = 0/2/r2/r0,0:r0;
+    PolyPlugsUnit     = 1:3/5:7/9:11/13:15/17:19/21:23,3/5
+    TcnPlugsUnit      = 0:r0,3/5
+    VcrPatternUnit    = -1:r-1,1|<shift>;-1:r-1,3|<shift>;
+    TcnExtensionUnit  = 0:r0[3],1/3;1:r0[3],1/3;2:r0[3],1/3
+    M0CutPatternUnit  = 2:r2[5],1:3[1]/r3:r1[1]
+    VcxPatternUnit    = vg,1:3/5:7/9:11/13:15/17:19/21:23,9/11;vt,0:r0[3],7/13;vt,1:r0[3],7/13;vt,2:r0[3],7/13
+    LO1ActiveTracks   = 7;13
+    HI1ActiveTracks   = 9;11
+
+[E] CTG<CH>-<MOS><Z>-<VT>-E:VCR:PGD:CD:0  rows=6  FailModes=21600
+    ex: CTG110-NZ1-L-E:VCR:PGD:CD:0 | SDR CTGOGD, VCR between N-Diff, type e, VCR PGD CD skew (0nm)
+    notes: type E is a fail-mode variant; SDR (type A) overlap=2 used per slide 4
+    BufferSizeL       = 4
+    BufferSizeR       = 4
+    FTITracksUnit     = 0:24[3],2:5
+    FTITracksGlobal   = 0/2/r2/r0,0:r0;
+    PolyPlugsUnit     = 1:3/5:7/9:11/13:15/17:19/21:23,3/5
+    TcnPlugsUnit      = 0:r0,3/5
+    VcrPatternUnit    = -1:r-1,1|<shift>;-1:r-1,3|<shift>;
+    TcnExtensionUnit  = 0:r0[3],1/3;1:r0[3],1/3;2:r0[3],1/3
+    M0CutPatternUnit  = 2:r2[5],1:3[1]/r3:r1[1]
+    VcxPatternUnit    = vg,1:3/5:7/9:11/13:15/17:19/21:23,9/11;vt,0:r0[3],7/13;vt,1:r0[3],7/13;vt,2:r0[3],7/13
+    LO1ActiveTracks   = 7;13
+    HI1ActiveTracks   = 9;11
+
+[H] CTG<CH>-<MOS><Z>-<VT>-H:SDR:OGD:DEN:1VG_PLY  rows=3  FailModes=21600
+    ex: CTG132-NZ5-L-H:SDR:OGD:DEN:1VG_PLY | SDR CTGOGD, N-Diff, On type a structure, 1 Via-g inside fail area, Version 2
+    notes: type H is a fail-mode variant; SDR (type A) overlap=2 used per slide 4
+    BufferSizeL       = 4
+    BufferSizeR       = 4
+    FTITracksUnit     = 0:24[3],2:5
+    FTITracksGlobal   = 0/2/r2/r0,0:r0;
+    PolyPlugsUnit     = 1:3/5:7/9:11/13:15/17:19/21:23,3/4
+    TcnPlugsUnit      = 0:r0,4/5
+    M0CutPatternUnit  = 2:r2[5],1:3[1]/r3:r1[1]
+    VcxPatternUnit    = vg,1:3/5:7/9:11/13:15/17:19/21:23,6/11;vt,0:r0[3]/1:r0[3]/2:r0[3],14
+    LO1ActiveTracks   = 14
+    HI1ActiveTracks   = 6;11
+
+[H] CTG<CH>-<MOS><Z>-<VT>-H:SDR:OGD:DEN:2VG_PLY  rows=3  FailModes=21600
+    ex: CTG132-NZ5-L-H:SDR:OGD:DEN:2VG_PLY | SDR CTGOGD, N-Diff, On type a structure, 2 Via-g inside fail area, Ver2
+    notes: type H is a fail-mode variant; SDR (type A) overlap=2 used per slide 4
+    BufferSizeL       = 4
+    BufferSizeR       = 4
+    FTITracksUnit     = 0:24[3],2:5
+    FTITracksGlobal   = 0/2/r2/r0,0:r0;
+    PolyPlugsUnit     = 1:3/5:7/9:11/13:15/17:19/21:23,3/4
+    TcnPlugsUnit      = 0:r0,4/5
+    M0CutPatternUnit  = 2:r2[5],1:3[1]/r3:r1[1]
+    VcxPatternUnit    = vg,1:3/5:7/9:11/13:15/17:19/21:23,6/9/11;vt,0:r0[3]/1:r0[3]/2:r0[3],14
+    LO1ActiveTracks   = 14
+    HI1ActiveTracks   = 6;9;11
+
+[H] CTG<CH>-<MOS><Z>-<VT>-H:SDR:OGD:DEN:1VG_PLY  rows=3  FailModes=21600
+    ex: CTG165-NZ7-L-H:SDR:OGD:DEN:1VG_PLY | SDR CTGOGD, N-Diff, On type a structure, 1 Via-g inside fail area, Version 2
+    notes: type H is a fail-mode variant; SDR (type A) overlap=2 used per slide 4
+    BufferSizeL       = 4
+    BufferSizeR       = 4
+    FTITracksUnit     = 0:24[3],2:5
+    FTITracksGlobal   = 0/2/r2/r0,0:r0;
+    PolyPlugsUnit     = 1:3/5:7/9:11/13:15/17:19/21:23,3/4
+    TcnPlugsUnit      = 0:r0,4/5
+    M0CutPatternUnit  = 2:r2[5],2:4[1]/r4:r2[1]
+    VcxPatternUnit    = vg,1:3/5:7/9:11/13:15/17:19/21:23,7/13;vt,0:r0[3]/1:r0[3]/2:r0[3],17
+    LO1ActiveTracks   = 17
+    HI1ActiveTracks   = 7;13
+
+[H] CTG<CH>-<MOS><Z>-<VT>-H:SDR:OGD:DEN:2VG_PLY  rows=3  FailModes=21600
+    ex: CTG165-NZ7-L-H:SDR:OGD:DEN:2VG_PLY | SDR CTGOGD, N-Diff, On type a structure, 2 Via-g inside fail area, Ver2
+    notes: type H is a fail-mode variant; SDR (type A) overlap=2 used per slide 4
+    BufferSizeL       = 4
+    BufferSizeR       = 4
+    FTITracksUnit     = 0:24[3],2:5
+    FTITracksGlobal   = 0/2/r2/r0,0:r0;
+    PolyPlugsUnit     = 1:3/5:7/9:11/13:15/17:19/21:23,3/4
+    TcnPlugsUnit      = 0:r0,4/5
+    M0CutPatternUnit  = 2:r2[5],2:4[1]/r4:r2[1]
+    VcxPatternUnit    = vg,1:3/5:7/9:11/13:15/17:19/21:23,7/11/13;vt,0:r0[3]/1:r0[3]/2:r0[3],17
+    LO1ActiveTracks   = 17
+    HI1ActiveTracks   = 7;11;13
+
+[I] CTG<CH>-<MOS><Z>-<VT>-I:SDR:OGD:DEN:1VT_TCN  rows=3  FailModes=21600
+    ex: CTG132-NZ5-L-I:SDR:OGD:DEN:1VT_TCN | SDR CTGOGD, N-Diff, On type a structure, 1 Via-t inside fail area, Ver2
+    notes: type I is a fail-mode variant; SDR (type A) overlap=2 used per slide 4
+    BufferSizeL       = 4
+    BufferSizeR       = 4
+    FTITracksUnit     = 0:24[3],2:5
+    FTITracksGlobal   = 0/2/r2/r0,0:r0;
+    PolyPlugsUnit     = 1:3/5:7/9:11/13:15/17:19/21:23,3/4
+    TcnPlugsUnit      = 0:r0,4/5
+    M0CutPatternUnit  = 2:r2[5],1:3[1]/r3:r1[1]
+    VcxPatternUnit    = vg,1:3/5:7/9:11/13:15/17:19/21:23,6;vt,0:r0[3]/1:r0[3]/2:r0[3],9/14
+    LO1ActiveTracks   = 9;14
+    HI1ActiveTracks   = 6
+
+[I] CTG<CH>-<MOS><Z>-<VT>-I:SDR:OGD:DEN:2VT_TCN  rows=3  FailModes=21600
+    ex: CTG132-NZ5-L-I:SDR:OGD:DEN:2VT_TCN | SDR CTGOGD, N-Diff, On type a structure, 2 Via-t inside fail area
+    notes: type I is a fail-mode variant; SDR (type A) overlap=2 used per slide 4
+    BufferSizeL       = 4
+    BufferSizeR       = 4
+    FTITracksUnit     = 0:24[3],2:5
+    FTITracksGlobal   = 0/2/r2/r0,0:r0;
+    PolyPlugsUnit     = 1:3/5:7/9:11/13:15/17:19/21:23,3/4
+    TcnPlugsUnit      = 0:r0,4/5
+    M0CutPatternUnit  = 2:r2[5],1:3[1]/r3:r1[1]
+    VcxPatternUnit    = vg,1:3/5:7/9:11/13:15/17:19/21:23,6;vt,0:r0[3]/1:r0[3]/2:r0[3],9/11/14
+    LO1ActiveTracks   = 9;11;14
+    HI1ActiveTracks   = 6
+
+[I] CTG<CH>-<MOS><Z>-<VT>-I:SDR:OGD:DEN:1VT_TCN  rows=3  FailModes=21600
+    ex: CTG165-NZ7-L-I:SDR:OGD:DEN:1VT_TCN | SDR CTGOGD, N-Diff, On type a structure, 1 Via-t inside fail area, Ver2
+    notes: type I is a fail-mode variant; SDR (type A) overlap=2 used per slide 4
+    BufferSizeL       = 4
+    BufferSizeR       = 4
+    FTITracksUnit     = 0:24[3],2:5
+    FTITracksGlobal   = 0/2/r2/r0,0:r0;
+    PolyPlugsUnit     = 1:3/5:7/9:11/13:15/17:19/21:23,3/4
+    TcnPlugsUnit      = 0:r0,4/5
+    M0CutPatternUnit  = 2:r2[5],2:4[1]/r4:r2[1]
+    VcxPatternUnit    = vg,1:3/5:7/9:11/13:15/17:19/21:23,7;vt,0:r0[3]/1:r0[3]/2:r0[3],11/17
+    LO1ActiveTracks   = 11;17
+    HI1ActiveTracks   = 7
+
+[I] CTG<CH>-<MOS><Z>-<VT>-I:SDR:OGD:DEN:2VT_TCN  rows=3  FailModes=21600
+    ex: CTG165-NZ7-L-I:SDR:OGD:DEN:2VT_TCN | SDR CTGOGD, N-Diff, On type a structure, 2 Via-t inside fail area
+    notes: type I is a fail-mode variant; SDR (type A) overlap=2 used per slide 4
+    BufferSizeL       = 4
+    BufferSizeR       = 4
+    FTITracksUnit     = 0:24[3],2:5
+    FTITracksGlobal   = 0/2/r2/r0,0:r0;
+    PolyPlugsUnit     = 1:3/5:7/9:11/13:15/17:19/21:23,3/4
+    TcnPlugsUnit      = 0:r0,4/5
+    M0CutPatternUnit  = 2:r2[5],2:4[1]/r4:r2[1]
+    VcxPatternUnit    = vg,1:3/5:7/9:11/13:15/17:19/21:23,7;vt,0:r0[3]/1:r0[3]/2:r0[3],11/13/17
+    LO1ActiveTracks   = 11;13;17
+    HI1ActiveTracks   = 7
+
+[A] CTG<CH>-<MOS><Z>-<VT>-A:SDR:OGD:REF:2TRK  rows=6  FailModes=21600
+    ex: CTG110-NZ1-L-A:SDR:OGD:REF:2TRK | SDR CTGOGD, N-Diff, type a
+    BufferSizeL       = 4
+    BufferSizeR       = 4
+    FTITracksUnit     = 0:24[3],2:5
+    FTITracksGlobal   = 0/2/r2/r0,0:r0;
+    PolyPlugsUnit     = 1:3/5:7/9:11/13:15/17:19/21:23,3/4
+    TcnPlugsUnit      = 0:r0,4/5
+    M0CutPatternUnit  = 2:r2[5],1:3[1]/r3:r1[1]
+    VcxPatternUnit    = vg,1:3/5:7/9:11/13:15/17:19/21:23,6;vt,0:r0[3]/1:r0[3]/2:r0[3],14
+    LO1ActiveTracks   = 14
+    HI1ActiveTracks   = 6
+
+[K] CTG<CH>-<MOS><Z>-<VT>-K:SDR:OGD:DEN:NTLK  rows=6  FailModes=21600
+    ex: CTG110-NZ1-L-K:SDR:OGD:DEN:NTLK | SDR CTGOGD, N-Diff, Based on type a, 1Track TCN/PLY overlap
+    notes: type K is a fail-mode variant; SDR (type A) overlap=2 used per slide 4
+    BufferSizeL       = 4
+    BufferSizeR       = 4
+    FTITracksUnit     = 0:24[3],2:5
+    FTITracksGlobal   = 0/2/r2/r0,0:r0;
+    PolyPlugsUnit     = 1:3/5:7/9:11/13:15/17:19/21:23,3/4
+    TcnPlugsUnit      = 0:r0,5
+    M0CutPatternUnit  = 2:r2[5],1:3[1]/r3:r1[1]
+    VcxPatternUnit    = vg,1:3/5:7/9:11/13:15/17:19/21:23,6;vt,0:r0[3]/1:r0[3]/2:r0[3],14
+    LO1ActiveTracks   = 14
+    HI1ActiveTracks   = 6
+
+[K] CTG<CH>-<MOS><Z>-<VT>-K:SDR:OGD:DEN:NGLK  rows=6  FailModes=21600
+    ex: CTG110-NZ1-L-K:SDR:OGD:DEN:NGLK | SDR CTGOGD, N-Diff, Based on type a, 1Track TCN/PLY overlap
+    notes: type K is a fail-mode variant; SDR (type A) overlap=2 used per slide 4
+    BufferSizeL       = 4
+    BufferSizeR       = 4
+    FTITracksUnit     = 0:24[3],2:5
+    FTITracksGlobal   = 0/2/r2/r0,0:r0;
+    PolyPlugsUnit     = 1:3/5:7/9:11/13:15/17:19/21:23,3
+    TcnPlugsUnit      = 0:r0,4/5
+    M0CutPatternUnit  = 2:r2[5],1:3[1]/r3:r1[1]
+    VcxPatternUnit    = vg,1:3/5:7/9:11/13:15/17:19/21:23,6;vt,0:r0[3]/1:r0[3]/2:r0[3],14
+    LO1ActiveTracks   = 14
+    HI1ActiveTracks   = 6
+
+[A] CTG<CH>-<MOS><Z>-<VT>-A:SDR:OGD:REF:2TRK  rows=3  FailModes=21600
+    ex: CTG165-NZ7-L-A:SDR:OGD:REF:2TRK | SDR CTGOGD, N-Diff, type a
+    BufferSizeL       = 4
+    BufferSizeR       = 4
+    FTITracksUnit     = 0:24[3],2:5
+    FTITracksGlobal   = 0/2/r2/r0,0:r0;
+    PolyPlugsUnit     = 1:3/5:7/9:11/13:15/17:19/21:23,3/4
+    TcnPlugsUnit      = 0:r0,4/5
+    M0CutPatternUnit  = 2:r2[5],2:4[1]/r4:r2[1]
+    VcxPatternUnit    = vg,1:3/5:7/9:11/13:15/17:19/21:23,7;vt,0:r0[3]/1:r0[3]/2:r0[3],17
+    LO1ActiveTracks   = 17
+    HI1ActiveTracks   = 7
+
+[K] CTG<CH>-<MOS><Z>-<VT>-K:SDR:OGD:DEN:NTLK  rows=3  FailModes=21600
+    ex: CTG165-NZ7-L-K:SDR:OGD:DEN:NTLK | SDR CTGOGD, N-Diff, Based on type a, 1Track TCN/PLY overlap
+    notes: type K is a fail-mode variant; SDR (type A) overlap=2 used per slide 4
+    BufferSizeL       = 4
+    BufferSizeR       = 4
+    FTITracksUnit     = 0:24[3],2:5
+    FTITracksGlobal   = 0/2/r2/r0,0:r0;
+    PolyPlugsUnit     = 1:3/5:7/9:11/13:15/17:19/21:23,3/4
+    TcnPlugsUnit      = 0:r0,5
+    M0CutPatternUnit  = 2:r2[5],2:4[1]/r4:r2[1]
+    VcxPatternUnit    = vg,1:3/5:7/9:11/13:15/17:19/21:23,7;vt,0:r0[3]/1:r0[3]/2:r0[3],17
+    LO1ActiveTracks   = 17
+    HI1ActiveTracks   = 7
+
+[K] CTG<CH>-<MOS><Z>-<VT>-K:SDR:OGD:DEN:NGLK  rows=3  FailModes=21600
+    ex: CTG165-NZ7-L-K:SDR:OGD:DEN:NGLK | SDR CTGOGD, N-Diff, Based on type a, 1Track TCN/PLY overlap
+    notes: type K is a fail-mode variant; SDR (type A) overlap=2 used per slide 4
+    BufferSizeL       = 4
+    BufferSizeR       = 4
+    FTITracksUnit     = 0:24[3],2:5
+    FTITracksGlobal   = 0/2/r2/r0,0:r0;
+    PolyPlugsUnit     = 1:3/5:7/9:11/13:15/17:19/21:23,3
+    TcnPlugsUnit      = 0:r0,4/5
+    M0CutPatternUnit  = 2:r2[5],2:4[1]/r4:r2[1]
+    VcxPatternUnit    = vg,1:3/5:7/9:11/13:15/17:19/21:23,7;vt,0:r0[3]/1:r0[3]/2:r0[3],17
+    LO1ActiveTracks   = 17
+    HI1ActiveTracks   = 7
+
+[L] CTG<CH>-<MOS><Z>-<VT>-L:SDR:OGD:DEN:NGLK  rows=6  FailModes=21600
+    ex: CTG110-NZ1-L-L:SDR:OGD:DEN:NGLK | SDR CTGOGD, N-Diff, On type a structure, 1 active Via-g and NO GLK inside fail area
+    notes: type L is a fail-mode variant; SDR (type A) overlap=2 used per slide 4
+    BufferSizeL       = 4
+    BufferSizeR       = 4
+    FTITracksUnit     = 0:24[3],2:5
+    FTITracksGlobal   = 0/2/r2/r0,0:r0;
+    PolyPlugsUnit     = 1:3/5:7/9:11/13:15/17:19/21:23,3
+    TcnPlugsUnit      = 0:r0,4/5
+    M0CutPatternUnit  = 2:r2[5],1:3[1]/r3:r1[1]
+    VcxPatternUnit    = vg,1:3/5:7/9:11/13:15/17:19/21:23,6/11;vt,0:r0[3]/1:r0[3]/2:r0[3],14
+    LO1ActiveTracks   = 14
+    HI1ActiveTracks   = 6;11
+
+[L] CTG<CH>-<MOS><Z>-<VT>-L:SDR:OGD:DEN:NTLK  rows=6  FailModes=21600
+    ex: CTG110-NZ1-L-L:SDR:OGD:DEN:NTLK | SDR CTGOGD, N-Diff, On type a structure, 1 active Via-g and NO TLK inside fail area
+    notes: type L is a fail-mode variant; SDR (type A) overlap=2 used per slide 4
+    BufferSizeL       = 4
+    BufferSizeR       = 4
+    FTITracksUnit     = 0:24[3],2:5
+    FTITracksGlobal   = 0/2/r2/r0,0:r0;
+    PolyPlugsUnit     = 1:3/5:7/9:11/13:15/17:19/21:23,3/4
+    TcnPlugsUnit      = 0:r0,5
+    M0CutPatternUnit  = 2:r2[5],1:3[1]/r3:r1[1]
+    VcxPatternUnit    = vg,1:3/5:7/9:11/13:15/17:19/21:23,6;vt,0:r0[3]/1:r0[3]/2:r0[3],9/14
+    LO1ActiveTracks   = 9;14
+    HI1ActiveTracks   = 6
+
+[L] CTG<CH>-<MOS><Z>-<VT>-L:SDR:OGD:DEN:NGLK  rows=3  FailModes=21600
+    ex: CTG165-NZ7-L-L:SDR:OGD:DEN:NGLK | SDR CTGOGD, N-Diff, On type a structure, 1 active Via-g and NO GLK inside fail area
+    notes: type L is a fail-mode variant; SDR (type A) overlap=2 used per slide 4
+    BufferSizeL       = 4
+    BufferSizeR       = 4
+    FTITracksUnit     = 0:24[3],2:5
+    FTITracksGlobal   = 0/2/r2/r0,0:r0;
+    PolyPlugsUnit     = 1:3/5:7/9:11/13:15/17:19/21:23,3
+    TcnPlugsUnit      = 0:r0,4/5
+    M0CutPatternUnit  = 2:r2[5],2:4[1]/r4:r2[1]
+    VcxPatternUnit    = vg,1:3/5:7/9:11/13:15/17:19/21:23,7/13;vt,0:r0[3]/1:r0[3]/2:r0[3],17
+    LO1ActiveTracks   = 17
+    HI1ActiveTracks   = 7;13
+
+[L] CTG<CH>-<MOS><Z>-<VT>-L:SDR:OGD:DEN:NTLK  rows=3  FailModes=21600
+    ex: CTG165-NZ7-L-L:SDR:OGD:DEN:NTLK | SDR CTGOGD, N-Diff, On type a structure, 1 active Via-g and NO TLK inside fail area
+    notes: type L is a fail-mode variant; SDR (type A) overlap=2 used per slide 4
+    BufferSizeL       = 4
+    BufferSizeR       = 4
+    FTITracksUnit     = 0:24[3],2:5
+    FTITracksGlobal   = 0/2/r2/r0,0:r0;
+    PolyPlugsUnit     = 1:3/5:7/9:11/13:15/17:19/21:23,3/4
+    TcnPlugsUnit      = 0:r0,5
+    M0CutPatternUnit  = 2:r2[5],2:4[1]/r4:r2[1]
+    VcxPatternUnit    = vg,1:3/5:7/9:11/13:15/17:19/21:23,7;vt,0:r0[3]/1:r0[3]/2:r0[3],11/17
+    LO1ActiveTracks   = 11;17
+    HI1ActiveTracks   = 7
+
+[G] CTG<CH>-<MOS><Z>-<VT>-G:DNU:OGD:REF:NDPI_2TRK  rows=1  FailModes=21600
+    ex: CTG165-NZ7-L-G:DNU:OGD:REF:NDPI_2TRK | SDR CTGOGD, N-Diff, Based on type a, 2 Diff tracks  depop
+    notes: type G is a fail-mode variant; SDR (type A) overlap=2 used per slide 4
+    BufferSizeL       = 10
+    BufferSizeR       = 10
+    FTITracksUnit     = 0:24[3],2:5
+    FTITracksGlobal   = 0/7/r7/r0,0:r0;
+    PolyPlugsUnit     = 1:3/5:7/9:11/13:15/17:19/21:23,3/4
+    TcnPlugsUnit      = 0:r0,4/5
+    M0CutPatternUnit  = 2:r2[5],2:4[1]/r4:r2[1]
+    VcxPatternUnit    = vg,1:3/5:7/9:11/13:15/17:19/21:23,7;vt,0:r0[3]/1:r0[3]/2:r0[3],17
+    LO1ActiveTracks   = 17
+    HI1ActiveTracks   = 7
+    DrawMiscIDsUnit   = diffnativeETE,id,-3:27,3:3,0,0,-0.01705,-0.01745;diffnativeETE,id,-3:27,4:4,0,0,-0.0175,-0.017;nlvt,id,-3:27,3:4,0,0,0,0;
+
+[G] CTG<CH>-<MOS><Z>-<VT>-G:DNU:OGD:REF:NDPI_2TRK  rows=1  FailModes=21600
+    ex: CTG165-PZ7-L-G:DNU:OGD:REF:NDPI_2TRK | SDR CTGOGD, P-Diff, Based on type a, 2 Diff tracks  depop
+    notes: type G is a fail-mode variant; SDR (type A) overlap=2 used per slide 4
+    BufferSizeL       = 10
+    BufferSizeR       = 10
+    FTITracksUnit     = 0:24[3],2:5
+    FTITracksGlobal   = 0/7/r7/r0,0:r0;
+    PolyPlugsUnit     = 1:3/5:7/9:11/13:15/17:19/21:23,3/4
+    TcnPlugsUnit      = 0:r0,4/5
+    M0CutPatternUnit  = 2:r2[5],2:4[1]/r4:r2[1]
+    VcxPatternUnit    = vg,1:3/5:7/9:11/13:15/17:19/21:23,7;vt,0:r0[3]/1:r0[3]/2:r0[3],17
+    LO1ActiveTracks   = 17
+    HI1ActiveTracks   = 7
+    DrawMiscIDsUnit   = diffnativeETE,id,-3:27,3:3,0,0,-0.01705,-0.01745;diffnativeETE,id,-3:27,4:4,0,0,-0.0175,-0.017;plvt,id,-3:27,3:4,0,0,0,0;sdGen,drawing,-3:27,3:4,0,0,0
+
+[G] CTG<CH>-<MOS><Z>-<VT>-G:DNU:OGD:REF:NDPI_4TRK  rows=1  FailModes=21600
+    ex: CTG165-NZ7-L-G:DNU:OGD:REF:NDPI_4TRK | SDR CTGOGD, N-Diff, Based on type d, 4 Diff tracks  depop
+    notes: type G is a fail-mode variant; SDR (type A) overlap=2 used per slide 4
+    BufferSizeL       = 10
+    BufferSizeR       = 10
+    FTITracksUnit     = 0:24[3],2:5
+    FTITracksGlobal   = 0/7/r7/r0,0:r0;
+    M0CutPatternUnit  = 2:r2[5],2:4[1]/r4:r2[1]
+    VcxPatternUnit    = vg,1:3/5:7/9:11/13:15/17:19/21:23,8-bottom/10/14-bottom/16;vt,0:r0[3]/1:r0[3]/2:r0[3],7/11/13/17
+    LO1ActiveTracks   = 7;11;13;17
+    HI1ActiveTracks   = 8;10;14;16
+    DrawMiscIDsUnit   = diffnativeETE,id,-3:27,2:2,0,0,-0.01754,-0.01695;diffnativeETE,id,-3:27,3:3,0,0,-0.01705,-0.01745;diffnativeETE,id,-3:27,4:4,0,0,-0.0175,-0.017;;diffn
+
+[G] CTG<CH>-<MOS><Z>-<VT>-G:DNU:OGD:REF:NDPI_4TRK  rows=1  FailModes=21600
+    ex: CTG165-PZ7-L-G:DNU:OGD:REF:NDPI_4TRK | SDR CTGOGD, N-Diff, Based on type d, 4 Diff tracks  depop
+    notes: type G is a fail-mode variant; SDR (type A) overlap=2 used per slide 4
+    BufferSizeL       = 10
+    BufferSizeR       = 10
+    FTITracksUnit     = 0:24[3],2:5
+    FTITracksGlobal   = 0/7/r7/r0,0:r0;
+    M0CutPatternUnit  = 2:r2[5],2:4[1]/r4:r2[1]
+    VcxPatternUnit    = vg,1:3/5:7/9:11/13:15/17:19/21:23,8-bottom/10/14-bottom/16;vt,0:r0[3]/1:r0[3]/2:r0[3],7/11/13/17
+    LO1ActiveTracks   = 7;11;13;17
+    HI1ActiveTracks   = 8;10;14;16
+    DrawMiscIDsUnit   = diffnativeETE,id,-3:27,2:2,0,0,-0.01754,-0.01695;diffnativeETE,id,-3:27,3:3,0,0,-0.01705,-0.01745;diffnativeETE,id,-3:27,4:4,0,0,-0.0175,-0.017;;diffn
+
+[G] CTG<CH>-<MOS><Z>-<VT>-G:DNU:OGD:REF:BEPI_2TRK  rows=2  FailModes=21600
+    ex: CTG165-NZ7-L-G:DNU:OGD:REF:BEPI_2TRK | SDR CTGOGD, N-Diff, Based on type a, 2 Diff tracks Block EPI
+    notes: type G is a fail-mode variant; SDR (type A) overlap=2 used per slide 4
+    BufferSizeL       = 4
+    BufferSizeR       = 4
+    FTITracksUnit     = 0:24[3],2:5
+    FTITracksGlobal   = 0/2/r2/r0,0:r0;
+    PolyPlugsUnit     = 1:3/5:7/9:11/13:15/17:19/21:23,3/4
+    TcnPlugsUnit      = 0:r0,4/5
+    M0CutPatternUnit  = 2:r2[5],2:4[1]/r4:r2[1]
+    VcxPatternUnit    = vg,1:3/5:7/9:11/13:15/17:19/21:23,8;vt,0:r0[3]/1:r0[3]/2:r0[3],17
+    LO1ActiveTracks   = 17
+    HI1ActiveTracks   = 8
+    DrawMiscIDsUnit   = ESD_mask,toSynDrawing,-2:26,3:4;ESD_mask,TSDRActiveimplant,-2:26,3:4;NES_mask,toSynDrawing,-2:26,3:4;NES_mask,TSDRActiveimplant,-2:26,3:4
+
+[G] CTG<CH>-<MOS><Z>-<VT>-G:DNU:OGD:REF:BEPI_4TRK  rows=2  FailModes=21600
+    ex: CTG165-NZ7-L-G:DNU:OGD:REF:BEPI_4TRK | SDR CTGOGD, N-Diff, Based on type d, 4  Diff tracks Block EPI
+    notes: type G is a fail-mode variant; SDR (type A) overlap=2 used per slide 4
+    BufferSizeL       = 4
+    BufferSizeR       = 4
+    FTITracksUnit     = 0:24[3],2:5
+    FTITracksGlobal   = 0/2/r2/r0,0:r0;
+    M0CutPatternUnit  = 2:r2[5],2:4[1]/r4:r2[1]
+    VcxPatternUnit    = vg,1:3/5:7/9:11/13:15/17:19/21:23,8-bottom/10/14-bottom/16;vt,0:r0[3]/1:r0[3]/2:r0[3],7/11/13/17
+    LO1ActiveTracks   = 7;11;13;17
+    HI1ActiveTracks   = 8;10;14;16
+    DrawMiscIDsUnit   = ESD_mask,toSynDrawing,-2:26,2:5;ESD_mask,TSDRActiveImplant,-2:26,2:5;NES_mask,toSynDrawing,-2:26,2:5;NES_mask,TSDRActiveImplant,-2:26,2:5
+
+[A] CTG<CH>-<MOS><Z>-<VT>-A:PLYFSPCR:OGD:CD:<SKEW>  rows=24  FailModes=21600
+    ex: CTG110-NZ1-L-A:PLYFSPCR:OGD:CD:N2 | Poly OGD CD -2nm, w/ fixed SPCR, N-Diff, type a
+    BufferSizeL       = 4
+    BufferSizeR       = 4
+    FTITracksUnit     = 0:24[3],2:5
+    FTITracksGlobal   = 0/2/r2/r0,0:r0;
+    PolyPlugsUnit     = 1:3/5:7/9:11/13:15/17:19/21:23,3/4
+    TcnPlugsUnit      = 0:r0,4/5
+    M0CutPatternUnit  = 2:r2[7],1:3[1]/r3:r1[1];
+    VcxPatternUnit    = vg,1:3/5:7/9:11/13:15/17:19/21:23,6;vt,0:r0[3],14;vt,1:r0[3],14;vt,2:r0[3],14;
+    LO1ActiveTracks   = 14
+    HI1ActiveTracks   = 6
+
+[A] CTG<CH>-<MOS><Z>-<VT>-A:PLYFSPCR:OGD:CD:0  rows=6  FailModes=21600
+    ex: CTG110-NZ1-L-A:PLYFSPCR:OGD:CD:0 | Poly OGD CD w/ fixed SPCR, N-Diff, type a
+    BufferSizeL       = 4
+    BufferSizeR       = 4
+    FTITracksUnit     = 0:24[3],2:5
+    FTITracksGlobal   = 0/2/r2/r0,0:r0;
+    PolyPlugsUnit     = 1:3/5:7/9:11/13:15/17:19/21:23,3/4
+    TcnPlugsUnit      = 0:r0,4/5
+    M0CutPatternUnit  = 2:r2[7],1:3[1]/r3:r1[1];
+    VcxPatternUnit    = vg,1:3/5:7/9:11/13:15/17:19/21:23,6;vt,0:r0[3],14;vt,1:r0[3],14;vt,2:r0[3],14;
+    LO1ActiveTracks   = 14
+    HI1ActiveTracks   = 6
+
+[A] CTG<CH>-<MOS><Z>-<VT>-A:PLYFTCN:OGD:CD:<SKEW>  rows=36  FailModes=21600
+    ex: CTG110-NZ1-H-A:PLYFTCN:OGD:CD:N2 | Poly OGD CD -2nm, w/ fixed TCN, N-Diff, type a
+    BufferSizeL       = 4
+    BufferSizeR       = 4
+    FTITracksUnit     = 0:24[3],2:5
+    FTITracksGlobal   = 0/2/r2/r0,0:r0;
+    PolyPlugsUnit     = 1:3/5:7/9:11/13:15/17:19/21:23,3/4
+    TcnPlugsUnit      = 0:r0,4/5
+    M0CutPatternUnit  = 2:r2[7],1:3[1]/r3:r1[1];
+    VcxPatternUnit    = vg,1:3/5:7/9:11/13:15/17:19/21:23,6;vt,0:r0[3],14;vt,1:r0[3],14;vt,2:r0[3],14;
+    LO1ActiveTracks   = 14
+    HI1ActiveTracks   = 6
+
+[A] CTG<CH>-<MOS><Z>-<VT>-A:PLYFTCN:OGD:CD:0  rows=18  FailModes=21600
+    ex: CTG110-NZ1-H-A:PLYFTCN:OGD:CD:0 | Poly OGD CD w/ fixed TCN, N-Diff, type a
+    BufferSizeL       = 4
+    BufferSizeR       = 4
+    FTITracksUnit     = 0:24[3],2:5
+    FTITracksGlobal   = 0/2/r2/r0,0:r0;
+    PolyPlugsUnit     = 1:3/5:7/9:11/13:15/17:19/21:23,3/4
+    TcnPlugsUnit      = 0:r0,4/5
+    M0CutPatternUnit  = 2:r2[7],1:3[1]/r3:r1[1];
+    VcxPatternUnit    = vg,1:3/5:7/9:11/13:15/17:19/21:23,6;vt,0:r0[3],14;vt,1:r0[3],14;vt,2:r0[3],14;
+    LO1ActiveTracks   = 14
+    HI1ActiveTracks   = 6
+
+[E] CTG<CH>-<MOS><Z>-<VT>-E:VCR:PGD:REG:<SKEW>  rows=24  FailModes=21600
+    ex: CTG165-NZ7-L-E:VCR:PGD:REG:N8 | SDR CTGOGD, VCR between N-Diff, type e, VCR PGD Reg skew (-8), closer to TCN
+    notes: type E is a fail-mode variant; SDR (type A) overlap=2 used per slide 4
+    BufferSizeL       = 4
+    BufferSizeR       = 4
+    FTITracksUnit     = 0:24[3],2:5
+    FTITracksGlobal   = 0/2/r2/r0,0:r0;
+    PolyPlugsUnit     = 1:3/5:7/9:11/13:15/17:19/21:23,3/5
+    TcnPlugsUnit      = 0:r0,3/5
+    VcrPatternUnit    = -1:r-1,1|<shift>;-1:r-1,3|<shift>;
+    TcnExtensionUnit  = 0:r0[3],1/3;1:r0[3],1/3;2:r0[3],1/3
+    M0CutPatternUnit  = 2:r2[5],2/4/r4/r2;
+    VcxPatternUnit    = vg,1:3/5:7/9:11/13:15/17:19/21:23,11/13;vt,0:r0[3],8/16;vt,1:r0[3],8/16;vt,2:r0[3],8/16
+    LO1ActiveTracks   = 8;16
+    HI1ActiveTracks   = 11;13
+
+[E] CTG<CH>-<MOS><Z>-<VT>-E:VCR:PGD:REG:0  rows=3  FailModes=21600
+    ex: CTG165-NZ7-L-E:VCR:PGD:REG:0 | SDR CTGOGD, VCR between N-Diff, type e, VCR PGD Reg skew with SGNL TCN
+    notes: type E is a fail-mode variant; SDR (type A) overlap=2 used per slide 4
+    BufferSizeL       = 4
+    BufferSizeR       = 4
+    FTITracksUnit     = 0:24[3],2:5
+    FTITracksGlobal   = 0/2/r2/r0,0:r0;
+    PolyPlugsUnit     = 1:3/5:7/9:11/13:15/17:19/21:23,3/5
+    TcnPlugsUnit      = 0:r0,3/5
+    VcrPatternUnit    = -1:r-1,1|<shift>;-1:r-1,3|<shift>;
+    TcnExtensionUnit  = 0:r0[3],1/3;1:r0[3],1/3;2:r0[3],1/3
+    M0CutPatternUnit  = 2:r2[5],2/4/r4/r2;
+    VcxPatternUnit    = vg,1:3/5:7/9:11/13:15/17:19/21:23,11/13;vt,0:r0[3],8/16;vt,1:r0[3],8/16;vt,2:r0[3],8/16
+    LO1ActiveTracks   = 8;16
+    HI1ActiveTracks   = 11;13
+
+[E] CTG<CH>-<MOS><Z>-<VT>-E:VCR:PGD:REG:<SKEW>  rows=48  FailModes=21600
+    ex: CTG132-NZ5-L-E:VCR:PGD:REG:N8 | SDR CTGOGD, VCR between N-Diff, type e, VCR PGD Reg skew (-8), closer to TCN
+    notes: type E is a fail-mode variant; SDR (type A) overlap=2 used per slide 4
+    BufferSizeL       = 4
+    BufferSizeR       = 4
+    FTITracksUnit     = 0:24[3],2:5
+    FTITracksGlobal   = 0/2/r2/r0,0:r0;
+    PolyPlugsUnit     = 1:3/5:7/9:11/13:15/17:19/21:23,3/5
+    TcnPlugsUnit      = 0:r0,3/5
+    VcrPatternUnit    = -1:r-1,1|<shift>;-1:r-1,3|<shift>;
+    TcnExtensionUnit  = 0:r0[3],1/3;1:r0[3],1/3;2:r0[3],1/3
+    M0CutPatternUnit  = 2:r2[5],1:3[1]/r3:r1[1]
+    VcxPatternUnit    = vg,1:3/5:7/9:11/13:15/17:19/21:23,9/11;vt,0:r0[3],7/13;vt,1:r0[3],7/13;vt,2:r0[3],7/13
+    LO1ActiveTracks   = 7;13
+    HI1ActiveTracks   = 9;11
+
+[E] CTG<CH>-<MOS><Z>-<VT>-E:VCR:PGD:REG:0  rows=6  FailModes=21600
+    ex: CTG132-NZ5-L-E:VCR:PGD:REG:0 | SDR CTGOGD, VCR between N-Diff, type e, VCR PGD Reg skew with SGNL TCN
+    notes: type E is a fail-mode variant; SDR (type A) overlap=2 used per slide 4
+    BufferSizeL       = 4
+    BufferSizeR       = 4
+    FTITracksUnit     = 0:24[3],2:5
+    FTITracksGlobal   = 0/2/r2/r0,0:r0;
+    PolyPlugsUnit     = 1:3/5:7/9:11/13:15/17:19/21:23,3/5
+    TcnPlugsUnit      = 0:r0,3/5
+    VcrPatternUnit    = -1:r-1,1|<shift>;-1:r-1,3|<shift>;
+    TcnExtensionUnit  = 0:r0[3],1/3;1:r0[3],1/3;2:r0[3],1/3
+    M0CutPatternUnit  = 2:r2[5],1:3[1]/r3:r1[1]
+    VcxPatternUnit    = vg,1:3/5:7/9:11/13:15/17:19/21:23,9/11;vt,0:r0[3],7/13;vt,1:r0[3],7/13;vt,2:r0[3],7/13
+    LO1ActiveTracks   = 7;13
+    HI1ActiveTracks   = 9;11
+
+[F] CTG<CH>-<MOS><Z>-<VT>-F:VCRNUB:OGD:REG:<SKEW>  rows=36  FailModes=21600
+    ex: CTG132-NZ5-L-F:VCRNUB:OGD:REG:N10 | SDR CTGOGD, VCR between N-Diff, type f, -10nm VCRNUB OGD Reg skew _Version2
+    notes: type F is a fail-mode variant; SDR (type A) overlap=2 used per slide 4
+    BufferSizeL       = 4
+    BufferSizeR       = 4
+    FTITracksUnit     = 0:24[3],2:5
+    FTITracksGlobal   = 0/2/r2/r0,0:r0;
+    PolyPlugsUnit     = 1:3/5:7/9:11/13:15/17:19/21:23,3/5
+    TcnPlugsUnit      = 0:r0,3/5
+    VcrPatternUnit    = -2:r-2,1/3|<shift>
+    VcrnubPatternUnit = 1:2/5:6/9:10/13:14/17:18/21:22,1,top|<shift>;1:2/5:6/9:10/13:14/17:18/21:22,3,bottom|<shift>
+    TcnExtensionUnit  = 1:2/5:6/9:10/13:14/17:18/21:22,1/3
+    M0CutPatternUnit  = 2:r2[5],1:3[1]/r3:r1[1]
+    VcxPatternUnit    = vg,1:3/5:7/9:11/13:15/17:19/21:23,9/11;vt,0:r0[3],7/13;vt,1:r0[3],7/13;vt,2:r0[3],7/13
+    LO1ActiveTracks   = 7;13
+    HI1ActiveTracks   = 9;11
+
+[F] CTG<CH>-<MOS><Z>-<VT>-F:VCRNUB:OGD:REG:0  rows=6  FailModes=21600
+    ex: CTG132-NZ5-L-F:VCRNUB:OGD:REG:0 | SDR CTGOGD, VCR between N-Diff, type f, 0nm VCRNUB OGD Reg skew _Version2
+    notes: type F is a fail-mode variant; SDR (type A) overlap=2 used per slide 4
+    BufferSizeL       = 4
+    BufferSizeR       = 4
+    FTITracksUnit     = 0:24[3],2:5
+    FTITracksGlobal   = 0/2/r2/r0,0:r0;
+    PolyPlugsUnit     = 1:3/5:7/9:11/13:15/17:19/21:23,3/5
+    TcnPlugsUnit      = 0:r0,3/5
+    VcrPatternUnit    = -2:r-2,1/3|<shift>
+    VcrnubPatternUnit = 1:2/5:6/9:10/13:14/17:18/21:22,1,top|<shift>;1:2/5:6/9:10/13:14/17:18/21:22,3,bottom|<shift>
+    TcnExtensionUnit  = 1:2/5:6/9:10/13:14/17:18/21:22,1/3
+    M0CutPatternUnit  = 2:r2[5],1:3[1]/r3:r1[1]
+    VcxPatternUnit    = vg,1:3/5:7/9:11/13:15/17:19/21:23,9/11;vt,0:r0[3],7/13;vt,1:r0[3],7/13;vt,2:r0[3],7/13
+    LO1ActiveTracks   = 7;13
+    HI1ActiveTracks   = 9;11
+
+[F] CTG<CH>-<MOS><Z>-<VT>-F:VCRNUB:OGD:CD:<SKEW>  rows=15  FailModes=21600
+    ex: CTG165-NZ7-L-F:VCRNUB:OGD:CD:N32 | SDR CTGOGD, VCR between N-Diff, type f, -32nm VCRNUB OGD CD skew _Version2
+    notes: type F is a fail-mode variant; SDR (type A) overlap=2 used per slide 4
+    BufferSizeL       = 4
+    BufferSizeR       = 4
+    FTITracksUnit     = 0:24[3],2:5
+    FTITracksGlobal   = 0/2/r2/r0,0:r0;
+    PolyPlugsUnit     = 1:3/5:7/9:11/13:15/17:19/21:23,3/5
+    TcnPlugsUnit      = 0:r0,3/5
+    VcrPatternUnit    = -2:r-2,1/3|<shift>
+    VcrnubPatternUnit = 1:2/5:6/9:10/13:14/17:18/21:22,1,top|<shift>;1:2/5:6/9:10/13:14/17:18/21:22,3,bottom|<shift>
+    TcnExtensionUnit  = 1:2/5:6/9:10/13:14/17:18/21:22,1/3
+    M0CutPatternUnit  = 2:r2[5],2/4/r4/r2;
+    VcxPatternUnit    = vg,1:3/5:7/9:11/13:15/17:19/21:23,11/13;vt,0:r0[3],8/16;vt,1:r0[3],8/16;vt,2:r0[3],8/16
+    LO1ActiveTracks   = 8;16
+    HI1ActiveTracks   = 11;13
+
+[F] CTG<CH>-<MOS><Z>-<VT>-F:VCRNUB:OGD:CD:0  rows=3  FailModes=21600
+    ex: CTG165-NZ7-L-F:VCRNUB:OGD:CD:0 | SDR CTGOGD, VCR between N-Diff, type f, 0nm VCRNUB OGD CD skew _Version2
+    notes: type F is a fail-mode variant; SDR (type A) overlap=2 used per slide 4
+    BufferSizeL       = 4
+    BufferSizeR       = 4
+    FTITracksUnit     = 0:24[3],2:5
+    FTITracksGlobal   = 0/2/r2/r0,0:r0;
+    PolyPlugsUnit     = 1:3/5:7/9:11/13:15/17:19/21:23,3/5
+    TcnPlugsUnit      = 0:r0,3/5
+    VcrPatternUnit    = -2:r-2,1/3|<shift>
+    VcrnubPatternUnit = 1:2/5:6/9:10/13:14/17:18/21:22,1,top|<shift>;1:2/5:6/9:10/13:14/17:18/21:22,3,bottom|<shift>
+    TcnExtensionUnit  = 1:2/5:6/9:10/13:14/17:18/21:22,1/3
+    M0CutPatternUnit  = 2:r2[5],2/4/r4/r2;
+    VcxPatternUnit    = vg,1:3/5:7/9:11/13:15/17:19/21:23,11/13;vt,0:r0[3],8/16;vt,1:r0[3],8/16;vt,2:r0[3],8/16
+    LO1ActiveTracks   = 8;16
+    HI1ActiveTracks   = 11;13
+
+[F] CTG<CH>-<MOS><Z>-<VT>-F:VCRNUB:OGD:CD:<SKEW>  rows=30  FailModes=21600
+    ex: CTG132-NZ5-L-F:VCRNUB:OGD:CD:N32 | SDR CTGOGD, VCR between N-Diff, type f, -32nm VCRNUB OGD CD skew _Version2
+    notes: type F is a fail-mode variant; SDR (type A) overlap=2 used per slide 4
+    BufferSizeL       = 4
+    BufferSizeR       = 4
+    FTITracksUnit     = 0:24[3],2:5
+    FTITracksGlobal   = 0/2/r2/r0,0:r0;
+    PolyPlugsUnit     = 1:3/5:7/9:11/13:15/17:19/21:23,3/5
+    TcnPlugsUnit      = 0:r0,3/5
+    VcrPatternUnit    = -2:r-2,1/3|<shift>
+    VcrnubPatternUnit = 1:2/5:6/9:10/13:14/17:18/21:22,1,top|<shift>;1:2/5:6/9:10/13:14/17:18/21:22,3,bottom|<shift>
+    TcnExtensionUnit  = 1:2/5:6/9:10/13:14/17:18/21:22,1/3
+    M0CutPatternUnit  = 2:r2[5],1:3[1]/r3:r1[1]
+    VcxPatternUnit    = vg,1:3/5:7/9:11/13:15/17:19/21:23,9/11;vt,0:r0[3],7/13;vt,1:r0[3],7/13;vt,2:r0[3],7/13
+    LO1ActiveTracks   = 7;13
+    HI1ActiveTracks   = 9;11
+
+[F] CTG<CH>-<MOS><Z>-<VT>-F:VCRNUB:OGD:CD:0  rows=6  FailModes=21600
+    ex: CTG132-NZ5-L-F:VCRNUB:OGD:CD:0 | SDR CTGOGD, VCR between N-Diff, type f, 0nm VCRNUB OGD CD skew _Version2
+    notes: type F is a fail-mode variant; SDR (type A) overlap=2 used per slide 4
+    BufferSizeL       = 4
+    BufferSizeR       = 4
+    FTITracksUnit     = 0:24[3],2:5
+    FTITracksGlobal   = 0/2/r2/r0,0:r0;
+    PolyPlugsUnit     = 1:3/5:7/9:11/13:15/17:19/21:23,3/5
+    TcnPlugsUnit      = 0:r0,3/5
+    VcrPatternUnit    = -2:r-2,1/3|<shift>
+    VcrnubPatternUnit = 1:2/5:6/9:10/13:14/17:18/21:22,1,top|<shift>;1:2/5:6/9:10/13:14/17:18/21:22,3,bottom|<shift>
+    TcnExtensionUnit  = 1:2/5:6/9:10/13:14/17:18/21:22,1/3
+    M0CutPatternUnit  = 2:r2[5],1:3[1]/r3:r1[1]
+    VcxPatternUnit    = vg,1:3/5:7/9:11/13:15/17:19/21:23,9/11;vt,0:r0[3],7/13;vt,1:r0[3],7/13;vt,2:r0[3],7/13
+    LO1ActiveTracks   = 7;13
+    HI1ActiveTracks   = 9;11

@@ -1,0 +1,74 @@
+families: {'CTG': 50, 'DIFFCHN': 62, 'DIFFOGD': 10, 'EPIEPI': 78, 'TCNTCN': 36, 'GATEGATE': 25, 'VIA_CHAIN': 369}
+
+##############################################################################################################
+# DIFFOGD: 10 variants; differing columns: ['FTITracksUnit', 'TcnPlugsUnit', 'VcxPatternUnit']
+
+[A] DIFFOGD<CH>-<MOS><Z>-<VT>-A:FTIML:SDR  rows=6  FailModes=8400
+    ex: DIFFOGD132-N46-L-A:FTIML:SDR | DiffOGD CH132, Z5 - 46nm, Ndiff, LVT, pp44, 1FC FTI, SDR Reference
+    notes: 1 unit-boundary FTI column(s) excluded from active FTI count
+    FTITracksUnit     = 0,0:7;3/6/9/12/15/18/21,2:3;3/6/9/12/15/18/21,6:7;
+    TcnPlugsUnit      = 2/3/5/6/8/9/11/12/14/15/17/18/20/21,3/7
+    VcxPatternUnit    = vt,2/6/8/12/14/18/20,6/16;vt,3/5/9/11/15/17/21,9/19
+
+[A] DIFFOGD<CH>-<MOS><Z>-<VT>-A:FTIML:OGD:CD:<SKEW>  rows=60  FailModes=8400
+    ex: DIFFOGD132-N46-L-A:FTIML:OGD:CD:N5 | DiffOGD CH132, Z5 - 46nm, Ndiff, LVT, pp44, 1FC FTI, CD skew -5 in OGD
+    notes: 1 unit-boundary FTI column(s) excluded from active FTI count
+    FTITracksUnit     = 0,0:7;3/6/9/12/15/18/21,2:3;3/6/9/12/15/18/21,6:7;
+    TcnPlugsUnit      = 2/3/5/6/8/9/11/12/14/15/17/18/20/21,3/7
+    VcxPatternUnit    = vt,2/6/8/12/14/18/20,6/16;vt,3/5/9/11/15/17/21,9/19
+
+[A] DIFFOGD<CH>-<MOS><Z>-<VT>-A:FTIML:PGD:CD:<SKEW>  rows=60  FailModes=8400
+    ex: DIFFOGD132-N46-L-A:FTIML:PGD:CD:N5 | DiffOGD CH132, Z5 - 46nm, Ndiff, LVT, pp44, 1FC FTI, CD skew -5 in PGD
+    notes: 1 unit-boundary FTI column(s) excluded from active FTI count
+    FTITracksUnit     = 0,0:7;3/6/9/12/15/18/21,2:3;3/6/9/12/15/18/21,6:7;
+    TcnPlugsUnit      = 2/3/5/6/8/9/11/12/14/15/17/18/20/21,3/7
+    VcxPatternUnit    = vt,2/6/8/12/14/18/20,6/16;vt,3/5/9/11/15/17/21,9/19
+
+[A] DIFFOGD<CH>-<MOS><Z>-<VT>-A:FTIML:OGD:REG:<SKEW>  rows=36  FailModes=8400
+    ex: DIFFOGD132-N46-L-A:FTIML:OGD:REG:N6 | DiffOGD CH132, Z5 - 46nm, Ndiff, LVT, pp44, 1FC FTI, REG skew -6 in OGD
+    notes: 1 unit-boundary FTI column(s) excluded from active FTI count
+    FTITracksUnit     = 0,0:7;3/6/9/12/15/18/21,2:3;3/6/9/12/15/18/21,6:7;
+    TcnPlugsUnit      = 2/3/5/6/8/9/11/12/14/15/17/18/20/21,3/7
+    VcxPatternUnit    = vt,2/6/8/12/14/18/20,6/16;vt,3/5/9/11/15/17/21,9/19
+
+[A] DIFFOGD<CH>-<MOS><Z>-<VT>-A:FTIML:PGD:REG:<SKEW>  rows=34  FailModes=8400
+    ex: DIFFOGD132-N46-L-A:FTIML:PGD:REG:N6 | DiffOGD CH132, Z5 - 46nm, Ndiff, LVT, pp44, 1FC FTI, REG skew -6 in PGD
+    notes: 1 unit-boundary FTI column(s) excluded from active FTI count
+    FTITracksUnit     = 0,0:7;3/6/9/12/15/18/21,2:3;3/6/9/12/15/18/21,6:7;
+    TcnPlugsUnit      = 2/3/5/6/8/9/11/12/14/15/17/18/20/21,3/7
+    VcxPatternUnit    = vt,2/6/8/12/14/18/20,6/16;vt,3/5/9/11/15/17/21,9/19
+
+[A] DIFFOGD<CH>-<MOS><Z>-<VT>-A:FTISL:SDR  rows=3  FailModes=4200
+    ex: DIFFOGD132-N46-L-A:FTISL:SDR | DiffOGD CH132, Z5 - 46nm, Ndiff, LVT, pp44, HC FTI, SDR Reference
+    notes: 1 unit-boundary FTI column(s) excluded from active FTI count
+    FTITracksUnit     = 0,0:7;3/6/9/12/15/18/21,3;3/6/9/12/15/18/21,7;
+    TcnPlugsUnit      = 3/5/9/11/15/17/21,3/7
+    VcxPatternUnit    = vt,3/5/9/11/15/17/21,6/16;vt,2/6/8/12/14/18/20,9/19
+
+[A] DIFFOGD<CH>-<MOS><Z>-<VT>-A:FTISL:OGD:CD:<SKEW>  rows=30  FailModes=4200
+    ex: DIFFOGD132-N46-L-A:FTISL:OGD:CD:N5 | DiffOGD CH132, Z5 - 46nm, Ndiff, LVT, pp44, HC FTI, CD skew -5 in OGD
+    notes: 1 unit-boundary FTI column(s) excluded from active FTI count
+    FTITracksUnit     = 0,0:7;3/6/9/12/15/18/21,3;3/6/9/12/15/18/21,7;
+    TcnPlugsUnit      = 3/5/9/11/15/17/21,3/7
+    VcxPatternUnit    = vt,3/5/9/11/15/17/21,6/16;vt,2/6/8/12/14/18/20,9/19
+
+[A] DIFFOGD<CH>-<MOS><Z>-<VT>-A:FTISL:PGD:CD:<SKEW>  rows=30  FailModes=4200
+    ex: DIFFOGD132-N46-L-A:FTISL:PGD:CD:N5 | DiffOGD CH132, Z5 - 46nm, Ndiff, LVT, pp44, HC FTI, CD skew -5 in PGD
+    notes: 1 unit-boundary FTI column(s) excluded from active FTI count
+    FTITracksUnit     = 0,0:7;3/6/9/12/15/18/21,3;3/6/9/12/15/18/21,7;
+    TcnPlugsUnit      = 3/5/9/11/15/17/21,3/7
+    VcxPatternUnit    = vt,3/5/9/11/15/17/21,6/16;vt,2/6/8/12/14/18/20,9/19
+
+[A] DIFFOGD<CH>-<MOS><Z>-<VT>-A:FTISL:OGD:REG:<SKEW>  rows=18  FailModes=4200
+    ex: DIFFOGD132-N46-L-A:FTISL:OGD:REG:N6 | DiffOGD CH132, Z5 - 46nm, Ndiff, LVT, pp44, HC FTI, REG skew -6 in OGD
+    notes: 1 unit-boundary FTI column(s) excluded from active FTI count
+    FTITracksUnit     = 0,0:7;3/6/9/12/15/18/21,3;3/6/9/12/15/18/21,7;
+    TcnPlugsUnit      = 3/5/9/11/15/17/21,3/7
+    VcxPatternUnit    = vt,3/5/9/11/15/17/21,6/16;vt,2/6/8/12/14/18/20,9/19
+
+[A] DIFFOGD<CH>-<MOS><Z>-<VT>-A:FTISL:PGD:REG:<SKEW>  rows=17  FailModes=4200
+    ex: DIFFOGD132-N46-L-A:FTISL:PGD:REG:N6 | DiffOGD CH132, Z5 - 46nm, Ndiff, LVT, pp44, HC FTI, REG skew -6 in PGD
+    notes: 1 unit-boundary FTI column(s) excluded from active FTI count
+    FTITracksUnit     = 0,0:7;3/6/9/12/15/18/21,3;3/6/9/12/15/18/21,7;
+    TcnPlugsUnit      = 3/5/9/11/15/17/21,3/7
+    VcxPatternUnit    = vt,3/5/9/11/15/17/21,6/16;vt,2/6/8/12/14/18/20,9/19

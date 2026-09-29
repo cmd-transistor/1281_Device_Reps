@@ -1,0 +1,414 @@
+# DIFFCHN: 62 variants; differing columns: ['ArraySizePgd', 'FTITracksUnit', 'PolyPlugsUnit', 'TcnPlugsUnit', 'M0CutPatternUnit', 'VcxPatternUnit', 'LO1ActiveTracks', 'HI1ActiveTracks', 'DrawMiscIDsUnit']
+[B] DIFFCHN<CH>-<MOS><Z>-<VT>-B-STKx1FLEN<n>-SDR:Z:REF:NOM  rows=4  FailModes=48
+    ex: DIFFCHN132-NZ5-L-B-STKx1FLEN24-SDR:Z:REF:NOM | 
+    notes: name says LEN24 but 48 active VG gates in series (stacked)
+    FTITracksUnit     = 0/50,0:7;5:48[3],2:3;3:50[3],4:5;
+    VcxPatternUnit    = vg,2:r3[3],9;vg,3:r2[3],9;vg,4:r2[3],14;vg,5:r1[3],14;vt,1,6;vt,r0,11;
+    LO1ActiveTracks   = 6
+    HI1ActiveTracks   = 11;9;14
+[B] DIFFCHN<CH>-<MOS><Z>-<VT>-B-STKx2FLEN<n>-SDR:Z:REF:NOM  rows=4  FailModes=48
+    ex: DIFFCHN132-NZ5-L-B-STKx2FLEN24-SDR:Z:REF:NOM | 
+    notes: name says LEN24 but 48 active VG gates in series (stacked)
+    FTITracksUnit     = 0/50,0:7;5:48[3],2:3;4:48[3],2:3;3:50[3],4:5;2:50[3],4:5;
+    VcxPatternUnit    = vg,2:r3[3],9;vg,3:r2[3],9;vg,4:r2[3],14;vg,5:r1[3],14;vt,1,6;vt,r0,11;
+    LO1ActiveTracks   = 6
+    HI1ActiveTracks   = 11;9;14
+[B] DIFFCHN<CH>-<MOS><Z>-<VT>-B-STKx1FLEN<n>-SDR:Z:REF:NOM  rows=4  FailModes=32
+    ex: DIFFCHN132-NZ5-L-B-STKx1FLEN16-SDR:Z:REF:NOM | 
+    notes: name says LEN16 but 32 active VG gates in series (stacked)
+    FTITracksUnit     = 0/50,0:7;5:48[3],2:3;3:50[3],4:5;
+    VcxPatternUnit    = vg,10:r11[3],9;vg,11:r10[3],9;vg,12:r8[3],14;vg,13:r9[3],14;vt,9,6;vt,r8,11;
+    LO1ActiveTracks   = 6
+    HI1ActiveTracks   = 11;9;14
+[B] DIFFCHN<CH>-<MOS><Z>-<VT>-B-STKx2FLEN<n>-SDR:Z:REF:NOM  rows=4  FailModes=32
+    ex: DIFFCHN132-NZ5-L-B-STKx2FLEN16-SDR:Z:REF:NOM | 
+    notes: name says LEN16 but 32 active VG gates in series (stacked)
+    FTITracksUnit     = 0/50,0:7;5:48[3],2:3;4:48[3],2:3;3:50[3],4:5;2:50[3],4:5;
+    VcxPatternUnit    = vg,10:r11[3],9;vg,11:r10[3],9;vg,12:r8[3],14;vg,13:r9[3],14;vt,9,6;vt,r8,11;
+    LO1ActiveTracks   = 6
+    HI1ActiveTracks   = 11;9;14
+[B] DIFFCHN<CH>-<MOS><Z>-<VT>-B-STKx1FLEN<n>-SDR:Z:REF:NOM  rows=8  FailModes=16
+    ex: DIFFCHN132-NZ5-L-B-STKx1FLEN8-SDR:Z:REF:NOM | 
+    notes: name says LEN8 but 16 active VG gates in series (stacked)
+    FTITracksUnit     = 0/50,0:7;5:48[3],2:3;3:50[3],4:5;
+    VcxPatternUnit    = vg,18:r19[3],9;vg,19:r19[3],9;vg,20:r16[3],14;vg,21:r17[3],14;vt,17,6;vt,r16,11;
+    LO1ActiveTracks   = 6
+    HI1ActiveTracks   = 11;9;14
+[B] DIFFCHN<CH>-<MOS><Z>-<VT>-B-STKx2FLEN<n>-SDR:Z:REF:NOM  rows=8  FailModes=16
+    ex: DIFFCHN132-NZ5-L-B-STKx2FLEN8-SDR:Z:REF:NOM | 
+    notes: name says LEN8 but 16 active VG gates in series (stacked)
+    FTITracksUnit     = 0/50,0:7;5:48[3],2:3;4:48[3],2:3;3:50[3],4:5;2:50[3],4:5;
+    VcxPatternUnit    = vg,18:r19[3],9;vg,19:r19[3],9;vg,20:r16[3],14;vg,21:r17[3],14;vt,17,6;vt,r16,11;
+    LO1ActiveTracks   = 6
+    HI1ActiveTracks   = 11;9;14
+[A] DIFFCHN<CH>-<MOS><Z>-<VT>-A-LEN<n>-SDR:Z:REF:NOM  rows=12  FailModes=12
+    ex: DIFFCHN132-NZ5-L-A-LEN12-SDR:Z:REF:NOM | Needs long TCN
+    FTITracksUnit     = 0/50,0:7;4:r0[3],2:3;
+    VcxPatternUnit    = vg,2:r2[3],9;vt,1,6;vt,2:r0[7],13;vt,5:r0[7],13;vt,6:r0[7],11;vt,9:r0[7],11;
+    LO1ActiveTracks   = 6
+    HI1ActiveTracks   = 9;11;
+[A] DIFFCHN<CH>-<MOS><Z>-<VT>-A-LEN<n>-SDR:Z:REF:NOM  rows=12  FailModes=6
+    ex: DIFFCHN132-NZ5-L-A-LEN6-SDR:Z:REF:NOM | Needs long TCN
+    FTITracksUnit     = 0/50,0:7;4:r0[3],2:3;
+    VcxPatternUnit    = vg,14:r14[3],9;vt,13,6;vt,14:r13[7],13;vt,17:r13[7],13;vt,18:r12[7],11;vt,21:r13[7],11;
+    LO1ActiveTracks   = 6
+    HI1ActiveTracks   = 9;11;
+[A] DIFFCHN<CH>-<MOS><Z>-<VT>-A-LEN<n>-SDR:Z:REF:NOM  rows=4  FailModes=3
+    ex: DIFFCHN132-NZ5-L-A-LEN3-SDR:Z:REF:NOM | Needs long TCN
+    FTITracksUnit     = 0/50,0:7;4:r0[3],2:3;
+    VcxPatternUnit    = vg,26:r14[3],9;vt,25,6;vt,26:r16[7],13;vt,29:r15[7],13;vt,30:r12[7],11;vt,33:r13[7],11;vt,r15,11;
+    LO1ActiveTracks   = 6
+    HI1ActiveTracks   = 9;11;
+[D] DIFFCHN<CH>-<MOS><Z>-<VT>-D-1FCLEN<n>-SDR:Z:DEN:NOM  rows=4  FailModes=48
+    ex: DIFFCHN132-NZ5-L-D-1FCLEN24-SDR:Z:DEN:NOM | 
+    notes: name says LEN24 but 48 active VG gates in series (stacked)
+    FTITracksUnit     = 0/50,0:7;3:r2[1],2:3;2:50[1],4:5;
+    VcxPatternUnit    = vg,2:r2[1],9;vg,3:r1[1],14;;vt,1,6;vt,r0,11;
+    LO1ActiveTracks   = 6
+    HI1ActiveTracks   = 11;9;14
+[D] DIFFCHN<CH>-<MOS><Z>-<VT>-D-1FCLEN<n>-SDR:Z:DEN:NOM  rows=4  FailModes=31
+    ex: DIFFCHN132-NZ5-L-D-1FCLEN16-SDR:Z:DEN:NOM | 
+    notes: name says LEN16 but 31 active VG gates in series (stacked)
+    FTITracksUnit     = 0/50,0:7;3:r2[1],2:3;2:50[1],4:5;
+    VcxPatternUnit    = vg,10:r10[1],9;vg,11:r11[1],14;vt,9,6;vt,r9,11;
+    LO1ActiveTracks   = 6
+    HI1ActiveTracks   = 11;9;14
+[D] DIFFCHN<CH>-<MOS><Z>-<VT>-D-1FCLEN<n>-SDR:Z:DEN:NOM  rows=12  FailModes=19
+    ex: DIFFCHN132-NZ5-L-D-1FCLEN10-SDR:Z:DEN:NOM | 
+    notes: name says LEN10 but 19 active VG gates in series (stacked)
+    FTITracksUnit     = 0/50,0:7;3:r2[1],2:3;2:50[1],4:5;
+    VcxPatternUnit    = vg,16:r16[1],9;vg,17:r17[1],14;vt,15,6;vt,r15,11;
+    LO1ActiveTracks   = 6
+    HI1ActiveTracks   = 11;9;14
+[D] DIFFCHN<CH>-<MOS><Z>-<VT>-D-1FCLEN<n>-SDR:Z:DEN:NOM  rows=12  FailModes=11
+    ex: DIFFCHN132-NZ5-L-D-1FCLEN6-SDR:Z:DEN:NOM | 
+    notes: name says LEN6 but 11 active VG gates in series (stacked)
+    FTITracksUnit     = 0/50,0:7;3:r2[1],2:3;2:50[1],4:5;
+    VcxPatternUnit    = vg,20:r20[1],9;vg,21:r21[1],14;vt,19,6;vt,r19,11;
+    LO1ActiveTracks   = 6
+    HI1ActiveTracks   = 11;9;14
+[D] DIFFCHN<CH>-<MOS><Z>-<VT>-D-HCLEN<n>-SDR:Z:DEN:NOM  rows=4  FailModes=19
+    ex: DIFFCHN132-NZ5-L-D-HCLEN10-SDR:Z:DEN:NOM | 
+    notes: name says LEN10 but 19 active VG gates in series (stacked)
+    FTITracksUnit     = 0/50,0:7;3:r2[1],3;2:50[1],4;
+    VcxPatternUnit    = vg,16:r16[1],9;vg,17:r17[1],14;vt,15,6;vt,r15,11;
+    LO1ActiveTracks   = 6
+    HI1ActiveTracks   = 11;9;14
+[D] DIFFCHN<CH>-<MOS><Z>-<VT>-D-60x1FCLEN<n>-SDR:Z:DEN:NOM  rows=4  FailModes=1140
+    ex: DIFFCHN132-NZ5-L-D-60x1FCLEN10-SDR:Z:DEN:NOM | Multi-instance
+    notes: name says LEN10 but 19 active VG gates in series (stacked)
+    FTITracksUnit     = 0/50,0:7;3:r2[1],2:3;2:50[1],4:5;
+    VcxPatternUnit    = vg,16:r16[1],9;vg,17:r17[1],14;vt,15,6;vt,r15,11;
+    LO1ActiveTracks   = 6
+    HI1ActiveTracks   = 11;9;14
+[B] DIFFCHN<CH>-<MOS><Z>-<VT>-B-STKx1FLEN<n>-SDR:Z:REF:NOM  rows=2  FailModes=48
+    ex: DIFFCHN165-NZ7-L-B-STKx1FLEN24-SDR:Z:REF:NOM | 
+    notes: name says LEN24 but 48 active VG gates in series (stacked)
+    FTITracksUnit     = 0/50,0:7;5:48[3],2:3;3:50[3],4:5;
+    VcxPatternUnit    = vg,2:r3[3],9;vg,3:r2[3],9;vg,4:r2[3],14;vg,5:r1[3],14;vt,1,7;vt,r0,11;
+    LO1ActiveTracks   = 7
+    HI1ActiveTracks   = 11;9;14
+[B] DIFFCHN<CH>-<MOS><Z>-<VT>-B-STKx2FLEN<n>-SDR:Z:REF:NOM  rows=2  FailModes=48
+    ex: DIFFCHN165-NZ7-L-B-STKx2FLEN24-SDR:Z:REF:NOM | 
+    notes: name says LEN24 but 48 active VG gates in series (stacked)
+    FTITracksUnit     = 0/50,0:7;5:48[3],2:3;4:48[3],2:3;3:50[3],4:5;2:50[3],4:5;
+    VcxPatternUnit    = vg,2:r3[3],9;vg,3:r2[3],9;vg,4:r2[3],14;vg,5:r1[3],14;vt,1,7;vt,r0,11;
+    LO1ActiveTracks   = 7
+    HI1ActiveTracks   = 11;9;14
+[B] DIFFCHN<CH>-<MOS><Z>-<VT>-B-STKx1FLEN<n>-SDR:Z:REF:NOM  rows=2  FailModes=32
+    ex: DIFFCHN165-NZ7-L-B-STKx1FLEN16-SDR:Z:REF:NOM | 
+    notes: name says LEN16 but 32 active VG gates in series (stacked)
+    FTITracksUnit     = 0/50,0:7;5:48[3],2:3;3:50[3],4:5;
+    VcxPatternUnit    = vg,10:r11[3],9;vg,11:r10[3],9;vg,12:r8[3],14;vg,13:r9[3],14;vt,9,7;vt,r8,11;
+    LO1ActiveTracks   = 7
+    HI1ActiveTracks   = 11;9;14
+[B] DIFFCHN<CH>-<MOS><Z>-<VT>-B-STKx2FLEN<n>-SDR:Z:REF:NOM  rows=2  FailModes=32
+    ex: DIFFCHN165-NZ7-L-B-STKx2FLEN16-SDR:Z:REF:NOM | 
+    notes: name says LEN16 but 32 active VG gates in series (stacked)
+    FTITracksUnit     = 0/50,0:7;5:48[3],2:3;4:48[3],2:3;3:50[3],4:5;2:50[3],4:5;
+    VcxPatternUnit    = vg,10:r11[3],9;vg,11:r10[3],9;vg,12:r8[3],14;vg,13:r9[3],14;vt,9,7;vt,r8,11;
+    LO1ActiveTracks   = 7
+    HI1ActiveTracks   = 11;9;14
+[B] DIFFCHN<CH>-<MOS><Z>-<VT>-B-STKx1FLEN<n>-SDR:Z:REF:NOM  rows=4  FailModes=16
+    ex: DIFFCHN165-NZ7-L-B-STKx1FLEN8-SDR:Z:REF:NOM | 
+    notes: name says LEN8 but 16 active VG gates in series (stacked)
+    FTITracksUnit     = 0/50,0:7;5:48[3],2:3;3:50[3],4:5;
+    VcxPatternUnit    = vg,18:r19[3],9;vg,19:r19[3],9;vg,20:r16[3],14;vg,21:r17[3],14;vt,17,7;vt,r16,11;
+    LO1ActiveTracks   = 7
+    HI1ActiveTracks   = 11;9;14
+[B] DIFFCHN<CH>-<MOS><Z>-<VT>-B-STKx2FLEN<n>-SDR:Z:REF:NOM  rows=4  FailModes=16
+    ex: DIFFCHN165-NZ7-L-B-STKx2FLEN8-SDR:Z:REF:NOM | 
+    notes: name says LEN8 but 16 active VG gates in series (stacked)
+    FTITracksUnit     = 0/50,0:7;5:48[3],2:3;4:48[3],2:3;3:50[3],4:5;2:50[3],4:5;
+    VcxPatternUnit    = vg,18:r19[3],9;vg,19:r19[3],9;vg,20:r16[3],14;vg,21:r17[3],14;vt,17,7;vt,r16,11;
+    LO1ActiveTracks   = 7
+    HI1ActiveTracks   = 11;9;14
+[A] DIFFCHN<CH>-<MOS><Z>-<VT>-A-LEN<n>-SDR:Z:REF:NOM  rows=4  FailModes=12
+    ex: DIFFCHN165-NZ7-L-A-LEN12-SDR:Z:REF:NOM | Needs long TCN
+    FTITracksUnit     = 0/50,0:7;4:r0[3],2:3;
+    VcxPatternUnit    = vg,2:r1[3],9;vt,1,7;vt,2:r0[7],13;vt,5:r0[7],13;vt,6:r1[7],11;vt,9:r0[7],11;
+    LO1ActiveTracks   = 7
+    HI1ActiveTracks   = 9;11;
+[A] DIFFCHN<CH>-<MOS><Z>-<VT>-A-LEN<n>-SDR:Z:REF:NOM  rows=2  FailModes=6
+    ex: DIFFCHN165-NZ7-L-A-LEN6-SDR:Z:REF:NOM | Needs long TCN
+    FTITracksUnit     = 0/50,0:7;4:r0[3],2:3;
+    VcxPatternUnit    = vg,14:r14[3],9;vt,13,7;vt,14:r13[7],13;vt,17:r13[7],13;vt,18:r12[7],11;vt,21:r13[7],11;
+    LO1ActiveTracks   = 7
+    HI1ActiveTracks   = 9;11;
+[A] DIFFCHN<CH>-<MOS><Z>-<VT>-A-LEN<n>-SDR:Z:REF:NOM  rows=2  FailModes=3
+    ex: DIFFCHN165-NZ7-L-A-LEN3-SDR:Z:REF:NOM | Needs long TCN
+    FTITracksUnit     = 0/50,0:7;4:r0[3],2:3;
+    VcxPatternUnit    = vg,26:r14[3],9;vt,25,7;vt,26:r16[7],13;vt,29:r15[7],13;vt,30:r12[7],11;vt,33:r13[7],11;vt,r15,11;
+    LO1ActiveTracks   = 7
+    HI1ActiveTracks   = 9;11;
+[D] DIFFCHN<CH>-<MOS><Z>-<VT>-D-1FCLEN<n>-SDR:Z:DEN:NOM  rows=2  FailModes=48
+    ex: DIFFCHN165-NZ7-L-D-1FCLEN24-SDR:Z:DEN:NOM | 
+    notes: name says LEN24 but 48 active VG gates in series (stacked)
+    FTITracksUnit     = 0/50,0:7;3:r2[1],2:3;2:50[1],4:5;
+    VcxPatternUnit    = vg,2:r2[1],9;vg,3:r1[1],14;vt,1,7;vt,r0,11;
+    LO1ActiveTracks   = 7
+    HI1ActiveTracks   = 11;9;14
+[D] DIFFCHN<CH>-<MOS><Z>-<VT>-D-1FCLEN<n>-SDR:Z:DEN:NOM  rows=2  FailModes=31
+    ex: DIFFCHN165-NZ7-L-D-1FCLEN16-SDR:Z:DEN:NOM | 
+    notes: name says LEN16 but 31 active VG gates in series (stacked)
+    FTITracksUnit     = 0/50,0:7;3:r2[1],2:3;2:50[1],4:5;
+    VcxPatternUnit    = vg,10:r10[1],9;vg,11:r11[1],14;vt,9,7;vt,r9,11;
+    LO1ActiveTracks   = 7
+    HI1ActiveTracks   = 11;9;14
+[D] DIFFCHN<CH>-<MOS><Z>-<VT>-D-1FCLEN<n>-SDR:Z:DEN:NOM  rows=6  FailModes=19
+    ex: DIFFCHN165-NZ7-L-D-1FCLEN10-SDR:Z:DEN:NOM | 
+    notes: name says LEN10 but 19 active VG gates in series (stacked)
+    FTITracksUnit     = 0/50,0:7;3:r2[1],2:3;2:50[1],4:5;
+    VcxPatternUnit    = vg,16:r16[1],9;vg,17:r17[1],14;vt,15,7;vt,r15,11;
+    LO1ActiveTracks   = 7
+    HI1ActiveTracks   = 11;9;14
+[D] DIFFCHN<CH>-<MOS><Z>-<VT>-D-1FCLEN<n>-SDR:Z:DEN:NOM  rows=6  FailModes=11
+    ex: DIFFCHN165-NZ7-L-D-1FCLEN6-SDR:Z:DEN:NOM | 
+    notes: name says LEN6 but 11 active VG gates in series (stacked)
+    FTITracksUnit     = 0/50,0:7;3:r2[1],2:3;2:50[1],4:5;
+    VcxPatternUnit    = vg,20:r20[1],9;vg,21:r21[1],14;vt,19,7;vt,r19,11;
+    LO1ActiveTracks   = 7
+    HI1ActiveTracks   = 11;9;14
+[D] DIFFCHN<CH>-<MOS><Z>-<VT>-D-HCLEN<n>-SDR:Z:DEN:NOM  rows=2  FailModes=19
+    ex: DIFFCHN165-NZ7-L-D-HCLEN10-SDR:Z:DEN:NOM | 
+    notes: name says LEN10 but 19 active VG gates in series (stacked)
+    FTITracksUnit     = 0/50,0:7;3:r2[1],3;2:50[1],4;
+    VcxPatternUnit    = vg,16:r16[1],9;vg,17:r17[1],14;vt,15,7;vt,r15,11;
+    LO1ActiveTracks   = 7
+    HI1ActiveTracks   = 11;9;14
+[D] DIFFCHN<CH>-<MOS><Z>-<VT>-D-60x1FCLEN<n>-SDR:Z:DEN:NOM  rows=2  FailModes=1140
+    ex: DIFFCHN165-NZ7-L-D-60x1FCLEN10-SDR:Z:DEN:NOM | Multi-instance
+    notes: name says LEN10 but 19 active VG gates in series (stacked)
+    FTITracksUnit     = 0/50,0:7;3:r2[1],2:3;2:50[1],4:5;
+    VcxPatternUnit    = vg,16:r16[1],9;vg,17:r17[1],14;vt,15,7;vt,r15,11;
+    LO1ActiveTracks   = 7
+    HI1ActiveTracks   = 11;9;14
+[B] DIFFCHN<CH>-<MOS><Z>-<VT>-B-STKx1FLEN<n>-SDR:Z:REF:NOM  rows=4  FailModes=16
+    ex: DIFFCHN110-NZ1-U-B-STKx1FLEN8-SDR:Z:REF:NOM | 
+    notes: name says LEN8 but 16 active VG gates in series (stacked)
+    FTITracksUnit     = 0/50,0:7;5:48[3],2:3;3:50[3],4:5;
+    VcxPatternUnit    = vg,18:r19[3],9;vg,19:r19[3],9;vg,20:r16[3],14;vg,21:r17[3],14;vt,17,6;vt,r16,11;
+    LO1ActiveTracks   = 6
+    HI1ActiveTracks   = 11;9;14
+[B] DIFFCHN<CH>-<MOS><Z>-<VT>-B-STKx2FLEN<n>-SDR:Z:REF:NOM  rows=4  FailModes=16
+    ex: DIFFCHN110-NZ1-U-B-STKx2FLEN8-SDR:Z:REF:NOM | 
+    notes: name says LEN8 but 16 active VG gates in series (stacked)
+    FTITracksUnit     = 0/50,0:7;5:48[3],2:3;4:48[3],2:3;3:50[3],4:5;2:50[3],4:5;
+    VcxPatternUnit    = vg,18:r19[3],9;vg,19:r19[3],9;vg,20:r16[3],14;vg,21:r17[3],14;vt,17,6;vt,r16,11;
+    LO1ActiveTracks   = 6
+    HI1ActiveTracks   = 11;9;14
+[B] DIFFCHN<CH>-<MOS><Z>-<VT>-B-STKx1FLEN<n>-SDR:Z:REF:NOM  rows=2  FailModes=16
+    ex: DIFFCHN165-NZ7-U-B-STKx1FLEN8-SDR:Z:REF:NOM | 
+    notes: name says LEN8 but 16 active VG gates in series (stacked)
+    FTITracksUnit     = 0/50,0:7;5:48[3],2:3;3:50[3],4:5;
+    VcxPatternUnit    = vg,18:r19[3],9;vg,19:r19[3],9;vg,20:r16[3],14;vg,21:r17[3],14;vt,17,7;vt,r16,11;
+    LO1ActiveTracks   = 7
+    HI1ActiveTracks   = 11;9;14
+[B] DIFFCHN<CH>-<MOS><Z>-<VT>-B-STKx2FLEN<n>-SDR:Z:REF:NOM  rows=2  FailModes=16
+    ex: DIFFCHN165-NZ7-U-B-STKx2FLEN8-SDR:Z:REF:NOM | 
+    notes: name says LEN8 but 16 active VG gates in series (stacked)
+    FTITracksUnit     = 0/50,0:7;5:48[3],2:3;4:48[3],2:3;3:50[3],4:5;2:50[3],4:5;
+    VcxPatternUnit    = vg,18:r19[3],9;vg,19:r19[3],9;vg,20:r16[3],14;vg,21:r17[3],14;vt,17,7;vt,r16,11;
+    LO1ActiveTracks   = 7
+    HI1ActiveTracks   = 11;9;14
+[A] DIFFCHN<CH>-<MOS><Z>-<VT>-A-LEN<n>-SDR:Z:REF:NOM  rows=2  FailModes=6
+    ex: DIFFCHN165-NZ7-U-A-LEN6-SDR:Z:REF:NOM | Needs long TCN
+    FTITracksUnit     = 0/50,0:7;4:r2[3],2:3;
+    VcxPatternUnit    = vg,14:r14[3],9;vt,13,7;vt,14:r13[7],13;vt,17:r13[7],13;vt,18:r12[7],11;vt,21:r13[7],11;
+    LO1ActiveTracks   = 7
+    HI1ActiveTracks   = 9;11;
+[A] DIFFCHN<CH>-<MOS><Z>-<VT>-A-LEN<n>-SDR:Z:REF:NOM  rows=2  FailModes=12
+    ex: DIFFCHN165-NZ7-H-A-LEN12-SDR:Z:REF:NOM | Needs long TCN
+    FTITracksUnit     = 0/50,0:7;4:r0[3],2:3;
+    VcxPatternUnit    = vg,2:r1[3],9;vt,1,7;vt,2:r0[7],13;vt,5:r0[7],13;vt,6:r1[7],11;vt,9:r0[7],11;
+    LO1ActiveTracks   = 7
+    HI1ActiveTracks   = 9;11;
+[A] DIFFCHN<CH>-<MOS><Z>-<VT>-A-LEN<n>-SDR:Z:REF:NOM  rows=2  FailModes=6
+    ex: DIFFCHN165-NZ7-H-A-LEN6-SDR:Z:REF:NOM | Needs long TCN
+    FTITracksUnit     = 0/50,0:7;4:r0[3],2:3;
+    VcxPatternUnit    = vg,14:r14[3],9;vt,13,7;vt,14:r13[7],13;vt,17:r13[7],13;vt,18:r12[7],11;vt,21:r13[7],11;
+    LO1ActiveTracks   = 7
+    HI1ActiveTracks   = 9;11;
+[D] DIFFCHN<CH>-<MOS><Z>-<VT>-D-1FCLEN<n>-FTI:PGD:REG:<SKEW>  rows=16  FailModes=19
+    ex: DIFFCHN132-NZ5-L-D-1FCLEN10-FTI:PGD:REG:N8 | 
+    notes: name says LEN10 but 19 active VG gates in series (stacked)
+    FTITracksUnit     = 0/50,0:7;3:r2[1],2:3;2:50[1],4:5;
+    VcxPatternUnit    = vg,16:r16[1],9;vg,17:r17[1],14;vt,15,6;vt,r15,11;
+    LO1ActiveTracks   = 6
+    HI1ActiveTracks   = 11;9;14
+[D] DIFFCHN<CH>-<MOS><Z>-<VT>-D-1FCLEN<n>-FTI:PGD:REG:NOM  rows=2  FailModes=19
+    ex: DIFFCHN132-NZ5-L-D-1FCLEN10-FTI:PGD:REG:NOM | 
+    notes: name says LEN10 but 19 active VG gates in series (stacked)
+    FTITracksUnit     = 0/50,0:7;3:r2[1],2:3;2:50[1],4:5;
+    VcxPatternUnit    = vg,16:r16[1],9;vg,17:r17[1],14;vt,15,6;vt,r15,11;
+    LO1ActiveTracks   = 6
+    HI1ActiveTracks   = 11;9;14
+[D] DIFFCHN<CH>-<MOS><Z>-<VT>-D-1FCLEN<n>-FTI:OGD:REG:<SKEW>  rows=20  FailModes=19
+    ex: DIFFCHN132-NZ5-L-D-1FCLEN10-FTI:OGD:REG:N6 | 
+    notes: name says LEN10 but 19 active VG gates in series (stacked)
+    FTITracksUnit     = 0/50,0:7;3:r2[1],2:3;2:50[1],4:5;
+    VcxPatternUnit    = vg,16:r16[1],9;vg,17:r17[1],14;vt,15,6;vt,r15,11;
+    LO1ActiveTracks   = 6
+    HI1ActiveTracks   = 11;9;14
+[D] DIFFCHN<CH>-<MOS><Z>-<VT>-D-1FCLEN<n>-FTI:OGD:REG:NOM  rows=2  FailModes=19
+    ex: DIFFCHN132-NZ5-L-D-1FCLEN10-FTI:OGD:REG:NOM | 
+    notes: name says LEN10 but 19 active VG gates in series (stacked)
+    FTITracksUnit     = 0/50,0:7;3:r2[1],2:3;2:50[1],4:5;
+    VcxPatternUnit    = vg,16:r16[1],9;vg,17:r17[1],14;vt,15,6;vt,r15,11;
+    LO1ActiveTracks   = 6
+    HI1ActiveTracks   = 11;9;14
+[D] DIFFCHN<CH>-<MOS><Z>-<VT>-D-1FCLEN<n>-FTI:OGD:CD:<SKEW>  rows=16  FailModes=19
+    ex: DIFFCHN132-NZ5-L-D-1FCLEN10-FTI:OGD:CD:N5 | 
+    notes: name says LEN10 but 19 active VG gates in series (stacked)
+    FTITracksUnit     = 0/50,0:7;3:r2[1],2:3;2:50[1],4:5;
+    VcxPatternUnit    = vg,16:r16[1],9;vg,17:r17[1],14;vt,15,6;vt,r15,11;
+    LO1ActiveTracks   = 6
+    HI1ActiveTracks   = 11;9;14
+[D] DIFFCHN<CH>-<MOS><Z>-<VT>-D-1FCLEN<n>-FTI:OGD:CD:NOM  rows=2  FailModes=19
+    ex: DIFFCHN132-NZ5-L-D-1FCLEN10-FTI:OGD:CD:NOM | 
+    notes: name says LEN10 but 19 active VG gates in series (stacked)
+    FTITracksUnit     = 0/50,0:7;3:r2[1],2:3;2:50[1],4:5;
+    VcxPatternUnit    = vg,16:r16[1],9;vg,17:r17[1],14;vt,15,6;vt,r15,11;
+    LO1ActiveTracks   = 6
+    HI1ActiveTracks   = 11;9;14
+[LEN6] DIFFCHN<CH>-<MOS><Z>-<VT>-LEN<n>-A:PXL:PGD:REG:<SKEW>  rows=20  FailModes=6
+    ex: DIFFCHN132-NZ5-L-LEN6-A:PXL:PGD:REG:N8 | 
+    FTITracksUnit     = 0/50,0:7;4:r0[3],2:3;
+    VcxPatternUnit    = vg,14:r14[3],9;vt,13,6;vt,14:r13[7],13;vt,17:r13[7],13;vt,18:r12[7],11;vt,21:r13[7],11;
+    LO1ActiveTracks   = 6
+    HI1ActiveTracks   = 9;11;
+[LEN6] DIFFCHN<CH>-<MOS><Z>-<VT>-LEN<n>-A:PXL:PGD:REG:NOM  rows=2  FailModes=6
+    ex: DIFFCHN132-NZ5-L-LEN6-A:PXL:PGD:REG:NOM | 
+    FTITracksUnit     = 0/50,0:7;4:r0[3],2:3;
+    VcxPatternUnit    = vg,14:r14[3],9;vt,13,6;vt,14:r13[7],13;vt,17:r13[7],13;vt,18:r12[7],11;vt,21:r13[7],11;
+    LO1ActiveTracks   = 6
+    HI1ActiveTracks   = 9;11;
+[LEN6] DIFFCHN<CH>-<MOS><Z>-<VT>-LEN<n>-A:PXL:PGD:CD:<SKEW>  rows=12  FailModes=6
+    ex: DIFFCHN132-NZ5-L-LEN6-A:PXL:PGD:CD:N5 | 
+    FTITracksUnit     = 0/50,0:7;4:r0[3],2:3;
+    VcxPatternUnit    = vg,14:r14[3],9;vt,13,6;vt,14:r13[7],13;vt,17:r13[7],13;vt,18:r12[7],11;vt,21:r13[7],11;
+    LO1ActiveTracks   = 6
+    HI1ActiveTracks   = 9;11;
+[LEN6] DIFFCHN<CH>-<MOS><Z>-<VT>-LEN<n>-A:PXL:PGD:CD:NOM  rows=2  FailModes=6
+    ex: DIFFCHN132-NZ5-L-LEN6-A:PXL:PGD:CD:NOM | 
+    FTITracksUnit     = 0/50,0:7;4:r0[3],2:3;
+    VcxPatternUnit    = vg,14:r14[3],9;vt,13,6;vt,14:r13[7],13;vt,17:r13[7],13;vt,18:r12[7],11;vt,21:r13[7],11;
+    LO1ActiveTracks   = 6
+    HI1ActiveTracks   = 9;11;
+[LEN6] DIFFCHN<CH>-<MOS><Z>-<VT>-LEN<n>-A:FTI:OGD:REG:<SKEW>  rows=20  FailModes=6
+    ex: DIFFCHN132-NZ5-L-LEN6-A:FTI:OGD:REG:N6 | 
+    FTITracksUnit     = 0/50,0:7;4:r0[3],2:3;
+    VcxPatternUnit    = vg,14:r14[3],9;vt,13,6;vt,14:r13[7],13;vt,17:r13[7],13;vt,18:r12[7],11;vt,21:r13[7],11;
+    LO1ActiveTracks   = 6
+    HI1ActiveTracks   = 9;11;
+[LEN6] DIFFCHN<CH>-<MOS><Z>-<VT>-LEN<n>-A:FTI:OGD:REG:NOM  rows=2  FailModes=6
+    ex: DIFFCHN132-NZ5-L-LEN6-A:FTI:OGD:REG:NOM | 
+    FTITracksUnit     = 0/50,0:7;4:r0[3],2:3;
+    VcxPatternUnit    = vg,14:r14[3],9;vt,13,6;vt,14:r13[7],13;vt,17:r13[7],13;vt,18:r12[7],11;vt,21:r13[7],11;
+    LO1ActiveTracks   = 6
+    HI1ActiveTracks   = 9;11;
+[LEN10FC] DIFFCHN<CH>-<MOS><Z>-<VT>-LEN<n>FC-D:PXL:PGD:REG:<SKEW>  rows=20  FailModes=19
+    ex: DIFFCHN132-NZ5-L-LEN10FC-D:PXL:PGD:REG:N8 | 
+    notes: name says LEN10 but 19 active VG gates in series (stacked)
+    FTITracksUnit     = 0/50,0:7;3:r2[1],2:3;2:50[1],4:5;
+    VcxPatternUnit    = vg,16:r16[1],9;vg,17:r17[1],14;vt,15,6;vt,r15,11;
+    LO1ActiveTracks   = 6
+    HI1ActiveTracks   = 11;9;14
+[LEN10FC] DIFFCHN<CH>-<MOS><Z>-<VT>-LEN<n>FC-D:PXL:PGD:REG:NOM  rows=2  FailModes=19
+    ex: DIFFCHN132-NZ5-L-LEN10FC-D:PXL:PGD:REG:NOM | 
+    notes: name says LEN10 but 19 active VG gates in series (stacked)
+    FTITracksUnit     = 0/50,0:7;3:r2[1],2:3;2:50[1],4:5;
+    VcxPatternUnit    = vg,16:r16[1],9;vg,17:r17[1],14;vt,15,6;vt,r15,11;
+    LO1ActiveTracks   = 6
+    HI1ActiveTracks   = 11;9;14
+[LEN10FC] DIFFCHN<CH>-<MOS><Z>-<VT>-LEN<n>FC-D:PXL:PGD:CD:<SKEW>  rows=12  FailModes=19
+    ex: DIFFCHN132-NZ5-L-LEN10FC-D:PXL:PGD:CD:N5 | 
+    notes: name says LEN10 but 19 active VG gates in series (stacked)
+    FTITracksUnit     = 0/50,0:7;3:r2[1],2:3;2:50[1],4:5;
+    VcxPatternUnit    = vg,16:r16[1],9;vg,17:r17[1],14;vt,15,6;vt,r15,11;
+    LO1ActiveTracks   = 6
+    HI1ActiveTracks   = 11;9;14
+[LEN10FC] DIFFCHN<CH>-<MOS><Z>-<VT>-LEN<n>FC-D:PXL:PGD:CD:NOM  rows=2  FailModes=19
+    ex: DIFFCHN132-NZ5-L-LEN10FC-D:PXL:PGD:CD:NOM | 
+    notes: name says LEN10 but 19 active VG gates in series (stacked)
+    FTITracksUnit     = 0/50,0:7;3:r2[1],2:3;2:50[1],4:5;
+    VcxPatternUnit    = vg,16:r16[1],9;vg,17:r17[1],14;vt,15,6;vt,r15,11;
+    LO1ActiveTracks   = 6
+    HI1ActiveTracks   = 11;9;14
+[B] DIFFCHN<CH>-<MOS><Z>-<VT>-B-60xSTKx2FLEN<n>-SDR:Z:REF:NOM  rows=2  FailModes=2880
+    ex: DIFFCHN110-NZ1-L-B-60xSTKx2FLEN24-SDR:Z:REF:NOM | 
+    notes: name says LEN24 but 48 active VG gates in series (stacked)
+    FTITracksUnit     = 0/50,0:7;5:48[3],2:3;4:48[3],2:3;3:50[3],4:5;2:50[3],4:5;
+    VcxPatternUnit    = vg,2:r3[3],9;vg,3:r2[3],9;vg,4:r2[3],14;vg,5:r1[3],14;vt,1,6;vt,r0,11;
+    LO1ActiveTracks   = 6
+    HI1ActiveTracks   = 11;9;14
+[A] DIFFCHN<CH>-<MOS><Z>-<VT>-A-LEN<n>-PXL:PGD:CD:<SKEW>  rows=12  FailModes=6
+    ex: DIFFCHN110-NZ1-L-A-LEN6-PXL:PGD:CD:N5 | 
+    FTITracksUnit     = 0/50,0:7;4:r0[3],2:3;
+    VcxPatternUnit    = vg,14:r14[3],9;vt,13,6;vt,14:r13[7],13;vt,17:r13[7],13;vt,18:r12[7],11;vt,21:r13[7],11;
+    LO1ActiveTracks   = 6
+    HI1ActiveTracks   = 9;11;
+[A] DIFFCHN<CH>-<MOS><Z>-<VT>-A-LEN<n>-PXL:PGD:CD:NOM  rows=2  FailModes=6
+    ex: DIFFCHN110-NZ1-L-A-LEN6-PXL:PGD:CD:NOM | 
+    FTITracksUnit     = 0/50,0:7;4:r0[3],2:3;
+    VcxPatternUnit    = vg,14:r14[3],9;vt,13,6;vt,14:r13[7],13;vt,17:r13[7],13;vt,18:r12[7],11;vt,21:r13[7],11;
+    LO1ActiveTracks   = 6
+    HI1ActiveTracks   = 9;11;
+[LEN6] DIFFCHN<CH>-<MOS><Z>-<VT>-LEN<n>-A:PXL:PGD:REG:<SKEW>  rows=20  FailModes=6
+    ex: DIFFCHN165-NZ7-L-LEN6-A:PXL:PGD:REG:N8 | 
+    FTITracksUnit     = 0/50,0:7;4:r0[3],2:3;
+    VcxPatternUnit    = vg,14:r14[3],9;vt,13,7;vt,14:r13[7],13;vt,17:r13[7],13;vt,18:r12[7],11;vt,21:r13[7],11;
+    LO1ActiveTracks   = 7
+    HI1ActiveTracks   = 9;11;
+[LEN6] DIFFCHN<CH>-<MOS><Z>-<VT>-LEN<n>-A:PXL:PGD:REG:NOM  rows=2  FailModes=6
+    ex: DIFFCHN165-NZ7-L-LEN6-A:PXL:PGD:REG:NOM | 
+    FTITracksUnit     = 0/50,0:7;4:r0[3],2:3;
+    VcxPatternUnit    = vg,14:r14[3],9;vt,13,7;vt,14:r13[7],13;vt,17:r13[7],13;vt,18:r12[7],11;vt,21:r13[7],11;
+    LO1ActiveTracks   = 7
+    HI1ActiveTracks   = 9;11;
+[LEN6] DIFFCHN<CH>-<MOS><Z>-<VT>-LEN<n>-A:PXL:PGD:CD:<SKEW>  rows=12  FailModes=6
+    ex: DIFFCHN165-NZ7-L-LEN6-A:PXL:PGD:CD:N5 | 
+    FTITracksUnit     = 0/50,0:7;4:r0[3],2:3;
+    VcxPatternUnit    = vg,14:r14[3],9;vt,13,7;vt,14:r13[7],13;vt,17:r13[7],13;vt,18:r12[7],11;vt,21:r13[7],11;
+    LO1ActiveTracks   = 7
+    HI1ActiveTracks   = 9;11;
+[LEN6] DIFFCHN<CH>-<MOS><Z>-<VT>-LEN<n>-A:PXL:PGD:CD:NOM  rows=2  FailModes=6
+    ex: DIFFCHN165-NZ7-L-LEN6-A:PXL:PGD:CD:NOM | 
+    FTITracksUnit     = 0/50,0:7;4:r0[3],2:3;
+    VcxPatternUnit    = vg,14:r14[3],9;vt,13,7;vt,14:r13[7],13;vt,17:r13[7],13;vt,18:r12[7],11;vt,21:r13[7],11;
+    LO1ActiveTracks   = 7
+    HI1ActiveTracks   = 9;11;
+[LEN10FC] DIFFCHN<CH>-<MOS><Z>-<VT>-LEN<n>FC-D:PXL:PGD:REG:<SKEW>  rows=16  FailModes=19
+    ex: DIFFCHN165-NZ7-L-LEN10FC-D:PXL:PGD:REG:N8 | 
+    notes: name says LEN10 but 19 active VG gates in series (stacked)
+    FTITracksUnit     = 0/50,0:7;3:r2[1],2:3;2:50[1],4:5;
+    VcxPatternUnit    = vg,16:r16[1],9;vg,17:r17[1],14;vt,15,7;vt,r15,11;
+    LO1ActiveTracks   = 7
+    HI1ActiveTracks   = 11;9;14
+[LEN10FC] DIFFCHN<CH>-<MOS><Z>-<VT>-LEN<n>FC-D:PXL:PGD:REG:NOM  rows=2  FailModes=19
+    ex: DIFFCHN165-NZ7-L-LEN10FC-D:PXL:PGD:REG:NOM | 
+    notes: name says LEN10 but 19 active VG gates in series (stacked)
+    FTITracksUnit     = 0/50,0:7;3:r2[1],2:3;2:50[1],4:5;
+    VcxPatternUnit    = vg,16:r16[1],9;vg,17:r17[1],14;vt,15,7;vt,r15,11;
+    LO1ActiveTracks   = 7
+    HI1ActiveTracks   = 11;9;14

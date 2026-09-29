@@ -1,0 +1,337 @@
+families: {'CTG': 50, 'DIFFCHN': 62, 'DIFFOGD': 10, 'EPIEPI': 78, 'TCNTCN': 36, 'GATEGATE': 25, 'VIA_CHAIN': 369}
+
+##############################################################################################################
+# TCNTCN: 36 variants; differing columns: ['FTITracksUnit', 'PolyPlugsUnit', 'TcnPlugsUnit', 'VcrPatternUnit', 'VcrnubPatternUnit', 'TcnExtensionUnit', 'M0CutPatternUnit', 'VcxPatternUnit', 'LO1ActiveTracks', 'HI1ActiveTracks', 'DrawMiscIDsUnit']
+
+[A] TCNTCN<CH>-<MOS><Z>-<VT>-A:SDR:PGD:REF:1TRK_1PP  rows=6  FailModes=5760
+    ex: TCNTCN132-NZ5-L-A:SDR:PGD:REF:1TRK_1PP | CMOS TCNTCNPGD_SDR PLY length 1Diff tracks maximum density
+    FTITracksUnit     = 0:24[3],2:5
+    M0CutPatternUnit  = 2:r2[5],1:5[1]/r5:r1[1]
+    VcxPatternUnit    = vt,1:2/5:6/9:10/13:14/17:18/21:22,6/9/11/14
+    LO1ActiveTracks   = 6;14
+    HI1ActiveTracks   = 9;11
+
+[A] TCNTCN<CH>-<MOS><Z>-<VT>-A:SDR:PGD:REF:1TRK_1PP  rows=6  FailModes=5760
+    ex: TCNTCN165-NZ7-L-A:SDR:PGD:REF:1TRK_1PP | N-type TCNTCNPGD_SDR PLY length 1Diff tracks maximum density
+    FTITracksUnit     = 0:24[3],2:5
+    M0CutPatternUnit  = 2:r2[6],2/4/8/10/14/16/20/22
+    VcxPatternUnit    = vt,1:2/5:6/9:10/13:14/17:18/21:22,7/11/13/17
+    LO1ActiveTracks   = 7;17
+    HI1ActiveTracks   = 11;13
+
+[A] TCNTCN<CH>-<MOS><Z>-<VT>-A:SDR:PGD:REF:2TRK_1PP  rows=6  FailModes=5760
+    ex: TCNTCN132-NZ5-L-A:SDR:PGD:REF:2TRK_1PP | N-type TCNTCNPGD_SDR PLY length 2Diff tracks maximum density
+    FTITracksUnit     = 0:24[3],2:5
+    TcnPlugsUnit      = 1:2/5:6/9:10/13:14/17:18/21:22,2/4/6
+    M0CutPatternUnit  = 2:r2[5],1:5[1]/r5:r1[1]
+    VcxPatternUnit    = vt,1:2/5:6/9:10/13:14/17:18/21:22,4/9/11/16
+    LO1ActiveTracks   = 4;16
+    HI1ActiveTracks   = 9;11
+
+[A] TCNTCN<CH>-<MOS><Z>-<VT>-A:SDR:PGD:REF:2TRK_1PP  rows=6  FailModes=5760
+    ex: TCNTCN165-NZ7-L-A:SDR:PGD:REF:2TRK_1PP | N-type TCNTCNPGD_SDR PLY length 2Diff tracks maximum density
+    FTITracksUnit     = 0:24[3],2:5
+    TcnPlugsUnit      = 1:2/5:6/9:10/13:14/17:18/21:22,2/4/6
+    M0CutPatternUnit  = 5:r2[6],2/r2;2:r2[6],8/10/14/16;
+    VcxPatternUnit    = vt,1:2/5:6/9:10/13:14/17:18/21:22,4/11/13/20
+    LO1ActiveTracks   = 4;20
+    HI1ActiveTracks   = 11;13
+
+[B] TCNTCN<CH>-<MOS><Z>-<VT>-B:VCR:PGD:CD:<SKEW>  rows=8  FailModes=5760
+    ex: TCNTCN132-NPZ5-L-B:VCR:PGD:CD:N4 | CMOS TCNTCNPGD_SDR PLY length 1Diff tracks VCR CD skews without VCR Nub
+    FTITracksUnit     = 0:24[3],1:2/5:6
+    VcrPatternUnit    = -1:r-1,1|<shift>;-1:r-1,3|<shift>;
+    M0CutPatternUnit  = 2:r2[5],1:3[1]/r3:r1[1]
+    VcxPatternUnit    = vt,1:2/5:6/9:10/13:14/17:18/21:22,4/6/14/16
+    LO1ActiveTracks   = 6;14
+    HI1ActiveTracks   = 4;16
+
+[B] TCNTCN<CH>-<MOS><Z>-<VT>-B:VCR:PGD:CD:NOM  rows=2  FailModes=5760
+    ex: TCNTCN132-NPZ5-L-B:VCR:PGD:CD:NOM | CMOS TCNTCNPGD_SDR PLY length 1Diff tracks VCR CD skews without VCR Nub
+    FTITracksUnit     = 0:24[3],1:2/5:6
+    VcrPatternUnit    = -1:r-1,1|<shift>;-1:r-1,3|<shift>;
+    M0CutPatternUnit  = 2:r2[5],1:3[1]/r3:r1[1]
+    VcxPatternUnit    = vt,1:2/5:6/9:10/13:14/17:18/21:22,4/6/14/16
+    LO1ActiveTracks   = 6;14
+    HI1ActiveTracks   = 4;16
+
+[B] TCNTCN<CH>-<MOS><Z>-<VT>-B:VCR:PGD:REG:<SKEW>  rows=8  FailModes=5760
+    ex: TCNTCN132-NPZ5-L-B:VCR:PGD:REG:N4 | CMOS TCNTCNPGD_SDR PLY length 1Diff tracks VCR CD skews without VCR Nub
+    FTITracksUnit     = 0:24[3],1:2/5:6
+    VcrPatternUnit    = -1:r-1,1|<shift>;-1:r-1,3|<shift>;
+    M0CutPatternUnit  = 2:r2[5],1:3[1]/r3:r1[1]
+    VcxPatternUnit    = vt,1:2/5:6/9:10/13:14/17:18/21:22,4/6/14/16
+    LO1ActiveTracks   = 6;14
+    HI1ActiveTracks   = 4;16
+
+[B] TCNTCN<CH>-<MOS><Z>-<VT>-B:VCR:PGD:REG:NOM  rows=2  FailModes=5760
+    ex: TCNTCN132-NPZ5-L-B:VCR:PGD:REG:NOM | CMOS TCNTCNPGD_SDR PLY length 1Diff tracks VCR CD skews without VCR Nub
+    FTITracksUnit     = 0:24[3],1:2/5:6
+    VcrPatternUnit    = -1:r-1,1|<shift>;-1:r-1,3|<shift>;
+    M0CutPatternUnit  = 2:r2[5],1:3[1]/r3:r1[1]
+    VcxPatternUnit    = vt,1:2/5:6/9:10/13:14/17:18/21:22,4/6/14/16
+    LO1ActiveTracks   = 6;14
+    HI1ActiveTracks   = 4;16
+
+[A] TCNTCN<CH>-<MOS><Z>-<VT>-A:GLK_OGD_DEN:1TRK_1PP  rows=2  FailModes=5760
+    ex: TCNTCN132-NPZ5-L-A:GLK_OGD_DEN:1TRK_1PP | CMOS TCNTCNPGD_SDR PLY length 1Diff tracks maximum density
+    FTITracksUnit     = 0:24[3],2:5
+    PolyPlugsUnit     = 1:3/5:7/9:11/13:15/17:19/21:23,3/5
+    M0CutPatternUnit  = 2:r2[5],1:5[1]/r5:r1[1]
+    VcxPatternUnit    = vt,1:2/5:6/9:10/13:14/17:18/21:22,6/9/11/14
+    LO1ActiveTracks   = 6;14
+    HI1ActiveTracks   = 9;11
+
+[A] TCNTCN<CH>-<MOS><Z>-<VT>-A:PLG_OGD_DEN:1TRK_1PP  rows=2  FailModes=5760
+    ex: TCNTCN132-NPZ5-L-A:PLG_OGD_DEN:1TRK_1PP | CMOS TCNTCNPGD_SDR PLY length 1Diff tracks maximum density
+    FTITracksUnit     = 0:24[3],2:5
+    PolyPlugsUnit     = 1:3/5:7/9:11/13:15/17:19/21:23,3/5
+    TcnPlugsUnit      = 0/3/4/7/8/11/12/15/16/19/20/23,3/5
+    M0CutPatternUnit  = 2:r2[5],1:5[1]/r5:r1[1]
+    VcxPatternUnit    = vt,1:2/5:6/9:10/13:14/17:18/21:22,6/9/11/14
+    LO1ActiveTracks   = 6;14
+    HI1ActiveTracks   = 9;11
+
+[A] TCNTCN<CH>-<MOS><Z>-<VT>-A:LNK_OGD_DEN:1TRK_1PP  rows=2  FailModes=5760
+    ex: TCNTCN132-NPZ5-L-A:LNK_OGD_DEN:1TRK_1PP | CMOS TCNTCNPGD_SDR PLY length 1Diff tracks maximum density
+    FTITracksUnit     = 0:24[3],2:5
+    TcnPlugsUnit      = 0/3/4/7/8/11/12/15/16/19/20/23,3/5
+    M0CutPatternUnit  = 2:r2[5],1:5[1]/r5:r1[1]
+    VcxPatternUnit    = vt,1:2/5:6/9:10/13:14/17:18/21:22,6/9/11/14
+    LO1ActiveTracks   = 6;14
+    HI1ActiveTracks   = 9;11
+
+[A] TCNTCN<CH>-<MOS><Z>-<VT>-A:TCP:PGD:CD:<SKEW>  rows=14  FailModes=5760
+    ex: TCNTCN132-NPZ5-L-A:TCP:PGD:CD:N2 | CMOS TCNTCNPGD_SDR PLY length 2Diff tracks maximum density
+    FTITracksUnit     = 0:24[3],2:5
+    TcnPlugsUnit      = 1:2/5:6/9:10/13:14/17:18/21:22,2/4/6
+    M0CutPatternUnit  = 2:r2[5],1:5[1]/r5:r1[1]
+    VcxPatternUnit    = vt,1:2/5:6/9:10/13:14/17:18/21:22,4/9/11/16
+    LO1ActiveTracks   = 4;16
+    HI1ActiveTracks   = 9;11
+
+[A] TCNTCN<CH>-<MOS><Z>-<VT>-A:TCP:PGD:CD:NOM  rows=2  FailModes=5760
+    ex: TCNTCN132-NPZ5-L-A:TCP:PGD:CD:NOM | CMOS TCNTCNPGD_SDR PLY length 2Diff tracks maximum density
+    FTITracksUnit     = 0:24[3],2:5
+    TcnPlugsUnit      = 1:2/5:6/9:10/13:14/17:18/21:22,2/4/6
+    M0CutPatternUnit  = 2:r2[5],1:5[1]/r5:r1[1]
+    VcxPatternUnit    = vt,1:2/5:6/9:10/13:14/17:18/21:22,4/9/11/16
+    LO1ActiveTracks   = 4;16
+    HI1ActiveTracks   = 9;11
+
+[A] TCNTCN<CH>-<MOS><Z>-<VT>-A:TCP:PGD:REG:<SKEW>  rows=12  FailModes=5760
+    ex: TCNTCN132-NPZ5-L-A:TCP:PGD:REG:N5 | CMOS TCNTCNPGD_SDR PLY length 2Diff tracks maximum density
+    FTITracksUnit     = 0:24[3],2:5
+    TcnPlugsUnit      = 1:2/5:6/9:10/13:14/17:18/21:22,2/4/6
+    M0CutPatternUnit  = 2:r2[5],1:5[1]/r5:r1[1]
+    VcxPatternUnit    = vt,1:2/5:6/9:10/13:14/17:18/21:22,4/9/11/16
+    LO1ActiveTracks   = 4;16
+    HI1ActiveTracks   = 9;11
+
+[A] TCNTCN<CH>-<MOS><Z>-<VT>-A:TCP:PGD:REG:NOM  rows=2  FailModes=5760
+    ex: TCNTCN132-NPZ5-L-A:TCP:PGD:REG:NOM | CMOS TCNTCNPGD_SDR PLY length 2Diff tracks maximum density
+    FTITracksUnit     = 0:24[3],2:5
+    TcnPlugsUnit      = 1:2/5:6/9:10/13:14/17:18/21:22,2/4/6
+    M0CutPatternUnit  = 2:r2[5],1:5[1]/r5:r1[1]
+    VcxPatternUnit    = vt,1:2/5:6/9:10/13:14/17:18/21:22,4/9/11/16
+    LO1ActiveTracks   = 4;16
+    HI1ActiveTracks   = 9;11
+
+[A] TCNTCN<CH>-<MOS><Z>-<VT>-A:TCN:OGD:CD:<SKEW>  rows=4  FailModes=5760
+    ex: TCNTCN132-NPZ5-L-A:TCN:OGD:CD:N2 | CMOS TCNTCNPGD_SDR PLY length 2Diff tracks maximum density
+    FTITracksUnit     = 0:24[3],2:5
+    TcnPlugsUnit      = 1:2/5:6/9:10/13:14/17:18/21:22,2/4/6
+    M0CutPatternUnit  = 2:r2[5],1:5[1]/r5:r1[1]
+    VcxPatternUnit    = vt,1:2/5:6/9:10/13:14/17:18/21:22,4/9/11/16
+    LO1ActiveTracks   = 4;16
+    HI1ActiveTracks   = 9;11
+
+[A] TCNTCN<CH>-<MOS><Z>-<VT>-A:TCN:OGD:CD:NOM  rows=1  FailModes=5760
+    ex: TCNTCN132-NPZ5-L-A:TCN:OGD:CD:NOM | CMOS TCNTCNPGD_SDR PLY length 2Diff tracks maximum density
+    FTITracksUnit     = 0:24[3],2:5
+    TcnPlugsUnit      = 1:2/5:6/9:10/13:14/17:18/21:22,2/4/6
+    M0CutPatternUnit  = 2:r2[5],1:5[1]/r5:r1[1]
+    VcxPatternUnit    = vt,1:2/5:6/9:10/13:14/17:18/21:22,4/9/11/16
+    LO1ActiveTracks   = 4;16
+    HI1ActiveTracks   = 9;11
+
+[A] TCNTCN<CH>-<MOS><Z>-<VT>-A:TCN:OGD:REG:<SKEW>  rows=6  FailModes=5760
+    ex: TCNTCN132-NPZ5-L-A:TCN:OGD:REG:N5 | CMOS TCNTCNPGD_SDR PLY length 2Diff tracks maximum density
+    FTITracksUnit     = 0:24[3],2:5
+    TcnPlugsUnit      = 1:2/5:6/9:10/13:14/17:18/21:22,2/4/6
+    M0CutPatternUnit  = 2:r2[5],1:5[1]/r5:r1[1]
+    VcxPatternUnit    = vt,1:2/5:6/9:10/13:14/17:18/21:22,4/9/11/16
+    LO1ActiveTracks   = 4;16
+    HI1ActiveTracks   = 9;11
+
+[A] TCNTCN<CH>-<MOS><Z>-<VT>-A:TCN:OGD:REG:NOM  rows=1  FailModes=5760
+    ex: TCNTCN132-NPZ5-L-A:TCN:OGD:REG:NOM | CMOS TCNTCNPGD_SDR PLY length 2Diff tracks maximum density
+    FTITracksUnit     = 0:24[3],2:5
+    TcnPlugsUnit      = 1:2/5:6/9:10/13:14/17:18/21:22,2/4/6
+    M0CutPatternUnit  = 2:r2[5],1:5[1]/r5:r1[1]
+    VcxPatternUnit    = vt,1:2/5:6/9:10/13:14/17:18/21:22,4/9/11/16
+    LO1ActiveTracks   = 4;16
+    HI1ActiveTracks   = 9;11
+
+[A] TCNTCN<CH>-<MOS><Z>-<VT>-A:NESTCP:PGD:CD:<SKEW>  rows=7  FailModes=5760
+    ex: TCNTCN132-NPZ5-L-A:NESTCP:PGD:CD:N2 | CMOS TCNTCNPGD_SDR PLY length 2Diff tracks maximum density
+    FTITracksUnit     = 4:20[3],2:5;0/24,0:r0
+    TcnPlugsUnit      = 1:2/5:6/9:10/13:14/17:18/21:22,2/4/6
+    M0CutPatternUnit  = 2:r2[5],1:5[1]/r5:r1[1]
+    VcxPatternUnit    = vt,1:2/5:6/9:10/13:14/17:18/21:22,4/9/11/16
+    LO1ActiveTracks   = 4;16
+    HI1ActiveTracks   = 9;11
+    DrawMiscIDsUnit   = NES_mask,TSDRActiveImplant,-4:28,-2:9;NES_mask,toSynDrawing,0:24,1:2;NES_mask,toSynDrawing,0:24,5:6
+
+[A] TCNTCN<CH>-<MOS><Z>-<VT>-A:NESTCP:PGD:CD:NOM  rows=1  FailModes=5760
+    ex: TCNTCN132-NPZ5-L-A:NESTCP:PGD:CD:NOM | CMOS TCNTCNPGD_SDR PLY length 2Diff tracks maximum density
+    FTITracksUnit     = 4:20[3],2:5;0/24,0:r0
+    TcnPlugsUnit      = 1:2/5:6/9:10/13:14/17:18/21:22,2/4/6
+    M0CutPatternUnit  = 2:r2[5],1:5[1]/r5:r1[1]
+    VcxPatternUnit    = vt,1:2/5:6/9:10/13:14/17:18/21:22,4/9/11/16
+    LO1ActiveTracks   = 4;16
+    HI1ActiveTracks   = 9;11
+    DrawMiscIDsUnit   = NES_mask,TSDRActiveImplant,-4:28,-2:9;NES_mask,toSynDrawing,0:24,1:2;NES_mask,toSynDrawing,0:24,5:6
+
+[A] TCNTCN<CH>-<MOS><Z>-<VT>-A:ESDTCP:PGD:CD:<SKEW>  rows=7  FailModes=5760
+    ex: TCNTCN132-NPZ5-L-A:ESDTCP:PGD:CD:N2 | CMOS TCNTCNPGD_SDR PLY length 2Diff tracks maximum density
+    FTITracksUnit     = 4:20[3],2:5;0/24,0:r0
+    TcnPlugsUnit      = 1:2/5:6/9:10/13:14/17:18/21:22,2/4/6
+    M0CutPatternUnit  = 2:r2[5],1:5[1]/r5:r1[1]
+    VcxPatternUnit    = vt,1:2/5:6/9:10/13:14/17:18/21:22,4/9/11/16
+    LO1ActiveTracks   = 4;16
+    HI1ActiveTracks   = 9;11
+    DrawMiscIDsUnit   = ESD_mask,TSDRActiveImplant,-4:28,-2:9;ESD_mask,toSynDrawing,0:24,3:4
+
+[A] TCNTCN<CH>-<MOS><Z>-<VT>-A:ESDTCP:PGD:CD:NOM  rows=1  FailModes=5760
+    ex: TCNTCN132-NPZ5-L-A:ESDTCP:PGD:CD:NOM | CMOS TCNTCNPGD_SDR PLY length 2Diff tracks maximum density
+    FTITracksUnit     = 4:20[3],2:5;0/24,0:r0
+    TcnPlugsUnit      = 1:2/5:6/9:10/13:14/17:18/21:22,2/4/6
+    M0CutPatternUnit  = 2:r2[5],1:5[1]/r5:r1[1]
+    VcxPatternUnit    = vt,1:2/5:6/9:10/13:14/17:18/21:22,4/9/11/16
+    LO1ActiveTracks   = 4;16
+    HI1ActiveTracks   = 9;11
+    DrawMiscIDsUnit   = ESD_mask,TSDRActiveImplant,-4:28,-2:9;ESD_mask,toSynDrawing,0:24,3:4
+
+[A] TCNTCN<CH>-<MOS><Z>-<VT>-A:NESESDTCP:PGD:CD:<SKEW>  rows=7  FailModes=5760
+    ex: TCNTCN132-NPZ5-L-A:NESESDTCP:PGD:CD:N2 | CMOS TCNTCNPGD_SDR PLY length 2Diff tracks maximum density
+    FTITracksUnit     = 4:20[3],2:5;0/24,0:r0
+    TcnPlugsUnit      = 1:2/5:6/9:10/13:14/17:18/21:22,2/4/6
+    M0CutPatternUnit  = 2:r2[5],1:5[1]/r5:r1[1]
+    VcxPatternUnit    = vt,1:2/5:6/9:10/13:14/17:18/21:22,4/9/11/16
+    LO1ActiveTracks   = 4;16
+    HI1ActiveTracks   = 9;11
+    DrawMiscIDsUnit   = NES_mask,TSDRActiveImplant,-4:28,-2:9;ESD_mask,TSDRActiveImplant,-4:28,-2:9;NES_mask,toSynDrawing,0:24,1:2;NES_mask,toSynDrawing,0:24,5:6;ESD_mask,toS
+
+[A] TCNTCN<CH>-<MOS><Z>-<VT>-A:NESESDTCP:PGD:CD:NOM  rows=1  FailModes=5760
+    ex: TCNTCN132-NPZ5-L-A:NESESDTCP:PGD:CD:NOM | CMOS TCNTCNPGD_SDR PLY length 2Diff tracks maximum density
+    FTITracksUnit     = 4:20[3],2:5;0/24,0:r0
+    TcnPlugsUnit      = 1:2/5:6/9:10/13:14/17:18/21:22,2/4/6
+    M0CutPatternUnit  = 2:r2[5],1:5[1]/r5:r1[1]
+    VcxPatternUnit    = vt,1:2/5:6/9:10/13:14/17:18/21:22,4/9/11/16
+    LO1ActiveTracks   = 4;16
+    HI1ActiveTracks   = 9;11
+    DrawMiscIDsUnit   = NES_mask,TSDRActiveImplant,-4:28,-2:9;ESD_mask,TSDRActiveImplant,-4:28,-2:9;NES_mask,toSynDrawing,0:24,1:2;NES_mask,toSynDrawing,0:24,5:6;ESD_mask,toS
+
+[B] TCNTCN<CH>-<MOS><Z>-<VT>-B:VCRNUB:PGD:CD:<SKEW>  rows=3  FailModes=5760
+    ex: TCNTCN132-NPZ5-L-B:VCRNUB:PGD:CD:N5 | CMOS TCNTCNPGD_SDR PLY length 1Diff tracks VCR CD skews without VCR Nub
+    FTITracksUnit     = 0:24[3],1:2/5:6
+    VcrPatternUnit    = -1:r-1,1|<shift>;-1:r-1,3|<shift>;
+    VcrnubPatternUnit = 1:r1[3],1,bottom|<shift>;1:r1[3],3,top|<shift>;2:r1[3],1,bottom|<shift>;2:r1[3],3,top|<shift>
+    TcnExtensionUnit  = 1:r1,1;1:r1,3;
+    M0CutPatternUnit  = 2:r2[5],1:3[1]/r3:r1[1]
+    VcxPatternUnit    = vt,1:2/5:6/9:10/13:14/17:18/21:22,4/6/14/16
+    LO1ActiveTracks   = 6;14
+    HI1ActiveTracks   = 4;16
+
+[B] TCNTCN<CH>-<MOS><Z>-<VT>-B:VCRNUB:PGD:CD:NOM  rows=1  FailModes=5760
+    ex: TCNTCN132-NPZ5-L-B:VCRNUB:PGD:CD:NOM | CMOS TCNTCNPGD_SDR PLY length 1Diff tracks VCR CD skews without VCR Nub
+    FTITracksUnit     = 0:24[3],1:2/5:6
+    VcrPatternUnit    = -1:r-1,1|<shift>;-1:r-1,3|<shift>;
+    VcrnubPatternUnit = 1:r1[3],1,bottom|<shift>;1:r1[3],3,top|<shift>;2:r1[3],1,bottom|<shift>;2:r1[3],3,top|<shift>
+    TcnExtensionUnit  = 1:r1,1;1:r1,3;
+    M0CutPatternUnit  = 2:r2[5],1:3[1]/r3:r1[1]
+    VcxPatternUnit    = vt,1:2/5:6/9:10/13:14/17:18/21:22,4/6/14/16
+    LO1ActiveTracks   = 6;14
+    HI1ActiveTracks   = 4;16
+
+[B] TCNTCN<CH>-<MOS><Z>-<VT>-B:VCR:PGD:DEN:1TRK_1PP  rows=1  FailModes=17280
+    ex: TCNTCN165-NPZ7-L-B:VCR:PGD:DEN:1TRK_1PP | CMOS TCNTCNPGD_SDR PLY length 1Diff tracks VCR CD skews without VCR Nub
+    FTITracksUnit     = 0:24[3],1:2/5:6
+    VcrPatternUnit    = -1:r-1,1|<shift>;-1:r-1,3|<shift>;
+    M0CutPatternUnit  = 2:r2[6],2/10/14/r2
+    VcxPatternUnit    = vt,1:2/5:6/9:10/13:14/17:18/21:22,4/8/16/20;vt,0:r0[3],5/7/17/19;vt,3:r0[3],5/7/17/19
+    LO1ActiveTracks   = 4;5;16;17
+    HI1ActiveTracks   = 7;8;19;20
+
+[C] TCNTCN<CH>-<MOS><Z>-<VT>-C:SDR:PGD:DEN:2TRK_1PP  rows=1  FailModes=11520
+    ex: TCNTCN165-NPZ7-L-C:SDR:PGD:DEN:2TRK_1PP | CMOS TCNTCNPGD_SDR PLY length 2Diff tracks maximum density 4 TCN
+    FTITracksUnit     = 0:24[3],2:5
+    TcnPlugsUnit      = 0:r0,2/4/6
+    M0CutPatternUnit  = 5:r2[6],2/r2;2:r2[6],8/10/14/16;
+    VcxPatternUnit    = vt,1:2/5:6/9:10/13:14/17:18/21:22,4/11/13/20;vt,0:r0[3],7/12/17;vt,3:r0[3],7/12/17
+    LO1ActiveTracks   = 4;7;17;20
+    HI1ActiveTracks   = 11;12;13
+
+[C] TCNTCN<CH>-<MOS><Z>-<VT>-C:TCP:PGD:CD:<SKEW>  rows=4  FailModes=11520
+    ex: TCNTCN132-NPZ5-L-C:TCP:PGD:CD:N2 | CMOS TCNTCNPGD_SDR PLY length 2Diff tracks maximum density 4 TCN
+    FTITracksUnit     = 0:24[3],2:5
+    TcnPlugsUnit      = 0:r0,2/4/6
+    M0CutPatternUnit  = 2:r2[5],1:5[1]/r5:r1[1]
+    VcxPatternUnit    = vt,1:2/5:6/9:10/13:14/17:18/21:22,6/9/11/14;vt,0:r0[3],4/10/16;vt,3:r0[3],4/10/16
+    LO1ActiveTracks   = 4;6;14;16
+    HI1ActiveTracks   = 9;10;11
+
+[C] TCNTCN<CH>-<MOS><Z>-<VT>-C:TCP:PGD:CD:NOM  rows=1  FailModes=11520
+    ex: TCNTCN132-NPZ5-L-C:TCP:PGD:CD:NOM | CMOS TCNTCNPGD_SDR PLY length 2Diff tracks maximum density 4 TCN
+    FTITracksUnit     = 0:24[3],2:5
+    TcnPlugsUnit      = 0:r0,2/4/6
+    M0CutPatternUnit  = 2:r2[5],1:5[1]/r5:r1[1]
+    VcxPatternUnit    = vt,1:2/5:6/9:10/13:14/17:18/21:22,6/9/11/14;vt,0:r0[3],4/10/16;vt,3:r0[3],4/10/16
+    LO1ActiveTracks   = 4;6;14;16
+    HI1ActiveTracks   = 9;10;11
+
+[D] TCNTCN<CH>-<MOS><Z>-<VT>-D:SDR:PGD:DEN:2TRK_1PP  rows=1  FailModes=5760
+    ex: TCNTCN132-NPZ5-L-D:SDR:PGD:DEN:2TRK_1PP | CMOS TCNTCNPGD_SDR PLY length 2Diff tracks maximum density VT closer to fail area
+    FTITracksUnit     = 0:24[3],2:5
+    TcnPlugsUnit      = 1:2/5:6/9:10/13:14/17:18/21:22,2/4/6
+    M0CutPatternUnit  = 2:r2[5],1:5[1]/r5:r1[1]
+    VcxPatternUnit    = vt,1:2/5:6/9:10/13:14/17:18/21:22,6/9/11/14
+    LO1ActiveTracks   = 6;14
+    HI1ActiveTracks   = 9;11
+
+[C] TCNTCN<CH>-<MOS><Z>-<VT>-C:DENTCP:PGD:CD:<SKEW>  rows=4  FailModes=11520
+    ex: TCNTCN165-NPZ7-L-C:DENTCP:PGD:CD:N2 | CMOS TCNTCNPGD_SDR PLY length 2Diff tracks maximum density 4 TCN
+    FTITracksUnit     = 0:24[3],2:5
+    TcnPlugsUnit      = 0:r0,2/4/6
+    M0CutPatternUnit  = 5:r2[6],2/r2;2:r2[6],8/10/14/16;
+    VcxPatternUnit    = vt,1:2/5:6/9:10/13:14/17:18/21:22,4/11/13/20;vt,0:r0[3],7/12/17;vt,3:r0[3],7/12/17
+    LO1ActiveTracks   = 4;7;17;20
+    HI1ActiveTracks   = 11;12;13
+
+[C] TCNTCN<CH>-<MOS><Z>-<VT>-C:DENTCP:PGD:CD:NOM  rows=1  FailModes=11520
+    ex: TCNTCN165-NPZ7-L-C:DENTCP:PGD:CD:NOM | CMOS TCNTCNPGD_SDR PLY length 2Diff tracks maximum density 4 TCN
+    FTITracksUnit     = 0:24[3],2:5
+    TcnPlugsUnit      = 0:r0,2/4/6
+    M0CutPatternUnit  = 5:r2[6],2/r2;2:r2[6],8/10/14/16;
+    VcxPatternUnit    = vt,1:2/5:6/9:10/13:14/17:18/21:22,4/11/13/20;vt,0:r0[3],7/12/17;vt,3:r0[3],7/12/17
+    LO1ActiveTracks   = 4;7;17;20
+    HI1ActiveTracks   = 11;12;13
+
+[C] TCNTCN<CH>-<MOS><Z>-<VT>-C:DENTCP:OGD:CD:<SKEW>  rows=4  FailModes=11520
+    ex: TCNTCN165-NPZ7-L-C:DENTCP:OGD:CD:N2 | CMOS TCNTCNPGD_SDR PLY length 2Diff tracks maximum density 4 TCN
+    FTITracksUnit     = 0:24[3],2:5
+    TcnPlugsUnit      = 0:r0,2/4/6
+    M0CutPatternUnit  = 5:r2[6],2/r2;2:r2[6],8/10/14/16;
+    VcxPatternUnit    = vt,1:2/5:6/9:10/13:14/17:18/21:22,4/11/13/20;vt,0:r0[3],7/12/17;vt,3:r0[3],7/12/17
+    LO1ActiveTracks   = 4;7;17;20
+    HI1ActiveTracks   = 11;12;13
+
+[C] TCNTCN<CH>-<MOS><Z>-<VT>-C:DENTCP:OGD:CD:NOM  rows=1  FailModes=11520
+    ex: TCNTCN165-NPZ7-L-C:DENTCP:OGD:CD:NOM | CMOS TCNTCNPGD_SDR PLY length 2Diff tracks maximum density 4 TCN
+    FTITracksUnit     = 0:24[3],2:5
+    TcnPlugsUnit      = 0:r0,2/4/6
+    M0CutPatternUnit  = 5:r2[6],2/r2;2:r2[6],8/10/14/16;
+    VcxPatternUnit    = vt,1:2/5:6/9:10/13:14/17:18/21:22,4/11/13/20;vt,0:r0[3],7/12/17;vt,3:r0[3],7/12/17
+    LO1ActiveTracks   = 4;7;17;20
+    HI1ActiveTracks   = 11;12;13

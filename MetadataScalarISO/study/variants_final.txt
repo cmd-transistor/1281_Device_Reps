@@ -1,0 +1,133 @@
+Counter({'VIA_CHAIN': 401, 'CTG': 132, 'DIFFCHN': 120, 'EPIEPI': 118, 'GATEGATE': 62, 'TCNTCN': 44, 'DIFFOGD': 20})
+CTG-A-01           18  21600  ch110 ch132        CTG-<MOS>-A:SDR:OGD:REF:2TRK                               
+CTG-A-02           18  21600  ch110 ch132        CTG-<MOS>-A:SDR:OGD:REF:2TRK                               
+CTG-A-03           18  21600  ch110 ch132        CTG-<MOS>-A:SDR:OGD:REF:2TRK                               
+CTG-A-04            6  21600  ch165              CTG-<MOS>-A:SDR:OGD:REF:2TRK                               VT tracks [17] are not in LO1ActiveTracks [15]; all VT treated as LO | VG tracks [7] are not in HI1ActiveTrack
+CTG-A-05            6  21600  ch165              CTG-<MOS>-A:SDR:OGD:REF:2TRK                               
+CTG-A-06            6  21600  ch165              CTG-<MOS>-A:SDR:OGD:REF:2TRK                               VT tracks [17] are not in LO1ActiveTracks [15]; all VT treated as LO | VG tracks [7] are not in HI1ActiveTrack
+CTG-B-01            1  21600  ch132              CTG-<MOS>-B:NGLK:OGD:REF:2TRK                              
+CTG-B-02            1  21600  ch132              CTG-<MOS>-B:NGLK:OGD:REF:2TRK                              
+CTG-B-03            1  21600  ch132              CTG-<MOS>-B:NGLK:OGD:REF:2TRK                              
+CTG-B-04            1  21600  ch165              CTG-<MOS>-B:NGLK:OGD:REF:2TRK                              
+CTG-B-05            1  21600  ch165              CTG-<MOS>-B:NGLK:OGD:REF:2TRK                              
+CTG-B-06            1  21600  ch165              CTG-<MOS>-B:NGLK:OGD:REF:2TRK                              
+CTG-C-01            1  21600  ch132              CTG-<MOS>-C:NTLK:OGD:REF:2TRK                              
+CTG-C-02            1  21600  ch132              CTG-<MOS>-C:NTLK:OGD:REF:2TRK                              
+CTG-C-03            1  21600  ch132              CTG-<MOS>-C:NTLK:OGD:REF:2TRK                              
+CTG-C-04            1  21600  ch165              CTG-<MOS>-C:NTLK:OGD:REF:2TRK                              
+CTG-C-05            1  21600  ch165              CTG-<MOS>-C:NTLK:OGD:REF:2TRK                              
+CTG-C-06            1  21600  ch165              CTG-<MOS>-C:NTLK:OGD:REF:2TRK                              
+CTG-D-01            1  43200  ch132              CTG-<MOS>-D:NLNK:OGD:REF:1TRK                              geometric count 144/unit differs from type-A SDR reference 72/unit
+CTG-D-02            1  43200  ch132              CTG-<MOS>-D:NLNK:OGD:REF:1TRK                              geometric count 144/unit differs from type-A SDR reference 72/unit
+CTG-D-03            1  43200  ch132              CTG-<MOS>-D:NLNK:OGD:REF:1TRK                              geometric count 144/unit differs from type-A SDR reference 72/unit
+CTG-D-04            1  43200  ch165              CTG-<MOS>-D:NLNK:OGD:REF:1TRK                              geometric count 144/unit differs from type-A SDR reference 72/unit
+CTG-D-05            1  43200  ch165              CTG-<MOS>-D:NLNK:OGD:REF:1TRK                              geometric count 144/unit differs from type-A SDR reference 72/unit
+CTG-D-06            1  43200  ch165              CTG-<MOS>-D:NLNK:OGD:REF:1TRK                              geometric count 144/unit differs from type-A SDR reference 72/unit
+CTG-E-01           18  21600  ch110 ch132        CTG-<MOS>-E:VCR:PGD:CD:<SKEW>                              type E tests a VCR/VCRNUB path; SDR type-A reference count kept per slide 4 (geometric gate||TCN count would b
+CTG-E-02            9  21600  ch110 ch132        CTG-<MOS>-E:VCR:PGD:CD:<SKEW>                              type E tests a VCR/VCRNUB path; SDR type-A reference count kept per slide 4 (geometric gate||TCN count would b
+CTG-E-03            4  21600  ch110 ch132        CTG-<MOS>-E:VCR:PGD:CD:0                                   type E tests a VCR/VCRNUB path; SDR type-A reference count kept per slide 4 (geometric gate||TCN count would b
+CTG-E-04            2  21600  ch110 ch132        CTG-<MOS>-E:VCR:PGD:CD:0                                   type E tests a VCR/VCRNUB path; SDR type-A reference count kept per slide 4 (geometric gate||TCN count would b
+CTG-H-01            1  21600  ch132              CTG-<MOS>-H:SDR:OGD:DEN:1VG_PLY                            
+CTG-H-02            1  21600  ch132              CTG-<MOS>-H:SDR:OGD:DEN:1VG_PLY                            
+CTG-H-03            1  21600  ch132              CTG-<MOS>-H:SDR:OGD:DEN:1VG_PLY                            
+CTG-H-04            1  21600  ch132              CTG-<MOS>-H:SDR:OGD:DEN:2VG_PLY                            
+CTG-H-05            1  21600  ch132              CTG-<MOS>-H:SDR:OGD:DEN:2VG_PLY                            
+CTG-H-06            1  21600  ch132              CTG-<MOS>-H:SDR:OGD:DEN:2VG_PLY                            
+CTG-H-07            1  21600  ch165              CTG-<MOS>-H:SDR:OGD:DEN:1VG_PLY                            
+CTG-H-08            1  21600  ch165              CTG-<MOS>-H:SDR:OGD:DEN:1VG_PLY                            
+CTG-H-09            1  21600  ch165              CTG-<MOS>-H:SDR:OGD:DEN:1VG_PLY                            
+CTG-H-10            1  21600  ch165              CTG-<MOS>-H:SDR:OGD:DEN:2VG_PLY                            
+CTG-H-11            1  21600  ch165              CTG-<MOS>-H:SDR:OGD:DEN:2VG_PLY                            
+CTG-H-12            1  21600  ch165              CTG-<MOS>-H:SDR:OGD:DEN:2VG_PLY                            
+CTG-I-01            1  21600  ch132              CTG-<MOS>-I:SDR:OGD:DEN:1VT_TCN                            
+CTG-I-02            1  21600  ch132              CTG-<MOS>-I:SDR:OGD:DEN:1VT_TCN                            
+CTG-I-03            1  21600  ch132              CTG-<MOS>-I:SDR:OGD:DEN:1VT_TCN                            
+CTG-I-04            1  21600  ch132              CTG-<MOS>-I:SDR:OGD:DEN:2VT_TCN                            
+CTG-I-05            1  21600  ch132              CTG-<MOS>-I:SDR:OGD:DEN:2VT_TCN                            
+CTG-I-06            1  21600  ch132              CTG-<MOS>-I:SDR:OGD:DEN:2VT_TCN                            
+CTG-I-07            1  21600  ch165              CTG-<MOS>-I:SDR:OGD:DEN:1VT_TCN                            
+CTG-I-08            1  21600  ch165              CTG-<MOS>-I:SDR:OGD:DEN:1VT_TCN                            
+CTG-I-09            1  21600  ch165              CTG-<MOS>-I:SDR:OGD:DEN:1VT_TCN                            
+CTG-I-10            1  21600  ch165              CTG-<MOS>-I:SDR:OGD:DEN:2VT_TCN                            
+CTG-I-11            1  21600  ch165              CTG-<MOS>-I:SDR:OGD:DEN:2VT_TCN                            
+CTG-I-12            1  21600  ch165              CTG-<MOS>-I:SDR:OGD:DEN:2VT_TCN                            
+CTG-A-07            2  21600  ch110 ch132        CTG-<MOS>-A:SDR:OGD:REF:2TRK                               
+CTG-A-08            2  21600  ch110 ch132        CTG-<MOS>-A:SDR:OGD:REF:2TRK                               
+CTG-A-09            2  21600  ch110 ch132        CTG-<MOS>-A:SDR:OGD:REF:2TRK                               
+CTG-K-01            2  10800  ch110 ch132        CTG-<MOS>-K:SDR:OGD:DEN:NTLK                               geometric count 36/unit differs from type-A SDR reference 72/unit
+CTG-K-02            2  10800  ch110 ch132        CTG-<MOS>-K:SDR:OGD:DEN:NTLK                               geometric count 36/unit differs from type-A SDR reference 72/unit
+CTG-K-03            2  10800  ch110 ch132        CTG-<MOS>-K:SDR:OGD:DEN:NTLK                               geometric count 36/unit differs from type-A SDR reference 72/unit
+CTG-K-04            2  10800  ch110 ch132        CTG-<MOS>-K:SDR:OGD:DEN:NGLK                               geometric count 36/unit differs from type-A SDR reference 72/unit
+CTG-K-05            2  10800  ch110 ch132        CTG-<MOS>-K:SDR:OGD:DEN:NGLK                               geometric count 36/unit differs from type-A SDR reference 72/unit
+CTG-K-06            2  10800  ch110 ch132        CTG-<MOS>-K:SDR:OGD:DEN:NGLK                               geometric count 36/unit differs from type-A SDR reference 72/unit
+CTG-A-10            1  21600  ch165              CTG-<MOS>-A:SDR:OGD:REF:2TRK                               
+CTG-A-11            1  21600  ch165              CTG-<MOS>-A:SDR:OGD:REF:2TRK                               
+CTG-A-12            1  21600  ch165              CTG-<MOS>-A:SDR:OGD:REF:2TRK                               
+CTG-K-07            1  10800  ch165              CTG-<MOS>-K:SDR:OGD:DEN:NTLK                               geometric count 36/unit differs from type-A SDR reference 72/unit
+CTG-K-08            1  10800  ch165              CTG-<MOS>-K:SDR:OGD:DEN:NTLK                               geometric count 36/unit differs from type-A SDR reference 72/unit
+CTG-K-09            1  10800  ch165              CTG-<MOS>-K:SDR:OGD:DEN:NTLK                               geometric count 36/unit differs from type-A SDR reference 72/unit
+CTG-K-10            1  10800  ch165              CTG-<MOS>-K:SDR:OGD:DEN:NGLK                               geometric count 36/unit differs from type-A SDR reference 72/unit
+CTG-K-11            1  10800  ch165              CTG-<MOS>-K:SDR:OGD:DEN:NGLK                               geometric count 36/unit differs from type-A SDR reference 72/unit
+CTG-K-12            1  10800  ch165              CTG-<MOS>-K:SDR:OGD:DEN:NGLK                               geometric count 36/unit differs from type-A SDR reference 72/unit
+CTG-L-01            2  21600  ch110 ch132        CTG-<MOS>-L:SDR:OGD:DEN:NGLK                               
+CTG-L-02            2  21600  ch110 ch132        CTG-<MOS>-L:SDR:OGD:DEN:NGLK                               
+CTG-L-03            2  21600  ch110 ch132        CTG-<MOS>-L:SDR:OGD:DEN:NGLK                               
+CTG-L-04            2  21600  ch110 ch132        CTG-<MOS>-L:SDR:OGD:DEN:NTLK                               
+CTG-L-05            2  21600  ch110 ch132        CTG-<MOS>-L:SDR:OGD:DEN:NTLK                               
+CTG-L-06            2  21600  ch110 ch132        CTG-<MOS>-L:SDR:OGD:DEN:NTLK                               
+CTG-L-07            1  21600  ch165              CTG-<MOS>-L:SDR:OGD:DEN:NGLK                               
+CTG-L-08            1  21600  ch165              CTG-<MOS>-L:SDR:OGD:DEN:NGLK                               
+CTG-L-09            1  21600  ch165              CTG-<MOS>-L:SDR:OGD:DEN:NGLK                               
+CTG-L-10            1  21600  ch165              CTG-<MOS>-L:SDR:OGD:DEN:NTLK                               
+CTG-L-11            1  21600  ch165              CTG-<MOS>-L:SDR:OGD:DEN:NTLK                               
+CTG-L-12            1  21600  ch165              CTG-<MOS>-L:SDR:OGD:DEN:NTLK                               
+CTG-G-01            1  21600  ch165              CTG-<MOS>-G:DNU:OGD:REF:NDPI_2TRK                          
+CTG-G-02            1  21600  ch165              CTG-<MOS>-G:DNU:OGD:REF:NDPI_2TRK                          
+CTG-G-03            1  43200  ch165              CTG-<MOS>-G:DNU:OGD:REF:NDPI_4TRK                          geometric count 144/unit differs from type-A SDR reference 72/unit
+CTG-G-04            1  43200  ch165              CTG-<MOS>-G:DNU:OGD:REF:NDPI_4TRK                          geometric count 144/unit differs from type-A SDR reference 72/unit
+CTG-G-05            1  21600  ch165              CTG-<MOS>-G:DNU:OGD:REF:BEPI_2TRK                          
+CTG-G-06            1  21600  ch165              CTG-<MOS>-G:DNU:OGD:REF:BEPI_2TRK                          
+CTG-G-07            1  43200  ch165              CTG-<MOS>-G:DNU:OGD:REF:BEPI_4TRK                          geometric count 144/unit differs from type-A SDR reference 72/unit
+CTG-G-08            1  43200  ch165              CTG-<MOS>-G:DNU:OGD:REF:BEPI_4TRK                          geometric count 144/unit differs from type-A SDR reference 72/unit
+CTG-A-13            8  21600  ch110 ch132        CTG-<MOS>-A:PLYFSPCR:OGD:CD:<SKEW>                         
+CTG-A-14            8  21600  ch110 ch132        CTG-<MOS>-A:PLYFSPCR:OGD:CD:<SKEW>                         
+CTG-A-15            8  21600  ch110 ch132        CTG-<MOS>-A:PLYFSPCR:OGD:CD:<SKEW>                         
+CTG-A-16            2  21600  ch110 ch132        CTG-<MOS>-A:PLYFSPCR:OGD:CD:0                              
+CTG-A-17            2  21600  ch110 ch132        CTG-<MOS>-A:PLYFSPCR:OGD:CD:0                              
+CTG-A-18            2  21600  ch110 ch132        CTG-<MOS>-A:PLYFSPCR:OGD:CD:0                              
+CTG-A-19           12  21600  ch110 ch132        CTG-<MOS>-A:PLYFTCN:OGD:CD:<SKEW>                          
+CTG-A-20           12  21600  ch110 ch132        CTG-<MOS>-A:PLYFTCN:OGD:CD:<SKEW>                          
+CTG-A-21           12  21600  ch110 ch132        CTG-<MOS>-A:PLYFTCN:OGD:CD:<SKEW>                          
+CTG-A-22            6  21600  ch110 ch132        CTG-<MOS>-A:PLYFTCN:OGD:CD:0                               
+CTG-A-23            6  21600  ch110 ch132        CTG-<MOS>-A:PLYFTCN:OGD:CD:0                               
+CTG-A-24            6  21600  ch110 ch132        CTG-<MOS>-A:PLYFTCN:OGD:CD:0                               
+CTG-E-05            8  21600  ch165              CTG-<MOS>-E:VCR:PGD:REG:<SKEW>                             type E tests a VCR/VCRNUB path; SDR type-A reference count kept per slide 4 (geometric gate||TCN count would b
+CTG-E-06            8  21600  ch165              CTG-<MOS>-E:VCR:PGD:REG:<SKEW>                             type E tests a VCR/VCRNUB path; SDR type-A reference count kept per slide 4 (geometric gate||TCN count would b
+CTG-E-07            8  21600  ch165              CTG-<MOS>-E:VCR:PGD:REG:<SKEW>                             type E tests a VCR/VCRNUB path; SDR type-A reference count kept per slide 4 (geometric gate||TCN count would b
+CTG-E-08            1  21600  ch165              CTG-<MOS>-E:VCR:PGD:REG:0                                  type E tests a VCR/VCRNUB path; SDR type-A reference count kept per slide 4 (geometric gate||TCN count would b
+CTG-E-09            1  21600  ch165              CTG-<MOS>-E:VCR:PGD:REG:0                                  type E tests a VCR/VCRNUB path; SDR type-A reference count kept per slide 4 (geometric gate||TCN count would b
+CTG-E-10            1  21600  ch165              CTG-<MOS>-E:VCR:PGD:REG:0                                  type E tests a VCR/VCRNUB path; SDR type-A reference count kept per slide 4 (geometric gate||TCN count would b
+CTG-E-11           16  21600  ch110 ch132        CTG-<MOS>-E:VCR:PGD:REG:<SKEW>                             type E tests a VCR/VCRNUB path; SDR type-A reference count kept per slide 4 (geometric gate||TCN count would b
+CTG-E-12           16  21600  ch110 ch132        CTG-<MOS>-E:VCR:PGD:REG:<SKEW>                             type E tests a VCR/VCRNUB path; SDR type-A reference count kept per slide 4 (geometric gate||TCN count would b
+CTG-E-13           16  21600  ch110 ch132        CTG-<MOS>-E:VCR:PGD:REG:<SKEW>                             type E tests a VCR/VCRNUB path; SDR type-A reference count kept per slide 4 (geometric gate||TCN count would b
+CTG-E-14            2  21600  ch110 ch132        CTG-<MOS>-E:VCR:PGD:REG:0                                  type E tests a VCR/VCRNUB path; SDR type-A reference count kept per slide 4 (geometric gate||TCN count would b
+CTG-E-15            2  21600  ch110 ch132        CTG-<MOS>-E:VCR:PGD:REG:0                                  type E tests a VCR/VCRNUB path; SDR type-A reference count kept per slide 4 (geometric gate||TCN count would b
+CTG-E-16            2  21600  ch110 ch132        CTG-<MOS>-E:VCR:PGD:REG:0                                  type E tests a VCR/VCRNUB path; SDR type-A reference count kept per slide 4 (geometric gate||TCN count would b
+CTG-F-01           12  21600  ch110 ch132        CTG-<MOS>-F:VCRNUB:OGD:REG:<SKEW>                          type F tests a VCR/VCRNUB path; SDR type-A reference count kept per slide 4 (geometric gate||TCN count would b
+CTG-F-02           12  21600  ch110 ch132        CTG-<MOS>-F:VCRNUB:OGD:REG:<SKEW>                          type F tests a VCR/VCRNUB path; SDR type-A reference count kept per slide 4 (geometric gate||TCN count would b
+CTG-F-03           12  21600  ch110 ch132        CTG-<MOS>-F:VCRNUB:OGD:REG:<SKEW>                          type F tests a VCR/VCRNUB path; SDR type-A reference count kept per slide 4 (geometric gate||TCN count would b
+CTG-F-04            2  21600  ch110 ch132        CTG-<MOS>-F:VCRNUB:OGD:REG:0                               type F tests a VCR/VCRNUB path; SDR type-A reference count kept per slide 4 (geometric gate||TCN count would b
+CTG-F-05            2  21600  ch110 ch132        CTG-<MOS>-F:VCRNUB:OGD:REG:0                               type F tests a VCR/VCRNUB path; SDR type-A reference count kept per slide 4 (geometric gate||TCN count would b
+CTG-F-06            2  21600  ch110 ch132        CTG-<MOS>-F:VCRNUB:OGD:REG:0                               type F tests a VCR/VCRNUB path; SDR type-A reference count kept per slide 4 (geometric gate||TCN count would b
+CTG-F-07            5  21600  ch165              CTG-<MOS>-F:VCRNUB:OGD:CD:<SKEW>                           type F tests a VCR/VCRNUB path; SDR type-A reference count kept per slide 4 (geometric gate||TCN count would b
+CTG-F-08            5  21600  ch165              CTG-<MOS>-F:VCRNUB:OGD:CD:<SKEW>                           type F tests a VCR/VCRNUB path; SDR type-A reference count kept per slide 4 (geometric gate||TCN count would b
+CTG-F-09            5  21600  ch165              CTG-<MOS>-F:VCRNUB:OGD:CD:<SKEW>                           type F tests a VCR/VCRNUB path; SDR type-A reference count kept per slide 4 (geometric gate||TCN count would b
+CTG-F-10            1  21600  ch165              CTG-<MOS>-F:VCRNUB:OGD:CD:0                                type F tests a VCR/VCRNUB path; SDR type-A reference count kept per slide 4 (geometric gate||TCN count would b
+CTG-F-11            1  21600  ch165              CTG-<MOS>-F:VCRNUB:OGD:CD:0                                type F tests a VCR/VCRNUB path; SDR type-A reference count kept per slide 4 (geometric gate||TCN count would b
+CTG-F-12            1  21600  ch165              CTG-<MOS>-F:VCRNUB:OGD:CD:0                                type F tests a VCR/VCRNUB path; SDR type-A reference count kept per slide 4 (geometric gate||TCN count would b
+CTG-F-13           10  21600  ch110 ch132        CTG-<MOS>-F:VCRNUB:OGD:CD:<SKEW>                           type F tests a VCR/VCRNUB path; SDR type-A reference count kept per slide 4 (geometric gate||TCN count would b
+CTG-F-14           10  21600  ch110 ch132        CTG-<MOS>-F:VCRNUB:OGD:CD:<SKEW>                           type F tests a VCR/VCRNUB path; SDR type-A reference count kept per slide 4 (geometric gate||TCN count would b
+CTG-F-15           10  21600  ch110 ch132        CTG-<MOS>-F:VCRNUB:OGD:CD:<SKEW>                           type F tests a VCR/VCRNUB path; SDR type-A reference count kept per slide 4 (geometric gate||TCN count would b
+CTG-F-16            2  21600  ch110 ch132        CTG-<MOS>-F:VCRNUB:OGD:CD:0                                type F tests a VCR/VCRNUB path; SDR type-A reference count kept per slide 4 (geometric gate||TCN count would b
+CTG-F-17            2  21600  ch110 ch132        CTG-<MOS>-F:VCRNUB:OGD:CD:0                                type F tests a VCR/VCRNUB path; SDR type-A reference count kept per slide 4 (geometric gate||TCN count would b
+CTG-F-18            2  21600  ch110 ch132        CTG-<MOS>-F:VCRNUB:OGD:CD:0                                type F tests a VCR/VCRNUB path; SDR type-A reference count kept per slide 4 (geometric gate||TCN count would b

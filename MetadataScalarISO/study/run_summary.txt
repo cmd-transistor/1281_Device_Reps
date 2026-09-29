@@ -1,0 +1,64 @@
+2581 rows -> ISO_Metadata_Output.csv, review -> ISO_Scalar_Review.csv, 897 variants -> ISO_Scalar_Variants.csv
+
+TestRow              Family     Type           rows  FailModes              notes
+x81zs_ctg01          CTG        A                72  10800                  VG tracks [7] are not in HI1ActiveTracks [6]; VT tracks [17] are not in LO1ActiveTracks [1
+x81zs_ctg01          CTG        B                 6  10800                  
+x81zs_ctg01          CTG        C                 6  10800                  
+x81zs_ctg01          CTG        D                 6  21600                  geometric count 72/unit differs from type-A SDR reference 36/unit
+x81zs_ctg02          CTG        E                18  21600                  geometric count 72/unit differs from type-A SDR reference 36/unit
+x81zs_ctg02          CTG        H                12  10800                  
+x81zs_ctg02          CTG        I                12  10800                  
+x81zs_ctg02          CTG        A                 9  10800                  
+x81zs_ctg02          CTG        K                18  5400                   geometric count 18/unit differs from type-A SDR reference 36/unit
+x81zs_ctg02          CTG        L                18  10800                  
+x81zs_ctg02          CTG        G                 8  10800/21600            geometric count 72/unit differs from type-A SDR reference 36/unit
+x81zs_ctg04          CTG        A                84  10800                  
+x81zs_ctg05          CTG        E                96  21600                  geometric count 72/unit differs from type-A SDR reference 36/unit
+x81zs_ctg06          CTG        F                96  21600                  geometric count 72/unit differs from type-A SDR reference 36/unit
+x81zs_diffchn01      DIFFCHN    B                24  16/32/48               name says LEN16 but 32 active VG gates in series (stacked); name says LEN24 but 48 active 
+x81zs_diffchn01      DIFFCHN    A                18  3/6/12                 
+x81zs_diffchn01      DIFFCHN    D                53  11/19/31/48/1140       60 chains stacked in a 1x60 array (multi-instance); every transistor site is counted; name
+x81zs_diffchn02      DIFFCHN    B                24  16/32/48               name says LEN16 but 32 active VG gates in series (stacked); name says LEN24 but 48 active 
+x81zs_diffchn02      DIFFCHN    A                18  3/6/12                 
+x81zs_diffchn02      DIFFCHN    D                53  11/19/31/48/1140       60 chains stacked in a 1x60 array (multi-instance); every transistor site is counted; name
+x81zs_diffchn03      DIFFCHN    LEN6             58  6                      
+x81zs_diffchn03      DIFFCHN    LEN10FC          36  19                     name says LEN10 but 19 active VG gates in series (stacked)
+x81zs_diffchn03      DIFFCHN    B                 2  2880                   60 chains stacked in a 1x60 array (multi-instance); every transistor site is counted; name
+x81zs_diffchn04      DIFFCHN    B                12  16/32/48               name says LEN16 but 32 active VG gates in series (stacked); name says LEN24 but 48 active 
+x81zs_diffchn04      DIFFCHN    A                20  3/6/12                 
+x81zs_diffchn04      DIFFCHN    D                12  11/19/31/48/1140       60 chains stacked in a 1x60 array (multi-instance); every transistor site is counted; name
+x81zs_diffchn04      DIFFCHN    LEN6             36  6                      
+x81zs_diffchn04      DIFFCHN    LEN10FC          18  19                     name says LEN10 but 19 active VG gates in series (stacked)
+x81zs_diffiso01_e    DIFFOGD    A                98  8400                   1 unit-boundary FTI column(s) excluded from active FTI count
+x81zs_diffiso02      DIFFOGD    A                98  4200                   1 unit-boundary FTI column(s) excluded from active FTI count
+x81zs_diffiso03      DIFFOGD    A                98  8400                   1 unit-boundary FTI column(s) excluded from active FTI count
+x81zs_epiepi01       EPIEPI     A                66  5760                   
+x81zs_epiepi01       EPIEPI     C                16  11520                  
+x81zs_epiepi01       EPIEPI     B                15  5760                   
+x81zs_epiepi01       EPIEPI     D                 1  5760                   
+x81zs_epiepi02       EPIEPI     A                66  5760                   
+x81zs_epiepi02       EPIEPI     C                16  11520                  
+x81zs_epiepi02       EPIEPI     B                15  5760                   
+x81zs_epiepi02       EPIEPI     D                 1  5760                   
+x81zs_epitcn01       TCNTCN     A                30  5760                   
+x81zs_epitcn01       TCNTCN     B                10  5760                   
+x81zs_epitcn01       EPIEPI     A                53  5760                   
+x81zs_gategate01     GATEGATE   A                90  10800                  
+x81zs_gategate02     GATEGATE   A                90  10800                  vias missing on some LO1/HI1 tracks (variant); SDR-equivalent track set used
+x81zs_gategate03     GATEGATE   SDR_PGD_REF      90  3600/10800             no vias in VcxPatternUnit; SDR-equivalent using plug/gate columns
+x81zs_gategate04     GATEGATE   SDR_PGD_REF      90  3600/10800             vias missing on some LO1/HI1 tracks (variant); SDR-equivalent track set used
+x81zs_gategate05     GATEGATE   C                98  3300                   
+x81zs_gategate06     GATEGATE   C                98  3300                   
+x81zs_gategate07_b   GATEGATE   C                98  3300                   
+x81zs_iso02_1        VIA_CHAIN                  110  None                   via chain -- out of scope
+x81zs_iso03_vcr1     VIA_CHAIN                  110  None                   via chain -- out of scope
+x81zs_iso04_vcr1     VIA_CHAIN                  110  None                   via chain -- out of scope
+x81zs_iso06_1        VIA_CHAIN                   71  None                   via chain -- out of scope
+x81zs_tcntcn01       TCNTCN     A                66  5760                   
+x81zs_tcntcn01       TCNTCN     B                15  5760/11520             
+x81zs_tcntcn01       TCNTCN     C                16  11520                  
+x81zs_tcntcn01       TCNTCN     D                 1  5760                   
+
+496 snapshot(s) -> \\jfsfls1002.amr.corp.intel.com\p1281device\Github Reps\MetadataScalarISO\snapshots  (index: ISO_Scalar_Variants.csv, column 'Snapshot')
+catalog: 499 slides -> ISO_Scalar_Catalog.pptx
+snapshot folder removed: \\jfsfls1002.amr.corp.intel.com\p1281device\Github Reps\MetadataScalarISO\snapshots

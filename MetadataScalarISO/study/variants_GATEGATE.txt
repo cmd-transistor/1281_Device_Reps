@@ -1,0 +1,296 @@
+families: {'CTG': 50, 'DIFFCHN': 62, 'DIFFOGD': 10, 'EPIEPI': 78, 'TCNTCN': 36, 'GATEGATE': 25, 'VIA_CHAIN': 369}
+
+##############################################################################################################
+# GATEGATE: 25 variants; differing columns: ['BufferSizeB', 'BufferSizeT', 'FTITracksUnit', 'FTITracksGlobal', 'PolyPlugsUnit', 'M0CutPatternUnit', 'VcxPatternUnit', 'LO1ActiveTracks', 'HI1ActiveTracks']
+
+[A] GATEGATE<CH>-<MOS><Z>-<VT>-A:SDR:PGD:REF:1TRK_1PP  rows=18  FailModes=10800
+    ex: GATEGATE132-NZ5-H-A:SDR:PGD:REF:1TRK_1PP | N-type PLYPLYPGD_SDR PLY length 1Diff tracks maximum density
+    BufferSizeB       = 1
+    BufferSizeT       = 1
+    FTITracksUnit     = 0:24[3],2:5
+    FTITracksGlobal   = 0/2/r2/r0,0:r0;
+    M0CutPatternUnit  = 2:r2[5],1:5[1]/r5:r1[1]
+    VcxPatternUnit    = vg,1:3/5:7/9:11/13:15/17:19/21:23,6/9/11/14
+    LO1ActiveTracks   = 6;14
+    HI1ActiveTracks   = 9;11
+
+[A] GATEGATE<CH>-<MOS><Z>-<VT>-A:SDR:PGD:REF:1TRK_1PP  rows=18  FailModes=10800
+    ex: GATEGATE165-NZ7-H-A:SDR:PGD:REF:1TRK_1PP | N-type PLYPLYPGD_SDR PLY length 1Diff tracks maximum density
+    BufferSizeB       = 1
+    BufferSizeT       = 1
+    FTITracksUnit     = 0:24[3],2:5
+    FTITracksGlobal   = 0/2/r2/r0,0:r0;
+    M0CutPatternUnit  = 2:r2[6],2/4/8/10/14/16/20/22
+    VcxPatternUnit    = vg,1:3/5:7/9:11/13:15/17:19/21:23,7/11/13/17
+    LO1ActiveTracks   = 7;17
+    HI1ActiveTracks   = 11;13
+
+[A] GATEGATE<CH>-<MOS><Z>-<VT>-A:SDR:PGD:REF:2TRK_1PP  rows=36  FailModes=10800
+    ex: GATEGATE110-NZ1-H-A:SDR:PGD:REF:2TRK_1PP | N-type PLYPLYPGD_SDR PLY length 2Diff tracks maximum density
+    BufferSizeB       = 1
+    BufferSizeT       = 1
+    FTITracksUnit     = 0:24[3],2:5
+    FTITracksGlobal   = 0/2/r2/r0,0:r0;
+    PolyPlugsUnit     = 1:3/5:7/9:11/13:15/17:19/21:23,2/4/6
+    M0CutPatternUnit  = 2:r2[5],1:5[1]/r5:r1[1]
+    VcxPatternUnit    = vg,1:3/5:7/9:11/13:15/17:19/21:23,4/9/11/16
+    LO1ActiveTracks   = 4;16
+    HI1ActiveTracks   = 9;11
+
+[A] GATEGATE<CH>-<MOS><Z>-<VT>-A:SDR:PGD:REF:2TRK_1PP  rows=18  FailModes=10800
+    ex: GATEGATE165-NZ7-H-A:SDR:PGD:REF:2TRK_1PP | N-type PLYPLYPGD_SDR PLY length 2Diff tracks maximum density
+    BufferSizeB       = 1
+    BufferSizeT       = 1
+    FTITracksUnit     = 0:24[3],2:5
+    FTITracksGlobal   = 0/2/r2/r0,0:r0;
+    PolyPlugsUnit     = 1:3/5:7/9:11/13:15/17:19/21:23,2/4/6
+    M0CutPatternUnit  = 5:r2[6],2/r2;2:r2[6],8/10/14/16;
+    VcxPatternUnit    = vg,1:3/5:7/9:11/13:15/17:19/21:23,4/11/13/20
+    LO1ActiveTracks   = 4;20
+    HI1ActiveTracks   = 11;13
+
+[A] GATEGATE<CH>-<MOS><Z>-<VT>-A:SDR:PGD:REF:OC1  rows=18  FailModes=10800
+    ex: GATEGATE132-NZ5-H-A:SDR:PGD:REF:OC1 | N-type PLYPLYPGD_SDR PLY length 2Diff tracks maximum density, OC1 remove external Via-g
+    notes: vias missing on some LO1/HI1 tracks (variant); SDR-equivalent track set used
+    BufferSizeB       = 1
+    BufferSizeT       = 1
+    FTITracksUnit     = 0:24[3],2:5
+    FTITracksGlobal   = 0/2/r2/r0,0:r0;
+    PolyPlugsUnit     = 1:3/5:7/9:11/13:15/17:19/21:23,2/4/6
+    M0CutPatternUnit  = 2:r2[5],1:5[1]/r5:r1[1]
+    VcxPatternUnit    = vg,1:3/5:7/9:11/13:15/17:19/21:23,9/11
+    LO1ActiveTracks   = 4;16
+    HI1ActiveTracks   = 9;11
+
+[A] GATEGATE<CH>-<MOS><Z>-<VT>-A:SDR:PGD:REF:OC1  rows=18  FailModes=10800
+    ex: GATEGATE165-NZ7-H-A:SDR:PGD:REF:OC1 | N-type PLYPLYPGD_SDR PLY length 2Diff tracks maximum density, OC1 remove external Via-g
+    notes: vias missing on some LO1/HI1 tracks (variant); SDR-equivalent track set used
+    BufferSizeB       = 1
+    BufferSizeT       = 1
+    FTITracksUnit     = 0:24[3],2:5
+    FTITracksGlobal   = 0/2/r2/r0,0:r0;
+    PolyPlugsUnit     = 1:3/5:7/9:11/13:15/17:19/21:23,2/4/6
+    M0CutPatternUnit  = 5:r2[6],2/r2;2:r2[6],8/10/14/16;
+    VcxPatternUnit    = vg,1:3/5:7/9:11/13:15/17:19/21:23,11/13
+    LO1ActiveTracks   = 4;20
+    HI1ActiveTracks   = 11;13
+
+[A] GATEGATE<CH>-<MOS><Z>-<VT>-A:SDR:PGD:REF:OC2  rows=36  FailModes=10800
+    ex: GATEGATE110-NZ1-H-A:SDR:PGD:REF:OC2 | N-type PLYPLYPGD_SDR PLY length 2Diff tracks maximum density, OC2 remove central Via-g
+    notes: vias missing on some LO1/HI1 tracks (variant); SDR-equivalent track set used
+    BufferSizeB       = 1
+    BufferSizeT       = 1
+    FTITracksUnit     = 0:24[3],2:5
+    FTITracksGlobal   = 0/2/r2/r0,0:r0;
+    PolyPlugsUnit     = 1:3/5:7/9:11/13:15/17:19/21:23,2/4/6
+    M0CutPatternUnit  = 2:r2[5],1:5[1]/r5:r1[1]
+    VcxPatternUnit    = vg,1:3/5:7/9:11/13:15/17:19/21:23,4/16
+    LO1ActiveTracks   = 4;16
+    HI1ActiveTracks   = 9;11
+
+[A] GATEGATE<CH>-<MOS><Z>-<VT>-A:SDR:PGD:REF:OC2  rows=18  FailModes=10800
+    ex: GATEGATE165-NZ7-H-A:SDR:PGD:REF:OC2 | N-type PLYPLYPGD_SDR PLY length 2Diff tracks maximum density, OC2 remove central Via-g
+    notes: vias missing on some LO1/HI1 tracks (variant); SDR-equivalent track set used
+    BufferSizeB       = 1
+    BufferSizeT       = 1
+    FTITracksUnit     = 0:24[3],2:5
+    FTITracksGlobal   = 0/2/r2/r0,0:r0;
+    PolyPlugsUnit     = 1:3/5:7/9:11/13:15/17:19/21:23,2/4/6
+    M0CutPatternUnit  = 5:r2[6],2/r2;2:r2[6],8/10/14/16;
+    VcxPatternUnit    = vg,1:3/5:7/9:11/13:15/17:19/21:23,4/20
+    LO1ActiveTracks   = 4;20
+    HI1ActiveTracks   = 11;13
+
+[SDR_PGD_REF] GATEGATE<CH>-<MOS><Z>-<VT>-SDR_PGD_REF-OC3  rows=36  FailModes=10800
+    ex: GATEGATE110-NZ1-H-SDR_PGD_REF-OC3 | N-type PLYPLYPGD_SDR PLY length 2Diff tracks maximum density, OC3 remove both Via-g
+    notes: no vias in VcxPatternUnit; SDR-equivalent using plug/gate columns
+    BufferSizeB       = 1
+    BufferSizeT       = 1
+    FTITracksUnit     = 0:24[3],2:5
+    FTITracksGlobal   = 0/2/r2/r0,0:r0;
+    PolyPlugsUnit     = 1:3/5:7/9:11/13:15/17:19/21:23,2/4/6
+    M0CutPatternUnit  = 2:r2[5],1:5[1]/r5:r1[1];
+    LO1ActiveTracks   = 4;16
+    HI1ActiveTracks   = 9;11
+
+[SDR_PGD_REF] GATEGATE<CH>-<MOS><Z>-<VT>-SDR_PGD_REF-OC3  rows=18  FailModes=10800
+    ex: GATEGATE165-NZ7-H-SDR_PGD_REF-OC3 | N-type PLYPLYPGD_SDR PLY length 2Diff tracks maximum density, OC3 remove both Via-g
+    notes: no vias in VcxPatternUnit; SDR-equivalent using plug/gate columns
+    BufferSizeB       = 1
+    BufferSizeT       = 1
+    FTITracksUnit     = 0:24[3],2:5
+    FTITracksGlobal   = 0/2/r2/r0,0:r0;
+    PolyPlugsUnit     = 1:3/5:7/9:11/13:15/17:19/21:23,2/4/6
+    M0CutPatternUnit  = 5:r2[6],2/r2;2:r2[6],8/10/14/16;
+    LO1ActiveTracks   = 4;20
+    HI1ActiveTracks   = 11;13
+
+[SDR_PGD_REF] GATEGATE<CH>-<MOS><Z>-<VT>-SDR_PGD_REF-2TRK_4PP  rows=18  FailModes=3600
+    ex: GATEGATE132-NZ5-H-SDR_PGD_REF-2TRK_4PP | N-type PLYPLYPGD_SDR PLY length 2Diff tracks isolated sub-unit density
+    BufferSizeB       = 1
+    BufferSizeT       = 1
+    FTITracksUnit     = 0:24[3],2:5
+    FTITracksGlobal   = 0/2/r2/r0,0:r0;
+    PolyPlugsUnit     = 2/6/10/14/18/22,2/4/6
+    M0CutPatternUnit  = 2:r2[5],1:5[1]/r5:r1[1];
+    VcxPatternUnit    = vg,2/6/10/14/18/22,4/9/11/16
+    LO1ActiveTracks   = 4;16
+    HI1ActiveTracks   = 9;11
+
+[SDR_PGD_REF] GATEGATE<CH>-<MOS><Z>-<VT>-SDR_PGD_REF-2TRK_4PP  rows=18  FailModes=3600
+    ex: GATEGATE165-NZ7-H-SDR_PGD_REF-2TRK_4PP | N-type PLYPLYPGD_SDR PLY length 2Diff tracks isolated sub-unit density
+    BufferSizeB       = 1
+    BufferSizeT       = 1
+    FTITracksUnit     = 0:24[3],2:5
+    FTITracksGlobal   = 0/2/r2/r0,0:r0;
+    PolyPlugsUnit     = 2/6/10/14/18/22,2/4/6
+    M0CutPatternUnit  = 5:r2[6],2/r2;2:r2[6],8/10/14/16;
+    VcxPatternUnit    = vg,2/6/10/14/18/22,4/11/13/20
+    LO1ActiveTracks   = 4;20
+    HI1ActiveTracks   = 11;13
+
+[SDR_PGD_REF] GATEGATE<CH>-<MOS><Z>-<VT>-SDR_PGD_REF-1TRK_1PP  rows=36  FailModes=10800
+    ex: GATEGATE110-N27-H-SDR_PGD_REF-1TRK_1PP | N-type PLYPLYPGD_SDR PLY length 1Diff tracks maximum density
+    BufferSizeB       = 1
+    BufferSizeT       = 1
+    FTITracksUnit     = 0:24[3],2:5
+    FTITracksGlobal   = 0/2/r2/r0,0:r0;
+    M0CutPatternUnit  = 2:r2[5],1:5[1]/r5:r1[1]
+    VcxPatternUnit    = vg,1:3/5:7/9:11/13:15/17:19/21:23,6/9/11/14
+    LO1ActiveTracks   = 6;14
+    HI1ActiveTracks   = 9;11
+
+[SDR_PGD_REF] GATEGATE<CH>-<MOS><Z>-<VT>-SDR_PGD_REF-OC1  rows=36  FailModes=10800
+    ex: GATEGATE110-N27-H-SDR_PGD_REF-OC1 | N-type PLYPLYPGD_SDR PLY length 2Diff tracks maximum density, OC1 remove external Via-g
+    notes: vias missing on some LO1/HI1 tracks (variant); SDR-equivalent track set used
+    BufferSizeB       = 1
+    BufferSizeT       = 1
+    FTITracksUnit     = 0:24[3],2:5
+    FTITracksGlobal   = 0/2/r2/r0,0:r0;
+    PolyPlugsUnit     = 1:3/5:7/9:11/13:15/17:19/21:23,2/4/6
+    M0CutPatternUnit  = 2:r2[5],1:5[1]/r5:r1[1]
+    VcxPatternUnit    = vg,1:3/5:7/9:11/13:15/17:19/21:23,9/11
+    LO1ActiveTracks   = 4;16
+    HI1ActiveTracks   = 9;11
+
+[SDR_PGD_REF] GATEGATE<CH>-<MOS><Z>-<VT>-SDR_PGD_REF-2TRK_4PP  rows=18  FailModes=3600
+    ex: GATEGATE110-NZ1-H-SDR_PGD_REF-2TRK_4PP | N-type PLYPLYPGD_SDR PLY length 2Diff tracks isolated sub-unit density
+    BufferSizeB       = 1
+    BufferSizeT       = 1
+    FTITracksUnit     = 0:24[3],2:5
+    FTITracksGlobal   = 0/2/r2/r0,0:r0;
+    PolyPlugsUnit     = 2/6/10/14/18/22,2/4/6
+    M0CutPatternUnit  = 2:r2[5],1:5[1]/r5:r1[1]
+    VcxPatternUnit    = vg,2/6/10/14/18/22,4/9/11/16
+    LO1ActiveTracks   = 4;16
+    HI1ActiveTracks   = 9;11
+
+[C] GATEGATE<CH>-<MOS><Z>-<VT>-C:FTIML:SDR  rows=6  FailModes=3300
+    ex: GATEGATE132-N46-L-C:FTIML:SDR | GATE ETE CH132, Z5 - 46nm, Ndiff, LVT, pp44, 1FC FTI, SDR Reference
+    BufferSizeB       = 2
+    BufferSizeT       = 2
+    FTITracksUnit     = 0,0:7;2/4/6/8/10/12/14/16/18/20/22,3:4
+    FTITracksGlobal   = 0/4/r4/r0,0:r0;
+    PolyPlugsUnit     = 2/4/6/8/10/12/14/16/18/20/22,3/4/5
+    VcxPatternUnit    = vg,2/4/6/8/10/12/14/16/18/20/22,6/14
+    LO1ActiveTracks   = 6
+    HI1ActiveTracks   = 14
+
+[C] GATEGATE<CH>-<MOS><Z>-<VT>-C:FTIML:OGD:CD:<SKEW>  rows=60  FailModes=3300
+    ex: GATEGATE132-N46-L-C:FTIML:OGD:CD:N5 | GATE ETE CH132, Z5 - 46nm, Ndiff, LVT, pp44, 1FC FTI, CD skew -5 in OGD
+    BufferSizeB       = 2
+    BufferSizeT       = 2
+    FTITracksUnit     = 0,0:7;2/4/6/8/10/12/14/16/18/20/22,3:4
+    FTITracksGlobal   = 0/4/r4/r0,0:r0;
+    PolyPlugsUnit     = 2/4/6/8/10/12/14/16/18/20/22,3/4/5
+    VcxPatternUnit    = vg,2/4/6/8/10/12/14/16/18/20/22,6/14
+    LO1ActiveTracks   = 6
+    HI1ActiveTracks   = 14
+
+[C] GATEGATE<CH>-<MOS><Z>-<VT>-C:FTIML:PGD:CD:<SKEW>  rows=60  FailModes=3300
+    ex: GATEGATE132-N46-L-C:FTIML:PGD:CD:N5 | GATE ETE CH132, Z5 - 46nm, Ndiff, LVT, pp44, 1FC FTI, CD skew -5 in PGD
+    BufferSizeB       = 2
+    BufferSizeT       = 2
+    FTITracksUnit     = 0,0:7;2/4/6/8/10/12/14/16/18/20/22,3:4
+    FTITracksGlobal   = 0/4/r4/r0,0:r0;
+    PolyPlugsUnit     = 2/4/6/8/10/12/14/16/18/20/22,3/4/5
+    VcxPatternUnit    = vg,2/4/6/8/10/12/14/16/18/20/22,6/14
+    LO1ActiveTracks   = 6
+    HI1ActiveTracks   = 14
+
+[C] GATEGATE<CH>-<MOS><Z>-<VT>-C:FTIML:OGD:REG:<SKEW>  rows=36  FailModes=3300
+    ex: GATEGATE132-N46-L-C:FTIML:OGD:REG:N6 | GATE ETE CH132, Z5 - 46nm, Ndiff, LVT, pp44, 1FC FTI, REG skew -6 in OGD
+    BufferSizeB       = 2
+    BufferSizeT       = 2
+    FTITracksUnit     = 0,0:7;2/4/6/8/10/12/14/16/18/20/22,3:4
+    FTITracksGlobal   = 0/4/r4/r0,0:r0;
+    PolyPlugsUnit     = 2/4/6/8/10/12/14/16/18/20/22,3/4/5
+    VcxPatternUnit    = vg,2/4/6/8/10/12/14/16/18/20/22,6/14
+    LO1ActiveTracks   = 6
+    HI1ActiveTracks   = 14
+
+[C] GATEGATE<CH>-<MOS><Z>-<VT>-C:FTIML:PGD:REG:<SKEW>  rows=34  FailModes=3300
+    ex: GATEGATE132-N46-L-C:FTIML:PGD:REG:N6 | GATE ETE CH132, Z5 - 46nm, Ndiff, LVT, pp44, 1FC FTI, REG skew -6 in PGD
+    BufferSizeB       = 2
+    BufferSizeT       = 2
+    FTITracksUnit     = 0,0:7;2/4/6/8/10/12/14/16/18/20/22,3:4
+    FTITracksGlobal   = 0/4/r4/r0,0:r0;
+    PolyPlugsUnit     = 2/4/6/8/10/12/14/16/18/20/22,3/4/5
+    VcxPatternUnit    = vg,2/4/6/8/10/12/14/16/18/20/22,6/14
+    LO1ActiveTracks   = 6
+    HI1ActiveTracks   = 14
+
+[C] GATEGATE<CH>-<MOS><Z>-<VT>-C:FTISL:SDR  rows=3  FailModes=3300
+    ex: GATEGATE132-N46-L-C:FTISL:SDR | GATE ETE CH132, Z5 - 46nm, Ndiff, LVT, pp44, HC FTI, SDR Reference
+    BufferSizeB       = 2
+    BufferSizeT       = 2
+    FTITracksUnit     = 0,0:7;2/4/6/8/10/12/14/16/18/20/22,3
+    FTITracksGlobal   = 0/4/r4/r0,0:r0;
+    PolyPlugsUnit     = 2/4/6/8/10/12/14/16/18/20/22,3/4
+    VcxPatternUnit    = vg,2/4/6/8/10/12/14/16/18/20/22,6/11
+    LO1ActiveTracks   = 6
+    HI1ActiveTracks   = 11
+
+[C] GATEGATE<CH>-<MOS><Z>-<VT>-C:FTISL:OGD:CD:<SKEW>  rows=30  FailModes=3300
+    ex: GATEGATE132-N46-L-C:FTISL:OGD:CD:N5 | GATE ETE CH132, Z5 - 46nm, Ndiff, LVT, pp44, HC FTI, CD skew -5 in OGD
+    BufferSizeB       = 2
+    BufferSizeT       = 2
+    FTITracksUnit     = 0,0:7;2/4/6/8/10/12/14/16/18/20/22,3
+    FTITracksGlobal   = 0/4/r4/r0,0:r0;
+    PolyPlugsUnit     = 2/4/6/8/10/12/14/16/18/20/22,3/4
+    VcxPatternUnit    = vg,2/4/6/8/10/12/14/16/18/20/22,6/11
+    LO1ActiveTracks   = 6
+    HI1ActiveTracks   = 11
+
+[C] GATEGATE<CH>-<MOS><Z>-<VT>-C:FTISL:PGD:CD:<SKEW>  rows=30  FailModes=3300
+    ex: GATEGATE132-N46-L-C:FTISL:PGD:CD:N5 | GATE ETE CH132, Z5 - 46nm, Ndiff, LVT, pp44, HC FTI, CD skew -5 in PGD
+    BufferSizeB       = 2
+    BufferSizeT       = 2
+    FTITracksUnit     = 0,0:7;2/4/6/8/10/12/14/16/18/20/22,3
+    FTITracksGlobal   = 0/4/r4/r0,0:r0;
+    PolyPlugsUnit     = 2/4/6/8/10/12/14/16/18/20/22,3/4
+    VcxPatternUnit    = vg,2/4/6/8/10/12/14/16/18/20/22,6/11
+    LO1ActiveTracks   = 6
+    HI1ActiveTracks   = 11
+
+[C] GATEGATE<CH>-<MOS><Z>-<VT>-C:FTISL:OGD:REG:<SKEW>  rows=18  FailModes=3300
+    ex: GATEGATE132-N46-L-C:FTISL:OGD:REG:N6 | GATE ETE CH132, Z5 - 46nm, Ndiff, LVT, pp44, HC FTI, REG skew -6 in OGD
+    BufferSizeB       = 2
+    BufferSizeT       = 2
+    FTITracksUnit     = 0,0:7;2/4/6/8/10/12/14/16/18/20/22,3
+    FTITracksGlobal   = 0/4/r4/r0,0:r0;
+    PolyPlugsUnit     = 2/4/6/8/10/12/14/16/18/20/22,3/4
+    VcxPatternUnit    = vg,2/4/6/8/10/12/14/16/18/20/22,6/11
+    LO1ActiveTracks   = 6
+    HI1ActiveTracks   = 11
+
+[C] GATEGATE<CH>-<MOS><Z>-<VT>-C:FTISL:PGD:REG:<SKEW>  rows=17  FailModes=3300
+    ex: GATEGATE132-N46-L-C:FTISL:PGD:REG:N6 | GATE ETE CH132, Z5 - 46nm, Ndiff, LVT, pp44, HC FTI, REG skew -6 in PGD
+    BufferSizeB       = 2
+    BufferSizeT       = 2
+    FTITracksUnit     = 0,0:7;2/4/6/8/10/12/14/16/18/20/22,3
+    FTITracksGlobal   = 0/4/r4/r0,0:r0;
+    PolyPlugsUnit     = 2/4/6/8/10/12/14/16/18/20/22,3/4
+    VcxPatternUnit    = vg,2/4/6/8/10/12/14/16/18/20/22,6/11
+    LO1ActiveTracks   = 6
+    HI1ActiveTracks   = 11
