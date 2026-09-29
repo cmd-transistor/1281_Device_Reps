@@ -53,6 +53,16 @@ def net_color(tracks: set[int], g: Geometry) -> str:
     return C_OTHER
 
 
+def _contiguous_runs(cells: set[int]) -> list[tuple[int, int]]:
+    runs: list[tuple[int, int]] = []
+    for cell in sorted(cells):
+        if runs and cell == runs[-1][1] + 1:
+            runs[-1] = (runs[-1][0], cell)
+        else:
+            runs.append((cell, cell))
+    return runs
+
+
 # ---------------------------------------------------------------------------
 # Base layout
 # ---------------------------------------------------------------------------
@@ -77,13 +87,13 @@ def draw_base(ax, row: dict[str, str], g: Geometry) -> None:
 
     # FTI
     for c, cells in g.fti_cells.items():
-        if cells:
-            ax.add_patch(Rectangle((c - 0.14, min(cells)), 0.28, max(cells) - min(cells) + 1,
+        for start, end in _contiguous_runs(cells):
+            ax.add_patch(Rectangle((c - 0.14, start), 0.28, end - start + 1,
                                    facecolor=C_FTI, edgecolor="none", zorder=3))
     if 0 in g.fti_cells and g.fti_cells[0]:            # right edge = next unit's column 0
-        cells = g.fti_cells[0]
-        ax.add_patch(Rectangle((ogd - 0.14, min(cells)), 0.28, max(cells) - min(cells) + 1,
-                               facecolor=C_FTI, edgecolor="none", zorder=3))
+        for start, end in _contiguous_runs(g.fti_cells[0]):
+            ax.add_patch(Rectangle((ogd - 0.14, start), 0.28, end - start + 1,
+                                   facecolor=C_FTI, edgecolor="none", zorder=3))
 
     # poly gates (light) at every column, TCN (light) at every slot
     for c in range(ogd):

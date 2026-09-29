@@ -73,6 +73,7 @@ DEFAULT_INPUT = BASE_DIR / "ISO_Metadata_Input.csv"
 DEFAULT_OUTPUT = BASE_DIR / "ISO_Metadata_Output.csv"
 DEFAULT_REVIEW = BASE_DIR / "ISO_Scalar_Review.csv"
 DEFAULT_VARIANTS = BASE_DIR / "ISO_Scalar_Variants.csv"
+DEFAULT_NAME_VALIDATION = BASE_DIR / "ISO_StructureName_Validation.csv"
 
 # ---------------------------------------------------------------------------
 # CTG (contact-to-gate OGD) reference: an SDR type-A gate column has one active
@@ -90,6 +91,8 @@ ETE_ADJ_CELLS = 1.75
 FAMILY_PREFIXES = ("CTG", "GATEGATE", "EPIEPI", "TCNTCN", "DIFFOGD", "DIFFCHN")
 VIA_CHAIN_PREFIXES = ("VT_MV", "VG_MV", "VCR_MV")
 FORMULA_COL = "ScalarFormula"     # new output column, inserted right after ``Scalar``
+BIAS_CONDITIONS = ("-0.65", "0.65", "-0.75", "0.75", "-1.1", "1.1")
+TEST_TYPES = ("I2",) * len(BIAS_CONDITIONS)
 
 
 # ---------------------------------------------------------------------------
@@ -782,6 +785,57 @@ def variant_key(row: dict[str, str], res: Result) -> tuple:
             tuple(norm(c) for c in VARIANT_COLS))
 
 
+def structure_name_issues(rows: list[dict[str, str]], results: list[Result]) -> list[dict[str, str]]:
+    issues: list[dict[str, str]] = []
+    name_pattern = re.compile(r"^[A-Z]+(?P<height>[0-9]+)-(?P<mos>NP|N|P)(?:Z?[0-9]+)-(?P<variant>UL|U|L|S|H|E)-")
+    by_name: dict[str, list[tuple[dict[str, str], tuple]]] = {}
+
+    def add(row: dict[str, str], check: str, expected: str, observed: str, note: str) -> None:
+        issues.append({
+            "TestRow": row.get("TestRow", ""),
+            "StructureName": row.get("StructureName", ""),
+            "Check": check,
+            "Status": "REVIEW",
+            "Expected": expected,
+            "Observed": observed,
+            "Note": note,
+        })
+
+    for row, result in zip(rows, results):
+        name = row.get("StructureName", "") or ""
+        family = family_of(name)
+        if not name:
+            add(row, "StructureName", "non-empty name", "empty", "Structure name is missing.")
+            continue
+        if family == "UNKNOWN":
+            add(row, "FamilyPrefix", ", ".join(FAMILY_PREFIXES + VIA_CHAIN_PREFIXES), name,
+                "Name does not start with a recognized structure-family prefix.")
+        if family != "VIA_CHAIN":
+            match = name_pattern.match(name)
+            if not match:
+                add(row, "NameFormat", "family + height + MOS/flavor + variant", name,
+                    "Name does not match the established non-via structure-name pattern.")
+            else:
+                encoded_height = match.group("height")
+                buildsheet_height = re.sub(r"\D", "", row.get("CellHeight", ""))
+                if not buildsheet_height:
+                    add(row, "CellHeight", "height encoded in StructureName", row.get("CellHeight", ""),
+                        "Buildsheet CellHeight is missing or has no numeric value.")
+                elif encoded_height != buildsheet_height:
+                    add(row, "CellHeight", encoded_height, buildsheet_height,
+                        "StructureName height token differs from buildsheet CellHeight.")
+        result_signature = (result.family, result.stype, result.fail_modes, result.formula)
+        by_name.setdefault(name, []).append((row, result_signature))
+
+    for name, entries in by_name.items():
+        distinct_results = {signature for _, signature in entries}
+        if len(distinct_results) > 1:
+            for row, _ in entries:
+                add(row, "RepeatedNameCalculation", "one scalar calculation per exact name",
+                    f"{len(distinct_results)} calculations", "Exact StructureName produces conflicting normalized scalar calculations.")
+    return issues
+
+
 # ---------------------------------------------------------------------------
 # I/O
 # ---------------------------------------------------------------------------
@@ -792,6 +846,8 @@ def main() -> None:
     ap.add_argument("--review", type=Path, default=DEFAULT_REVIEW)
     ap.add_argument("--variants", type=Path, default=DEFAULT_VARIANTS,
                     help="CSV listing every distinct structure variant (geometry) with its derivation")
+    ap.add_argument("--name-validation", type=Path, default=DEFAULT_NAME_VALIDATION,
+                    help="CSV report of structure-name/buildsheet anomalies")
     ap.add_argument("--snapshots", type=Path, metavar="DIR",
                     help="render one annotated unit-cell PNG per structure variant into DIR")
     ap.add_argument("--snapshot", action="append", default=[], metavar="NAME",
@@ -815,6 +871,10 @@ def main() -> None:
     if FORMULA_COL not in fields:
         fields.insert(fields.index("Scalar") + 1, FORMULA_COL)
 
+    for required in ("Test Type", "Force"):
+        if required not in fields:
+            fields.append(required)
+
     review_rows: list[dict[str, object]] = []
     summary: "OrderedDict[tuple[str, str, str], dict[str, object]]" = OrderedDict()
     variants: "OrderedDict[tuple, dict[str, object]]" = OrderedDict()
@@ -822,7 +882,9 @@ def main() -> None:
     for row in rows:
         res = compute(row)
         results.append(res)
-        row["Scalar"] = res.scalar
+        row["Scalar"] = ",".join([res.scalar] * len(BIAS_CONDITIONS)) if res.scalar else ""
+        row["Test Type"] = ",".join(TEST_TYPES) if res.scalar else ""
+        row["Force"] = ",".join(BIAS_CONDITIONS) if res.scalar else ""
         row[FORMULA_COL] = res.formula if res.fail_modes else ""
         review_rows.append({
             "TestRow": row.get("TestRow", ""),
@@ -846,6 +908,13 @@ def main() -> None:
         v["rows"] += 1
         v["testrows"].add(row.get("TestRow", ""))
         v["heights"].add(row.get("CellHeight", ""))
+
+    name_issues = structure_name_issues(rows, results)
+    with open(args.name_validation, "w", newline="", encoding="utf-8") as fh:
+        writer = csv.DictWriter(fh, fieldnames=["TestRow", "StructureName", "Check", "Status",
+                                                "Expected", "Observed", "Note"])
+        writer.writeheader()
+        writer.writerows(name_issues)
 
     with open(args.output, "w", newline="", encoding="utf-8") as fh:
         w = csv.DictWriter(fh, fieldnames=fields, extrasaction="ignore")
@@ -903,7 +972,8 @@ def main() -> None:
                         *[row.get(c, "") for c in VARIANT_COLS]])
 
     print(f"{len(rows)} rows -> {args.output.name}, review -> {args.review.name}, "
-          f"{len(variants)} variants -> {args.variants.name}\n")
+          f"{len(variants)} variants -> {args.variants.name}, "
+          f"{len(name_issues)} name/buildsheet findings -> {args.name_validation.name}\n")
     print(f"{'TestRow':<20} {'Family':<10} {'Type':<14} {'rows':>4}  {'FailModes':<22} notes")
     for (tr, fam, st), s in summary.items():
         fm = "/".join(str(v) for v in sorted(s["fail_modes"], key=lambda x: (x is None, x or 0)))

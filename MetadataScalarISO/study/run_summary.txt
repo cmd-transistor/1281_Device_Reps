@@ -1,4 +1,4 @@
-2581 rows -> ISO_Metadata_Output.csv, review -> ISO_Scalar_Review.csv, 897 variants -> ISO_Scalar_Variants.csv
+2581 rows -> ISO_Metadata_Output.csv, review -> ISO_Scalar_Review.csv, 897 variants -> ISO_Scalar_Variants.csv, 0 name/buildsheet findings -> ISO_StructureName_Validation.csv
 
 TestRow              Family     Type           rows  FailModes              notes
 x81zs_ctg01          CTG        A                72  10800                  VG tracks [7] are not in HI1ActiveTracks [6]; VT tracks [17] are not in LO1ActiveTracks [1
@@ -58,7 +58,3 @@ x81zs_tcntcn01       TCNTCN     A                66  5760
 x81zs_tcntcn01       TCNTCN     B                15  5760/11520             
 x81zs_tcntcn01       TCNTCN     C                16  11520                  
 x81zs_tcntcn01       TCNTCN     D                 1  5760                   
-
-496 snapshot(s) -> \\jfsfls1002.amr.corp.intel.com\p1281device\Github Reps\MetadataScalarISO\snapshots  (index: ISO_Scalar_Variants.csv, column 'Snapshot')
-catalog: 499 slides -> ISO_Scalar_Catalog.pptx
-snapshot folder removed: \\jfsfls1002.amr.corp.intel.com\p1281device\Github Reps\MetadataScalarISO\snapshots
