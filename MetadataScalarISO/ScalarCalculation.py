@@ -213,7 +213,8 @@ def span_containing(spans: list[tuple[int, int]], cell: int) -> tuple[int, int]:
     return cell, cell
 
 
-def parse_plugs(row: dict[str, str], col: str, ogd: int, ncell: int) -> dict[int, set[int]]:
+def parse_plugs(row: dict[str, str], col: str, ogd: int, ncell: int,
+                wrap: int | None = None) -> dict[int, set[int]]:
     """``X,Y`` plug segments -> {x position within the unit: plug values}."""
     out: dict[int, set[int]] = {}
     for seg in segments(row.get(col, "")):
@@ -222,53 +223,37 @@ def parse_plugs(row: dict[str, str], col: str, ogd: int, ncell: int) -> dict[int
             continue
         ys = set(expand_axis("/".join(toks[1:]), ncell))
         for x in expand_axis(toks[0], ogd):
-            out.setdefault(x % ogd, set()).update(ys)
+            out.setdefault(x % (wrap or ogd), set()).update(ys)
     return out
 
 
-class TrackMap:
-    """Routing-track index -> diffusion cell (unit-relative).
+# M0 tracks per cell height (two diffusion cells), equally spaced, track 0 on
+# the unit boundary; every multiple is a power rail. CH132 checked against the
+# chassis GDS (V0/VT/VG centres at tracks 3,4,6,7,13,14,16,17); CH110/CH165 from
+# the unused rail indices across the library (5/10/15 and 6/12/18).
+M0_TRACKS_PER_HEIGHT = {110: 5, 132: 5, 165: 6}
 
-    Linear map ``cell = base + t * cells_per_track`` calibrated on the chassis
-    GDS (ch132: VG t=6 -> cell 2, VT t=14 -> cell 5; ch165 needs a larger
-    offset so that 7/11/13/17 land on cells 2/3/4/5). 1TRK designs put one
-    gate and one TCN per device diffusion cell; their VG tracks carry
-    ``-bottom`` nudges that break the linear map, so VG tracks are ranked onto
-    the VT cells (or the device cells) instead.
+
+def m0_tracks_per_height(row: dict[str, str]) -> int:
+    ch_nm = as_int(re.sub(r"\D", "", row.get("CellHeight", "")), 132) or 132
+    return M0_TRACKS_PER_HEIGHT.get(ch_nm, 5)
+
+
+class TrackMap:
+    """M0 track index -> diffusion-cell Y (unit-relative).
+
+    Vias (VG/VT), V0 landings and LO1/HI1 tracks all share the M0 track index.
     """
 
-    BASE_BY_CH = {165: 0.6}
-    DEFAULT_BASE = 0.2
-
-    def __init__(self, row: dict[str, str], ncell: int, device_cells: set[int],
-                 vg_cols: dict[int, set[int]], vt_cols: dict[int, set[int]]) -> None:
+    def __init__(self, row: dict[str, str], ncell: int, *_unused) -> None:
         self.ncell = ncell
-        ch_nm = as_int(re.sub(r"\D", "", row.get("CellHeight", "")), 132) or 132
-        self.cpt = min(0.4, 240 / (ch_nm * 5))        # one diffusion cell = CELLHEIGHT/2
-        self.base = self.BASE_BY_CH.get(ch_nm, self.DEFAULT_BASE)
-        self.rank: dict[str, dict[int, int]] = {}
-        if "1TRK" in (row.get("StructureName") or "").upper():
-            # VT tracks map linearly; VG tracks (``-bottom`` nudged) are ranked
-            # onto the VT cells so every gate pairs with its TCN.
-            vt_tracks = sorted(set().union(*vt_cols.values())) if vt_cols else []
-            vg_tracks = sorted(set().union(*vg_cols.values())) if vg_cols else []
-            vt_cells = sorted({self._lin(t) for t in vt_tracks})
-            target = vt_cells if len(vt_cells) == len(vt_tracks) else sorted(device_cells)
-            if vg_tracks and len(vg_tracks) == len(target):
-                self.rank["vg"] = dict(zip(vg_tracks, target))
-
-    def _lin(self, t: int) -> int:
-        return int(self.base + t * self.cpt) % self.ncell
-
-    def cell(self, t: int, kind: str = "vg") -> int:
-        if t in self.rank.get(kind, {}):
-            return self.rank[kind][t]
-        return self._lin(t)
+        self.cpt = 2 / m0_tracks_per_height(row)
 
     def cell_f(self, t: int, kind: str = "vg") -> float:
-        if t in self.rank.get(kind, {}):
-            return float(self.rank[kind][t])
-        return self.base + t * self.cpt
+        return t * self.cpt
+
+    def cell(self, t: int, kind: str = "vg") -> int:
+        return int(self.cell_f(t, kind) + 1e-9) % self.ncell
 
 
 # ---------------------------------------------------------------------------
@@ -292,6 +277,8 @@ class Geometry:
     lo_tracks: set[int] = field(default_factory=set)
     hi_tracks: set[int] = field(default_factory=set)
     device_cells: set[int] = field(default_factory=set)         # cells carrying device diff
+    open_cal: bool = False
+    track_note: str = ""
     ymap: TrackMap | None = None
 
     @property
@@ -340,7 +327,8 @@ def _vcx_cols(row: dict[str, str], prefix: str, ogd: int, tiled: bool = True) ->
         if len(toks) < 3 or toks[0].lower() != prefix:
             continue
         tracks = set(int_list(toks[2]))
-        for c in expand_axis(toks[1], ogd):
+        # TCN slots run 0..ogd-1, so ``rK`` on the VT axis counts from the last slot.
+        for c in expand_axis(toks[1], ogd - 1 if prefix == "vt" else ogd):
             if tiled or not 0 <= c <= ogd:
                 c %= ogd
             out.setdefault(c, set()).update(tracks)
@@ -401,11 +389,25 @@ def geometry_from_row(row: dict[str, str]) -> Geometry:
     g.vg_cols = _vcx_cols(row, "vg", ogd, tiled=g.arr_ogd > 1)
     g.vt_cols = _vcx_cols(row, "vt", ogd, tiled=g.arr_ogd > 1)
     g.poly_plugs = parse_plugs(row, "PolyPlugsUnit", ogd, n_cells)
-    g.tcn_plugs = parse_plugs(row, "TcnPlugsUnit", ogd, n_cells)
+    g.tcn_plugs = parse_plugs(row, "TcnPlugsUnit", ogd - 1, n_cells, wrap=ogd)
     g.poly_plug_cols = set(g.poly_plugs)
-    g.lo_tracks = set(int_list(row.get("LO1ActiveTracks", "")))
-    g.hi_tracks = set(int_list(row.get("HI1ActiveTracks", "")))
+    lo_route = [part.strip().lower() for part in row.get("LO1Data", "").split(",")]
+    hi_route = [part.strip().lower() for part in row.get("HI1Data", "").split(",")]
+    g.lo_tracks = set(int_list(row.get("LO1ActiveTracks", ""))) if lo_route[:2] == ["m0", "m1"] else set()
+    g.hi_tracks = set(int_list(row.get("HI1ActiveTracks", ""))) if hi_route[:2] == ["m0", "m1"] else set()
+    per_height = m0_tracks_per_height(row)
+    via_tracks = g.via_tracks("vg") | g.via_tracks("vt")
+    if per_height == 6 and via_tracks:
+        # CH165 N/P rows list LO1/HI1 as signal tracks (power rails not counted), e.g. 15/6 = M0 17/7.
+        mapped = {name: {t + (t - 1) // (per_height - 1) for t in tracks if t > 0}
+                  for name, tracks in (("LO1", g.lo_tracks), ("HI1", g.hi_tracks))}
+        if (g.lo_tracks | g.hi_tracks) and not ((g.lo_tracks | g.hi_tracks) & via_tracks) \
+                and mapped["LO1"] | mapped["HI1"] <= via_tracks:
+            g.track_note = (f"CH165 signal-track numbering: LO1 {sorted(g.lo_tracks)} -> M0 {sorted(mapped['LO1'])}, "
+                            f"HI1 {sorted(g.hi_tracks)} -> M0 {sorted(mapped['HI1'])} (power rails not counted)")
+            g.lo_tracks, g.hi_tracks = mapped["LO1"], mapped["HI1"]
     g.device_cells = _device_cells(row, n_cells)
+    g.open_cal = bool(re.search(r"[:_-]OC\d+\b", row.get("StructureName", ""), re.IGNORECASE))
     g.ymap = TrackMap(row, n_cells, g.device_cells, g.vg_cols, g.vt_cols)
     return g
 
@@ -528,18 +530,21 @@ def rule_ete(g: Geometry, fam: str, stype: str) -> Result:
     if not declared:
         notes.append("LO1/HI1ActiveTracks empty -- cannot assign nets")
     if not cols:
-        fallback_cols = g.poly_plug_cols or set(range(g.ogd)) - g.fti_cols
-        cols = {c: set() for c in fallback_cols}
-        notes.append("no vias in VcxPatternUnit; SDR-equivalent using plug/gate columns")
+        if g.open_cal and g.lo_tracks and g.hi_tracks:
+            fallback_cols = g.poly_plug_cols or set(range(g.ogd)) - g.fti_cols
+            cols = {c: set() for c in fallback_cols}
+            notes.append("OC reference normalization uses declared LO/HI tracks; vias are physically absent")
+        else:
+            notes.append("no vias in VcxPatternUnit; no connected LO/HI path")
     via_tracks = set().union(*cols.values()) if cols else set()
     if via_tracks and not declared <= via_tracks:
         notes.append("vias missing on some LO1/HI1 tracks (variant); SDR-equivalent track set used")
 
     per_col: dict[int, int] = {}
     for c, tracks in cols.items():
-        n_pairs = len(_ete_pairs(g, kind, c, tracks)) if tracks else 0
-        if n_pairs == 0:
-            n_pairs = len(_ete_pairs(g, kind, c, declared))   # SDR-equivalent
+        n_pairs = len(_ete_pairs(g, kind, c, tracks))
+        if g.open_cal and n_pairs == 0 and g.lo_tracks and g.hi_tracks:
+            n_pairs = len(_ete_pairs(g, kind, c, declared))
         per_col[c] = n_pairs
     paths = sum(per_col.values())
     if paths == 0:
@@ -578,27 +583,23 @@ def ctg_sites(g: Geometry) -> tuple[list[tuple[int, int, int, list[int]]], list[
       (which is why the 3-track gate beside the 3-track TCN gives 2 tracks).
     """
     notes: list[str] = []
+    if not g.lo_tracks or not g.hi_tracks:
+        return [], ["No LO1/HI1 M0-to-M1 route; vias are not connected to both nets"]
     ym = g.ymap
     assert ym is not None
     gate_cols = dict(g.vg_cols)
     if not gate_cols:
-        fallback = g.poly_plug_cols or set(range(g.ogd)) - g.fti_cols
-        gate_cols = {c: set() for c in fallback}
-        notes.append("no vg in VcxPatternUnit; using plug/gate columns as active PLY")
+        return [], ["No VG vias in VcxPatternUnit; no connected gate"]
 
     vt_all = g.via_tracks("vt")
     lo_vt = {t for t in vt_all if g.net(t) == "LO"}
     if vt_all and not lo_vt:
-        lo_vt = vt_all
-        notes.append(f"VT tracks {sorted(vt_all)} are not in LO1ActiveTracks {sorted(g.lo_tracks)}; "
-                     "all VT treated as LO")
+        notes.append(f"VT tracks {sorted(vt_all)} have no LO1 V0 on the same M0 track {sorted(g.lo_tracks)}")
     if not g.vt_cols:
-        notes.append("no vt in VcxPatternUnit; every TCN treated as active")
+        return [], ["No VT vias in VcxPatternUnit; no connected TCN"]
 
     def active_tcn_cells(slot: int) -> set[int]:
         spans = g.tcn_spans(slot)
-        if not g.vt_cols:
-            return set(range(g.n_cells))
         cells: set[int] = set()
         for t in g.vt_cols.get(slot % g.ogd, set()):
             if t in lo_vt:
@@ -609,10 +610,7 @@ def ctg_sites(g: Geometry) -> tuple[list[tuple[int, int, int, list[int]]], list[
     sites: list[tuple[int, int, int, list[int]]] = []
     for c, tracks in sorted(gate_cols.items()):
         spans = g.gate_spans(c)
-        if tracks:
-            gsegs = sorted({span_containing(spans, ym.cell(t, "vg")) for t in tracks})
-        else:
-            gsegs = [s for s in spans if set(range(s[0], s[1] + 1)) & g.device_cells] or spans
+        gsegs = sorted({span_containing(spans, ym.cell(t, "vg")) for t in tracks if g.net(t) == "HI"})
         for ga, gb in gsegs:
             per_cell: dict[int, list[int]] = {}
             for slot in (c - 1, c):
@@ -744,12 +742,16 @@ def compute(row: dict[str, str]) -> Result:
         return Result(fam, stype, None, "", ["unrecognised structure family"])
     g = geometry_from_row(row)
     if fam == "CTG":
-        return rule_ctg(g, stype)
-    if fam == "DIFFOGD":
-        return rule_diffogd(g, stype)
-    if fam == "DIFFCHN":
-        return rule_diffchn(g, name, stype)
-    return rule_ete(g, fam, stype)
+        res = rule_ctg(g, stype)
+    elif fam == "DIFFOGD":
+        res = rule_diffogd(g, stype)
+    elif fam == "DIFFCHN":
+        res = rule_diffchn(g, name, stype)
+    else:
+        res = rule_ete(g, fam, stype)
+    if g.track_note:
+        res.notes.insert(0, g.track_note)
+    return res
 
 
 # ---------------------------------------------------------------------------

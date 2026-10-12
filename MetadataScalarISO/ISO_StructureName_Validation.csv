@@ -1,1 +1,5 @@
 TestRow,StructureName,Check,Status,Expected,Observed,Note
+x81zs_ctg01,CTG165-NZ7-L-A:SDR:OGD:REF:2TRK,RepeatedNameCalculation,REVIEW,one scalar calculation per exact name,2 calculations,Exact StructureName produces conflicting normalized scalar calculations.
+x81zs_ctg02,CTG165-NZ7-L-A:SDR:OGD:REF:2TRK,RepeatedNameCalculation,REVIEW,one scalar calculation per exact name,2 calculations,Exact StructureName produces conflicting normalized scalar calculations.
+x81zs_ctg01,CTG165-PZ7-L-A:SDR:OGD:REF:2TRK,RepeatedNameCalculation,REVIEW,one scalar calculation per exact name,2 calculations,Exact StructureName produces conflicting normalized scalar calculations.
+x81zs_ctg02,CTG165-PZ7-L-A:SDR:OGD:REF:2TRK,RepeatedNameCalculation,REVIEW,one scalar calculation per exact name,2 calculations,Exact StructureName produces conflicting normalized scalar calculations.
