@@ -215,7 +215,8 @@ OVERLAYS = {"CTG": overlay_ctg, "GATEGATE": overlay_ete, "EPIEPI": overlay_ete,
 # ---------------------------------------------------------------------------
 # Driver
 # ---------------------------------------------------------------------------
-def render_snapshot(row: dict[str, str], res: Result, out_path: Path, subtitle: str = "") -> None:
+def render_snapshot(row: dict[str, str], res: Result, out_path: Path, subtitle: str = "",
+                    dpi: int = 140) -> None:
     g = geometry_from_row(row)
     ogd, ncell = g.ogd, g.n_cells
     fig, ax = plt.subplots(figsize=(max(9.0, 0.42 * ogd + 3.5), 7.2))
@@ -251,7 +252,7 @@ def render_snapshot(row: dict[str, str], res: Result, out_path: Path, subtitle: 
     sub = "\n".join(textwrap.wrap(res.formula, 120))
     ax.set_title(f"{title}\n{sub}\n{caption}", fontsize=8.5, loc="left")
     fig.tight_layout()
-    fig.savefig(out_path, dpi=140)
+    fig.savefig(out_path, dpi=dpi)
     plt.close(fig)
 
 

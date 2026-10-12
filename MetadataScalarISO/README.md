@@ -18,6 +18,7 @@ Automated parser, geometric fail-mode scalar calculator, snapshot renderer, and 
 6. [Structure-Name & Buildsheet Validation](#structure-name--buildsheet-validation)
 7. [Dependencies & Requirements](#dependencies--requirements)
 8. [CLI Usage Examples](#cli-usage-examples)
+9. [AI Structure Designer (GUI + API)](#ai-structure-designer-gui--api)
 
 ---
 
@@ -167,3 +168,58 @@ Render snapshot for a single specific structure:
 ```bash
 python ScalarCalculation.py --snapshot CTG110-NZ1-H-A:SDR:OGD:REF:2TRK --keep-snapshots
 ```
+
+---
+
+## AI Structure Designer (GUI + API)
+
+Use a text prompt to create an ISO structure, view its unit-cell layout and scalar, refine it with feedback, and export it as a buildsheet.
+
+| File | Role |
+| :--- | :--- |
+| `iso_structure_ai.py` | Engine: interprets the prompt, retrieves a template, applies edits, validates the design, and learns from feedback |
+| `iso_ai_gui.py` | Desktop GUI (Tkinter) |
+| `iso_ai_api.py` | Local HTTP API |
+
+### How it works
+1. **Interpret**: A rule-based parser extracts family, cell height, MOS, VT flavor, type letter, array or unit-cell size, device width, design keywords such as `sdr`, `pxl`, `ftiml`, and `len10`, and keywords to avoid (for example, `not sdr`). Lines such as `PolyPitch=pp50` set buildsheet fields directly. Computed fields (`Scalar`, `Force`, `Test Type`, `ScalarFormula`) cannot be overridden.
+2. **Retrieve**: The engine ranks every scorable structure in `ISO_Metadata_Input.csv` plus previously accepted designs against the spec. It uses IDF-weighted keyword matching and learned weights.
+3. **Adapt**: VT flavor, device width, array size, and explicit field values are applied. The `StructureName` is updated. If the geometry changed, the name gets a unique `:AI` suffix.
+4. **Validate**: `ScalarCalculation.compute` derives fail modes and the scalar. The engine fills the six-value `Test Type`/`Force`/`Scalar` columns and runs the structure-name checks.
+5. **Learn**: **Accept** stores the design as a reusable reference and reinforces prompt-keyword-to-design-pattern weights. **Reject** penalises those weights and moves to the next-best template. **Revise** applies a change request, such as `make it HVT, array 10x60` or `try another template`. Learning is saved to `iso_ai_memory.json`, which is git-ignored.
+
+Via chains are out of scope because the scalar calculator does not cover them. Track geometry depends on cell height, so the engine does not change cell height or MOS; it warns when no matching template exists.
+
+### GUI
+```bash
+python iso_ai_gui.py
+```
+Enter a prompt, then press **Generate** (Ctrl+Enter). Double-click a buildsheet field to edit it. Use **Apply change**, **Accept (learn)**, or **Reject -> next option** to refine the design. **Export buildsheet...** writes the accepted designs and the current design to CSV. **Start API** serves the same engine on `127.0.0.1:8765`.
+
+### API
+```bash
+python iso_ai_api.py [--host 127.0.0.1] [--port 8765] [--no-llm]
+```
+
+| Method | Endpoint | Body / Result |
+| :--- | :--- | :--- |
+| GET | `/health` | Engine statistics |
+| POST | `/structures` | `{"prompt": "..."}` -> design JSON (201) |
+| GET | `/structures/<id>` | Current design |
+| POST | `/structures/<id>/feedback` | `{"action": "revise"\|"accept"\|"reject", "text": "..."}` |
+| GET | `/structures/<id>/buildsheet.csv` | One-row buildsheet |
+| GET | `/structures/<id>/layout.png` | Unit-cell layout preview |
+
+```python
+import json, urllib.request
+req = urllib.request.Request("http://127.0.0.1:8765/structures", method="POST",
+    data=json.dumps({"prompt": "CTG 132 NP HVT type A SDR reference"}).encode(),
+    headers={"Content-Type": "application/json"})
+design = json.load(urllib.request.urlopen(req))
+print(design["structure_name"], design["fail_modes"], design["scalar"])
+```
+
+The API binds to localhost by default. If `ISO_AI_API_TOKEN` is set, every request must include `Authorization: Bearer <token>`; binding to a non-loopback host requires this token. Request bodies are limited to 64 KB.
+
+### Optional LLM interpretation
+Set `ISO_AI_ENDPOINT` to an OpenAI-compatible `/chat/completions` URL, and set `ISO_AI_MODEL` and, if required, `ISO_AI_API_KEY`. The endpoint must use HTTPS, except for HTTP on localhost. The model only proposes spec fields. Each field is validated, explicit prompt values take priority, and the engine falls back to rule-based parsing if the model is unavailable.
