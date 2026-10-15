@@ -1,0 +1,500 @@
+﻿<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+
+<html>
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+        <meta name="keywords" content="TDM_Report">
+        <link rel="stylesheet" type="text/css" media="screen" href="classic_blue.css" title="report">
+        <link rel="stylesheet" type="text/css" media="print" href="classic_blue_NoFrames_print.css" title="report">
+            <script src="tdmShowDetails.js" type="text/javascript"></script>
+        <title>Toad - HTML Report</title>
+    </head>
+
+<body onLoad="getUrlItem()">
+<div class="mainContainer">
+  <div id="headerContainer">
+  <div id="header">
+         <div class="title1"></div>
+         <div class="title2">Keys</div>
+         <div class="titleimage">
+                    <a href="http://www.quest.com" target="_blank">
+                    <img src="Img/logo.gif" alt="Made with Toad Data Modeler" border="0">
+                    </a>
+          </div>
+          <div class="headerEnd"><p>&nbsp;</p></div>  </div>\
+        <div id="navTop">
+            <ul>
+                <li><a href="MInfo.htm">Diagram Information</a>
+</li>
+                <li><a href="Tables.htm">Tables</a>
+</li>
+                <li><a href="Columns.htm">Columns</a>
+</li>
+                <li class="selLi"><a href="KEYS.htm" class="selAnchor">Keys</a>
+</li>
+                <li><a href="Indexes.htm">Indexes</a>
+</li>
+                <li><a href="Schemas.htm">Schemas</a>
+</li>
+                <li><a href="MImage.htm">ER Diagram</a>
+</li>
+            </ul>
+            <div id="navTopEnd"><p>&nbsp;</p></div>
+        </div>
+
+  </div>
+<div id="navCombo"><form name="allItems" action=""><select name="listOfItems" onChange="showSelected()"><option value="KEY_{7ED8B0F8-DBFE-4FFD-AB9E-11E0DB0E0D7F}">CADENCEDATABASE.PK_CADENCEDATABASE</option><option>------------</option><option value="KEY_{6DFD5289-6BD2-44D5-A8B3-EB762AA8456D}">CADENCELIBRARY.PK_CADENCELIBRARY</option><option>------------</option><option value="KEY_{CCB5E7DE-3710-490A-8F26-4D0DDA8783A2}">DRCSUMMARY.DRCSUMMARY_PK</option><option>------------</option><option value="KEY_{F570997A-7EB0-412F-B0E8-4144BCB33693}">DRCSUMMARYCLONE.DRCSUMMARYCLONE_PK</option><option>------------</option><option value="KEY_{D5F122A9-EDF8-4862-ACA0-4D1F86C4E6FA}">DRCSUMMARYNORMAL.DRCSUMMARYNORMAL_PK</option><option>------------</option><option value="KEY_{E676AB2D-B67D-4FAD-B883-584C4224A075}">DRCSUMMARYTAPEIN.DRCSUMMARYTAPEIN_PK</option><option>------------</option><option value="KEY_{5E5D5078-1F18-4926-AEEF-13DDEE2E863A}">ETESTCONFIGSUMMARY.ETESTCONFIGSUMMARY_PK</option><option>------------</option><option value="KEY_{B5A7F06A-312F-43B9-BBBD-77B62915098A}">ETESTGLOBALSUMMARY.ETESTGLOBALSUMMARY_PK</option><option>------------</option><option value="KEY_{97B5CF17-6A0A-4723-8D3E-800AF5D6BC5A}">ETESTPACKAGEFORMULAS.ETESTPACKAGEFORMULAS_PK</option><option>------------</option><option value="KEY_{3341F5FE-167D-4DF7-8BD9-25542D0A0A0C}">ETESTPACKAGESUMMARY.PK_ETESTPACKAGESUMMARY</option><option>------------</option><option value="KEY_{78C4A877-4851-4063-9D49-CDA32A43287F}">PADROWTEMPLATE.PK_PADROWTEMPLATE</option><option>------------</option><option value="KEY_{7135316D-3E9E-42B3-A001-B9CF417E2F7A}">PROJECTCONFIG.PROJECTCONFIG_PK</option><option>------------</option><option value="KEY_{224D1132-EFA5-4856-911C-D85792921032}">STRUCTURETEMPLATE.PK_STRUCTURETEMPLATE_PK</option><option>------------</option><option value="KEY_{F0C40D82-8883-4804-B5F6-07CF7C1F0478}">STRUCTURETEMPLATEDETAIL.PK_STRUCTTEMPDET</option><option>------------</option><option value="KEY_{60648BC2-6A20-4C0F-AFFD-4FD73EF799D5}">TESTCHIPPRODUCTPROCESS.PK_TESTCHIPPRODUCTPROCESS</option><option>------------</option><option value="KEY_{99575B5B-1EF6-4155-8F1C-9C70CDA48C58}">TESTROW.PK_TESTROW</option><option>------------</option><option value="KEY_{AAEA88BB-390B-488C-BCBE-97072D7B2ED0}">TESTROWHOOKUP.PK_TESTROWHOOKUP</option><option>------------</option><option value="KEY_{2C51EEAD-C8F8-4818-B849-FF228CB21A3A}">TESTSTRUCTURE.PK_TESTSTRUCTURE</option><option>------------</option><option value="KEY_{ABE3E928-3F28-4C07-A2E9-E1DEA697C95B}">TESTSTRUCTUREPARAMETERS.PK_TESTSTRUCTPARAM</option><option>------------</option><option value="KEY_{CC922CEB-9554-4442-A958-17FE0FC3AB81}">TOPCELLSUMMARY.PK_TOPCELLSUMMARY</option></select></form><div id="navComboEnd"><p></p></div></div><div id="navLeft"><div id="bookmark">
+<ul>
+<li><a onClick="return showDetail('KEY_{7ED8B0F8-DBFE-4FFD-AB9E-11E0DB0E0D7F}', this)">CADENCEDATABASE.PK_CADENCEDATABASE</a></li>
+<li><a onClick="return showDetail('GAP_{6DFD5289-6BD2-44D5-A8B3-EB762AA8456D}', this)"></a></li>
+<li><a onClick="return showDetail('KEY_{6DFD5289-6BD2-44D5-A8B3-EB762AA8456D}', this)">CADENCELIBRARY.PK_CADENCELIBRARY</a></li>
+<li><a onClick="return showDetail('GAP_{CCB5E7DE-3710-490A-8F26-4D0DDA8783A2}', this)"></a></li>
+<li><a onClick="return showDetail('KEY_{CCB5E7DE-3710-490A-8F26-4D0DDA8783A2}', this)">DRCSUMMARY.DRCSUMMARY_PK</a></li>
+<li><a onClick="return showDetail('GAP_{F570997A-7EB0-412F-B0E8-4144BCB33693}', this)"></a></li>
+<li><a onClick="return showDetail('KEY_{F570997A-7EB0-412F-B0E8-4144BCB33693}', this)">DRCSUMMARYCLONE.DRCSUMMARYCLONE_PK</a></li>
+<li><a onClick="return showDetail('GAP_{D5F122A9-EDF8-4862-ACA0-4D1F86C4E6FA}', this)"></a></li>
+<li><a onClick="return showDetail('KEY_{D5F122A9-EDF8-4862-ACA0-4D1F86C4E6FA}', this)">DRCSUMMARYNORMAL.DRCSUMMARYNORMAL_PK</a></li>
+<li><a onClick="return showDetail('GAP_{E676AB2D-B67D-4FAD-B883-584C4224A075}', this)"></a></li>
+<li><a onClick="return showDetail('KEY_{E676AB2D-B67D-4FAD-B883-584C4224A075}', this)">DRCSUMMARYTAPEIN.DRCSUMMARYTAPEIN_PK</a></li>
+<li><a onClick="return showDetail('GAP_{5E5D5078-1F18-4926-AEEF-13DDEE2E863A}', this)"></a></li>
+<li><a onClick="return showDetail('KEY_{5E5D5078-1F18-4926-AEEF-13DDEE2E863A}', this)">ETESTCONFIGSUMMARY.ETESTCONFIGSUMMARY_PK</a></li>
+<li><a onClick="return showDetail('GAP_{B5A7F06A-312F-43B9-BBBD-77B62915098A}', this)"></a></li>
+<li><a onClick="return showDetail('KEY_{B5A7F06A-312F-43B9-BBBD-77B62915098A}', this)">ETESTGLOBALSUMMARY.ETESTGLOBALSUMMARY_PK</a></li>
+<li><a onClick="return showDetail('GAP_{97B5CF17-6A0A-4723-8D3E-800AF5D6BC5A}', this)"></a></li>
+<li><a onClick="return showDetail('KEY_{97B5CF17-6A0A-4723-8D3E-800AF5D6BC5A}', this)">ETESTPACKAGEFORMULAS.ETESTPACKAGEFORMULAS_PK</a></li>
+<li><a onClick="return showDetail('GAP_{3341F5FE-167D-4DF7-8BD9-25542D0A0A0C}', this)"></a></li>
+<li><a onClick="return showDetail('KEY_{3341F5FE-167D-4DF7-8BD9-25542D0A0A0C}', this)">ETESTPACKAGESUMMARY.PK_ETESTPACKAGESUMMARY</a></li>
+<li><a onClick="return showDetail('GAP_{78C4A877-4851-4063-9D49-CDA32A43287F}', this)"></a></li>
+<li><a onClick="return showDetail('KEY_{78C4A877-4851-4063-9D49-CDA32A43287F}', this)">PADROWTEMPLATE.PK_PADROWTEMPLATE</a></li>
+<li><a onClick="return showDetail('GAP_{7135316D-3E9E-42B3-A001-B9CF417E2F7A}', this)"></a></li>
+<li><a onClick="return showDetail('KEY_{7135316D-3E9E-42B3-A001-B9CF417E2F7A}', this)">PROJECTCONFIG.PROJECTCONFIG_PK</a></li>
+<li><a onClick="return showDetail('GAP_{224D1132-EFA5-4856-911C-D85792921032}', this)"></a></li>
+<li><a onClick="return showDetail('KEY_{224D1132-EFA5-4856-911C-D85792921032}', this)">STRUCTURETEMPLATE.PK_STRUCTURETEMPLATE_PK</a></li>
+<li><a onClick="return showDetail('GAP_{F0C40D82-8883-4804-B5F6-07CF7C1F0478}', this)"></a></li>
+<li><a onClick="return showDetail('KEY_{F0C40D82-8883-4804-B5F6-07CF7C1F0478}', this)">STRUCTURETEMPLATEDETAIL.PK_STRUCTTEMPDET</a></li>
+<li><a onClick="return showDetail('GAP_{60648BC2-6A20-4C0F-AFFD-4FD73EF799D5}', this)"></a></li>
+<li><a onClick="return showDetail('KEY_{60648BC2-6A20-4C0F-AFFD-4FD73EF799D5}', this)">TESTCHIPPRODUCTPROCESS.PK_TESTCHIPPRODUCTPROCESS</a></li>
+<li><a onClick="return showDetail('GAP_{99575B5B-1EF6-4155-8F1C-9C70CDA48C58}', this)"></a></li>
+<li><a onClick="return showDetail('KEY_{99575B5B-1EF6-4155-8F1C-9C70CDA48C58}', this)">TESTROW.PK_TESTROW</a></li>
+<li><a onClick="return showDetail('GAP_{AAEA88BB-390B-488C-BCBE-97072D7B2ED0}', this)"></a></li>
+<li><a onClick="return showDetail('KEY_{AAEA88BB-390B-488C-BCBE-97072D7B2ED0}', this)">TESTROWHOOKUP.PK_TESTROWHOOKUP</a></li>
+<li><a onClick="return showDetail('GAP_{2C51EEAD-C8F8-4818-B849-FF228CB21A3A}', this)"></a></li>
+<li><a onClick="return showDetail('KEY_{2C51EEAD-C8F8-4818-B849-FF228CB21A3A}', this)">TESTSTRUCTURE.PK_TESTSTRUCTURE</a></li>
+<li><a onClick="return showDetail('GAP_{ABE3E928-3F28-4C07-A2E9-E1DEA697C95B}', this)"></a></li>
+<li><a onClick="return showDetail('KEY_{ABE3E928-3F28-4C07-A2E9-E1DEA697C95B}', this)">TESTSTRUCTUREPARAMETERS.PK_TESTSTRUCTPARAM</a></li>
+<li><a onClick="return showDetail('GAP_{CC922CEB-9554-4442-A958-17FE0FC3AB81}', this)"></a></li>
+<li><a onClick="return showDetail('KEY_{CC922CEB-9554-4442-A958-17FE0FC3AB81}', this)">TOPCELLSUMMARY.PK_TOPCELLSUMMARY</a></li>
+</ul>
+     <div id="bookmarkEnd"><p>&nbsp;</p></div></div>
+
+</div>
+
+    <div class="separator" ></div>
+    <div class="container">
+        <div id="content">
+<div id="KEY_{7ED8B0F8-DBFE-4FFD-AB9E-11E0DB0E0D7F}" class="item">
+<a name = "KEY_{7ED8B0F8-DBFE-4FFD-AB9E-11E0DB0E0D7F}"></a>
+<div class="caption1"><p>CADENCEDATABASE.PK_CADENCEDATABASE</p></div>
+<div class="caption2"><p>General Information</p></div>
+<table class="tabformat" border="0" cellpadding="2" cellspacing="1" width="100%">
+  <tr>
+    <td class="tabhead" width="23%">Table Name</td>
+    <td class="tabdata">CADENCEDATABASE</td>
+  </tr>
+  <tr>
+    <td class="tabhead" width="23%">Key Type</td>
+    <td class="tabdata">Primary Key</td>
+  </tr>
+  <tr>
+    <td class="tabhead" width="23%">Column Names</td>
+    <td class="tabdata">DATABASENAME</td>
+  </tr>
+</table>
+<br>
+<div class="itemEnd"><p>&nbsp;</p></div></div>
+<div id="KEY_{6DFD5289-6BD2-44D5-A8B3-EB762AA8456D}" class="item">
+<a name = "KEY_{6DFD5289-6BD2-44D5-A8B3-EB762AA8456D}"></a>
+<div class="caption1"><p>CADENCELIBRARY.PK_CADENCELIBRARY</p></div>
+<div class="caption2"><p>General Information</p></div>
+<table class="tabformat" border="0" cellpadding="2" cellspacing="1" width="100%">
+  <tr>
+    <td class="tabhead" width="23%">Table Name</td>
+    <td class="tabdata">CADENCELIBRARY</td>
+  </tr>
+  <tr>
+    <td class="tabhead" width="23%">Key Type</td>
+    <td class="tabdata">Primary Key</td>
+  </tr>
+  <tr>
+    <td class="tabhead" width="23%">Column Names</td>
+    <td class="tabdata">DATABASENAME, LIBRARYNAME</td>
+  </tr>
+</table>
+<br>
+<div class="itemEnd"><p>&nbsp;</p></div></div>
+<div id="KEY_{CCB5E7DE-3710-490A-8F26-4D0DDA8783A2}" class="item">
+<a name = "KEY_{CCB5E7DE-3710-490A-8F26-4D0DDA8783A2}"></a>
+<div class="caption1"><p>DRCSUMMARY.DRCSUMMARY_PK</p></div>
+<div class="caption2"><p>General Information</p></div>
+<table class="tabformat" border="0" cellpadding="2" cellspacing="1" width="100%">
+  <tr>
+    <td class="tabhead" width="23%">Table Name</td>
+    <td class="tabdata">DRCSUMMARY</td>
+  </tr>
+  <tr>
+    <td class="tabhead" width="23%">Key Type</td>
+    <td class="tabdata">Primary Key</td>
+  </tr>
+  <tr>
+    <td class="tabhead" width="23%">Column Names</td>
+    <td class="tabdata">TESTROWID, DRCID</td>
+  </tr>
+</table>
+<br>
+<div class="itemEnd"><p>&nbsp;</p></div></div>
+<div id="KEY_{F570997A-7EB0-412F-B0E8-4144BCB33693}" class="item">
+<a name = "KEY_{F570997A-7EB0-412F-B0E8-4144BCB33693}"></a>
+<div class="caption1"><p>DRCSUMMARYCLONE.DRCSUMMARYCLONE_PK</p></div>
+<div class="caption2"><p>General Information</p></div>
+<table class="tabformat" border="0" cellpadding="2" cellspacing="1" width="100%">
+  <tr>
+    <td class="tabhead" width="23%">Table Name</td>
+    <td class="tabdata">DRCSUMMARYCLONE</td>
+  </tr>
+  <tr>
+    <td class="tabhead" width="23%">Key Type</td>
+    <td class="tabdata">Primary Key</td>
+  </tr>
+  <tr>
+    <td class="tabhead" width="23%">Column Names</td>
+    <td class="tabdata">TESTROWID, DRCID</td>
+  </tr>
+</table>
+<br>
+<div class="itemEnd"><p>&nbsp;</p></div></div>
+<div id="KEY_{D5F122A9-EDF8-4862-ACA0-4D1F86C4E6FA}" class="item">
+<a name = "KEY_{D5F122A9-EDF8-4862-ACA0-4D1F86C4E6FA}"></a>
+<div class="caption1"><p>DRCSUMMARYNORMAL.DRCSUMMARYNORMAL_PK</p></div>
+<div class="caption2"><p>General Information</p></div>
+<table class="tabformat" border="0" cellpadding="2" cellspacing="1" width="100%">
+  <tr>
+    <td class="tabhead" width="23%">Table Name</td>
+    <td class="tabdata">DRCSUMMARYNORMAL</td>
+  </tr>
+  <tr>
+    <td class="tabhead" width="23%">Key Type</td>
+    <td class="tabdata">Primary Key</td>
+  </tr>
+  <tr>
+    <td class="tabhead" width="23%">Column Names</td>
+    <td class="tabdata">TESTROWID, DRCID</td>
+  </tr>
+</table>
+<br>
+<div class="itemEnd"><p>&nbsp;</p></div></div>
+<div id="KEY_{E676AB2D-B67D-4FAD-B883-584C4224A075}" class="item">
+<a name = "KEY_{E676AB2D-B67D-4FAD-B883-584C4224A075}"></a>
+<div class="caption1"><p>DRCSUMMARYTAPEIN.DRCSUMMARYTAPEIN_PK</p></div>
+<div class="caption2"><p>General Information</p></div>
+<table class="tabformat" border="0" cellpadding="2" cellspacing="1" width="100%">
+  <tr>
+    <td class="tabhead" width="23%">Table Name</td>
+    <td class="tabdata">DRCSUMMARYTAPEIN</td>
+  </tr>
+  <tr>
+    <td class="tabhead" width="23%">Key Type</td>
+    <td class="tabdata">Primary Key</td>
+  </tr>
+  <tr>
+    <td class="tabhead" width="23%">Column Names</td>
+    <td class="tabdata">TESTROWID, DRCID</td>
+  </tr>
+</table>
+<br>
+<div class="itemEnd"><p>&nbsp;</p></div></div>
+<div id="KEY_{5E5D5078-1F18-4926-AEEF-13DDEE2E863A}" class="item">
+<a name = "KEY_{5E5D5078-1F18-4926-AEEF-13DDEE2E863A}"></a>
+<div class="caption1"><p>ETESTCONFIGSUMMARY.ETESTCONFIGSUMMARY_PK</p></div>
+<div class="caption2"><p>General Information</p></div>
+<table class="tabformat" border="0" cellpadding="2" cellspacing="1" width="100%">
+  <tr>
+    <td class="tabhead" width="23%">Table Name</td>
+    <td class="tabdata">ETESTCONFIGSUMMARY</td>
+  </tr>
+  <tr>
+    <td class="tabhead" width="23%">Key Type</td>
+    <td class="tabdata">Primary Key</td>
+  </tr>
+  <tr>
+    <td class="tabhead" width="23%">Column Names</td>
+    <td class="tabdata">ID</td>
+  </tr>
+</table>
+<br>
+<div class="itemEnd"><p>&nbsp;</p></div></div>
+<div id="KEY_{B5A7F06A-312F-43B9-BBBD-77B62915098A}" class="item">
+<a name = "KEY_{B5A7F06A-312F-43B9-BBBD-77B62915098A}"></a>
+<div class="caption1"><p>ETESTGLOBALSUMMARY.ETESTGLOBALSUMMARY_PK</p></div>
+<div class="caption2"><p>General Information</p></div>
+<table class="tabformat" border="0" cellpadding="2" cellspacing="1" width="100%">
+  <tr>
+    <td class="tabhead" width="23%">Table Name</td>
+    <td class="tabdata">ETESTGLOBALSUMMARY</td>
+  </tr>
+  <tr>
+    <td class="tabhead" width="23%">Key Type</td>
+    <td class="tabdata">Primary Key</td>
+  </tr>
+  <tr>
+    <td class="tabhead" width="23%">Column Names</td>
+    <td class="tabdata">ID</td>
+  </tr>
+</table>
+<br>
+<div class="itemEnd"><p>&nbsp;</p></div></div>
+<div id="KEY_{97B5CF17-6A0A-4723-8D3E-800AF5D6BC5A}" class="item">
+<a name = "KEY_{97B5CF17-6A0A-4723-8D3E-800AF5D6BC5A}"></a>
+<div class="caption1"><p>ETESTPACKAGEFORMULAS.ETESTPACKAGEFORMULAS_PK</p></div>
+<div class="caption2"><p>General Information</p></div>
+<table class="tabformat" border="0" cellpadding="2" cellspacing="1" width="100%">
+  <tr>
+    <td class="tabhead" width="23%">Table Name</td>
+    <td class="tabdata">ETESTPACKAGEFORMULAS</td>
+  </tr>
+  <tr>
+    <td class="tabhead" width="23%">Key Type</td>
+    <td class="tabdata">Primary Key</td>
+  </tr>
+  <tr>
+    <td class="tabhead" width="23%">Column Names</td>
+    <td class="tabdata">ID</td>
+  </tr>
+</table>
+<br>
+<div class="itemEnd"><p>&nbsp;</p></div></div>
+<div id="KEY_{3341F5FE-167D-4DF7-8BD9-25542D0A0A0C}" class="item">
+<a name = "KEY_{3341F5FE-167D-4DF7-8BD9-25542D0A0A0C}"></a>
+<div class="caption1"><p>ETESTPACKAGESUMMARY.PK_ETESTPACKAGESUMMARY</p></div>
+<div class="caption2"><p>General Information</p></div>
+<table class="tabformat" border="0" cellpadding="2" cellspacing="1" width="100%">
+  <tr>
+    <td class="tabhead" width="23%">Table Name</td>
+    <td class="tabdata">ETESTPACKAGESUMMARY</td>
+  </tr>
+  <tr>
+    <td class="tabhead" width="23%">Key Type</td>
+    <td class="tabdata">Primary Key</td>
+  </tr>
+  <tr>
+    <td class="tabhead" width="23%">Column Names</td>
+    <td class="tabdata">ID</td>
+  </tr>
+</table>
+<br>
+<div class="itemEnd"><p>&nbsp;</p></div></div>
+<div id="KEY_{78C4A877-4851-4063-9D49-CDA32A43287F}" class="item">
+<a name = "KEY_{78C4A877-4851-4063-9D49-CDA32A43287F}"></a>
+<div class="caption1"><p>PADROWTEMPLATE.PK_PADROWTEMPLATE</p></div>
+<div class="caption2"><p>General Information</p></div>
+<table class="tabformat" border="0" cellpadding="2" cellspacing="1" width="100%">
+  <tr>
+    <td class="tabhead" width="23%">Table Name</td>
+    <td class="tabdata">PADROWTEMPLATE</td>
+  </tr>
+  <tr>
+    <td class="tabhead" width="23%">Key Type</td>
+    <td class="tabdata">Primary Key</td>
+  </tr>
+  <tr>
+    <td class="tabhead" width="23%">Column Names</td>
+    <td class="tabdata">TEMPLATEID</td>
+  </tr>
+</table>
+<br>
+<div class="itemEnd"><p>&nbsp;</p></div></div>
+<div id="KEY_{7135316D-3E9E-42B3-A001-B9CF417E2F7A}" class="item">
+<a name = "KEY_{7135316D-3E9E-42B3-A001-B9CF417E2F7A}"></a>
+<div class="caption1"><p>PROJECTCONFIG.PROJECTCONFIG_PK</p></div>
+<div class="caption2"><p>General Information</p></div>
+<table class="tabformat" border="0" cellpadding="2" cellspacing="1" width="100%">
+  <tr>
+    <td class="tabhead" width="23%">Table Name</td>
+    <td class="tabdata">PROJECTCONFIG</td>
+  </tr>
+  <tr>
+    <td class="tabhead" width="23%">Key Type</td>
+    <td class="tabdata">Primary Key</td>
+  </tr>
+  <tr>
+    <td class="tabhead" width="23%">Column Names</td>
+    <td class="tabdata">CONFIGNAME</td>
+  </tr>
+</table>
+<br>
+<div class="itemEnd"><p>&nbsp;</p></div></div>
+<div id="KEY_{224D1132-EFA5-4856-911C-D85792921032}" class="item">
+<a name = "KEY_{224D1132-EFA5-4856-911C-D85792921032}"></a>
+<div class="caption1"><p>STRUCTURETEMPLATE.PK_STRUCTURETEMPLATE_PK</p></div>
+<div class="caption2"><p>General Information</p></div>
+<table class="tabformat" border="0" cellpadding="2" cellspacing="1" width="100%">
+  <tr>
+    <td class="tabhead" width="23%">Table Name</td>
+    <td class="tabdata">STRUCTURETEMPLATE</td>
+  </tr>
+  <tr>
+    <td class="tabhead" width="23%">Key Type</td>
+    <td class="tabdata">Primary Key</td>
+  </tr>
+  <tr>
+    <td class="tabhead" width="23%">Column Names</td>
+    <td class="tabdata">TEMPLATEID</td>
+  </tr>
+</table>
+<br>
+<div class="itemEnd"><p>&nbsp;</p></div></div>
+<div id="KEY_{F0C40D82-8883-4804-B5F6-07CF7C1F0478}" class="item">
+<a name = "KEY_{F0C40D82-8883-4804-B5F6-07CF7C1F0478}"></a>
+<div class="caption1"><p>STRUCTURETEMPLATEDETAIL.PK_STRUCTTEMPDET</p></div>
+<div class="caption2"><p>General Information</p></div>
+<table class="tabformat" border="0" cellpadding="2" cellspacing="1" width="100%">
+  <tr>
+    <td class="tabhead" width="23%">Table Name</td>
+    <td class="tabdata">STRUCTURETEMPLATEDETAIL</td>
+  </tr>
+  <tr>
+    <td class="tabhead" width="23%">Key Type</td>
+    <td class="tabdata">Primary Key</td>
+  </tr>
+  <tr>
+    <td class="tabhead" width="23%">Column Names</td>
+    <td class="tabdata">TEMPLATEID, SEQ</td>
+  </tr>
+</table>
+<br>
+<div class="itemEnd"><p>&nbsp;</p></div></div>
+<div id="KEY_{60648BC2-6A20-4C0F-AFFD-4FD73EF799D5}" class="item">
+<a name = "KEY_{60648BC2-6A20-4C0F-AFFD-4FD73EF799D5}"></a>
+<div class="caption1"><p>TESTCHIPPRODUCTPROCESS.PK_TESTCHIPPRODUCTPROCESS</p></div>
+<div class="caption2"><p>General Information</p></div>
+<table class="tabformat" border="0" cellpadding="2" cellspacing="1" width="100%">
+  <tr>
+    <td class="tabhead" width="23%">Table Name</td>
+    <td class="tabdata">TESTCHIPPRODUCTPROCESS</td>
+  </tr>
+  <tr>
+    <td class="tabhead" width="23%">Key Type</td>
+    <td class="tabdata">Primary Key</td>
+  </tr>
+  <tr>
+    <td class="tabhead" width="23%">Column Names</td>
+    <td class="tabdata">TESTCHIPDATABASE, PRODUCT, PROCESS</td>
+  </tr>
+</table>
+<br>
+<div class="itemEnd"><p>&nbsp;</p></div></div>
+<div id="KEY_{99575B5B-1EF6-4155-8F1C-9C70CDA48C58}" class="item">
+<a name = "KEY_{99575B5B-1EF6-4155-8F1C-9C70CDA48C58}"></a>
+<div class="caption1"><p>TESTROW.PK_TESTROW</p></div>
+<div class="caption2"><p>General Information</p></div>
+<table class="tabformat" border="0" cellpadding="2" cellspacing="1" width="100%">
+  <tr>
+    <td class="tabhead" width="23%">Table Name</td>
+    <td class="tabdata">TESTROW</td>
+  </tr>
+  <tr>
+    <td class="tabhead" width="23%">Key Type</td>
+    <td class="tabdata">Primary Key</td>
+  </tr>
+  <tr>
+    <td class="tabhead" width="23%">Column Names</td>
+    <td class="tabdata">TESTROWID</td>
+  </tr>
+</table>
+<br>
+<div class="itemEnd"><p>&nbsp;</p></div></div>
+<div id="KEY_{AAEA88BB-390B-488C-BCBE-97072D7B2ED0}" class="item">
+<a name = "KEY_{AAEA88BB-390B-488C-BCBE-97072D7B2ED0}"></a>
+<div class="caption1"><p>TESTROWHOOKUP.PK_TESTROWHOOKUP</p></div>
+<div class="caption2"><p>General Information</p></div>
+<table class="tabformat" border="0" cellpadding="2" cellspacing="1" width="100%">
+  <tr>
+    <td class="tabhead" width="23%">Table Name</td>
+    <td class="tabdata">TESTROWHOOKUP</td>
+  </tr>
+  <tr>
+    <td class="tabhead" width="23%">Key Type</td>
+    <td class="tabdata">Primary Key</td>
+  </tr>
+  <tr>
+    <td class="tabhead" width="23%">Column Names</td>
+    <td class="tabdata">TESTROWID, TESTSTRUCTUREID, TERMINALNAME</td>
+  </tr>
+</table>
+<br>
+<div class="itemEnd"><p>&nbsp;</p></div></div>
+<div id="KEY_{2C51EEAD-C8F8-4818-B849-FF228CB21A3A}" class="item">
+<a name = "KEY_{2C51EEAD-C8F8-4818-B849-FF228CB21A3A}"></a>
+<div class="caption1"><p>TESTSTRUCTURE.PK_TESTSTRUCTURE</p></div>
+<div class="caption2"><p>General Information</p></div>
+<table class="tabformat" border="0" cellpadding="2" cellspacing="1" width="100%">
+  <tr>
+    <td class="tabhead" width="23%">Table Name</td>
+    <td class="tabdata">TESTSTRUCTURE</td>
+  </tr>
+  <tr>
+    <td class="tabhead" width="23%">Key Type</td>
+    <td class="tabdata">Primary Key</td>
+  </tr>
+  <tr>
+    <td class="tabhead" width="23%">Column Names</td>
+    <td class="tabdata">TESTROWID, TESTSTRUCTID</td>
+  </tr>
+</table>
+<br>
+<div class="itemEnd"><p>&nbsp;</p></div></div>
+<div id="KEY_{ABE3E928-3F28-4C07-A2E9-E1DEA697C95B}" class="item">
+<a name = "KEY_{ABE3E928-3F28-4C07-A2E9-E1DEA697C95B}"></a>
+<div class="caption1"><p>TESTSTRUCTUREPARAMETERS.PK_TESTSTRUCTPARAM</p></div>
+<div class="caption2"><p>General Information</p></div>
+<table class="tabformat" border="0" cellpadding="2" cellspacing="1" width="100%">
+  <tr>
+    <td class="tabhead" width="23%">Table Name</td>
+    <td class="tabdata">TESTSTRUCTUREPARAMETERS</td>
+  </tr>
+  <tr>
+    <td class="tabhead" width="23%">Key Type</td>
+    <td class="tabdata">Primary Key</td>
+  </tr>
+  <tr>
+    <td class="tabhead" width="23%">Column Names</td>
+    <td class="tabdata">TESTSTRUCTID, SEQUENCE</td>
+  </tr>
+</table>
+<br>
+<div class="itemEnd"><p>&nbsp;</p></div></div>
+<div id="KEY_{CC922CEB-9554-4442-A958-17FE0FC3AB81}" class="item">
+<a name = "KEY_{CC922CEB-9554-4442-A958-17FE0FC3AB81}"></a>
+<div class="caption1"><p>TOPCELLSUMMARY.PK_TOPCELLSUMMARY</p></div>
+<div class="caption2"><p>General Information</p></div>
+<table class="tabformat" border="0" cellpadding="2" cellspacing="1" width="100%">
+  <tr>
+    <td class="tabhead" width="23%">Table Name</td>
+    <td class="tabdata">TOPCELLSUMMARY</td>
+  </tr>
+  <tr>
+    <td class="tabhead" width="23%">Key Type</td>
+    <td class="tabdata">Primary Key</td>
+  </tr>
+  <tr>
+    <td class="tabhead" width="23%">Column Names</td>
+    <td class="tabdata">ID</td>
+  </tr>
+</table>
+<br>
+<div class="itemEnd"><p>&nbsp;</p></div></div>
+        </div>
+<div id="footer">       <div class="pageFooter">Copyright &copy; Sitename 2005</div>        <div class="footerEnd"><p></p></div></div>
+    </div>
+  </div>
+</body>
+</html>

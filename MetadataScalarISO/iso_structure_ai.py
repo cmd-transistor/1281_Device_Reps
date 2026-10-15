@@ -101,6 +101,71 @@ class NoMatchingTemplate(ValueError):
     pass
 
 
+GENERIC_LAYOUT_FIELDS = (
+    "DiffPatternUnit", "FTITracksUnit", "PolyPlugsUnit", "TcnPlugsUnit", "VcxPatternUnit",
+    "VcrPatternUnit", "VcrnubPatternUnit", "M0CutPatternUnit",
+)
+
+
+def has_generic_layout_geometry(row: dict[str, str]) -> bool:
+    try:
+        unit_ogd = int(row.get("UnitCellSizeOgd", ""))
+        unit_pgd = int(row.get("UnitCellSizePgd", ""))
+    except (TypeError, ValueError):
+        return False
+    return unit_ogd > 0 and unit_pgd > 0 and any(row.get(field) for field in GENERIC_LAYOUT_FIELDS)
+
+
+def template_active_area_size(row: dict[str, str]) -> tuple[int, int] | None:
+    value = next((value for key, value in row.items()
+                  if re.sub(r"[^a-z0-9]", "", key.casefold()) == "structuresize" and value), "")
+    match = re.fullmatch(r"\s*(\d+)\s*;\s*(\d+)\s*", str(value))
+    if not match:
+        return None
+    diffusion_tracks, poly_tracks = map(int, match.groups())
+    return (diffusion_tracks, poly_tracks) if diffusion_tracks > 0 and poly_tracks > 0 else None
+
+
+def _render_template_active_area(row: dict[str, str], out_path: Path,
+                                 size: tuple[int, int]) -> None:
+    from PIL import Image, ImageDraw, ImageFont
+
+    diffusion_tracks, poly_tracks = size
+    width, height = 1120, 760
+    margin = 100
+    scale = min((width - margin * 2) / diffusion_tracks, (height - margin * 2) / poly_tracks)
+    area_width, area_height = round(diffusion_tracks * scale), round(poly_tracks * scale)
+    left, top = (width - area_width) // 2, (height - area_height) // 2 + 20
+    image = Image.new("RGB", (width, height), "white")
+    draw = ImageDraw.Draw(image)
+    font = ImageFont.truetype("arial.ttf", 22)
+    small_font = ImageFont.truetype("arial.ttf", 15)
+    title = row.get("StructureName", "Template active area")
+    draw.text((margin, 20), title, fill="#17212b", font=font)
+    draw.text((margin, 52),
+              f"Template active-area extent: {diffusion_tracks} diffusion tracks x {poly_tracks} poly tracks",
+              fill="#4a5560", font=small_font)
+    draw.rectangle((left, top, left + area_width, top + area_height),
+                   fill="#e5f1ed", outline="#177a62", width=4)
+    for index in range(1, diffusion_tracks):
+        x = left + round(index * scale)
+        draw.line((x, top, x, top + area_height), fill="#9bb8ad", width=1)
+    for index in range(1, poly_tracks):
+        y = top + round(index * scale)
+        draw.line((left, y, left + area_width, y), fill="#9bb8ad", width=1)
+    draw.text((left, top + area_height + 12), "Track-space outline only; template layer geometry is not rendered",
+              fill="#7b3f00", font=small_font)
+    image.save(out_path, format="PNG")
+
+    legend = Image.new("RGB", (250, 74), "white")
+    legend_draw = ImageDraw.Draw(legend)
+    legend_draw.rectangle((8, 10, 34, 34), fill="#e5f1ed", outline="#177a62", width=2)
+    legend_draw.text((44, 12), "Template active area", fill="#17212b", font=small_font)
+    legend_draw.line((8, 54, 34, 54), fill="#9bb8ad", width=1)
+    legend_draw.text((44, 45), "Diffusion / poly tracks", fill="#17212b", font=small_font)
+    legend.save(out_path.with_suffix(".legend.png"), format="PNG")
+
+
 # ---------------------------------------------------------------------------
 # Prompt specification
 # ---------------------------------------------------------------------------
@@ -426,13 +491,18 @@ class Design:
 # ---------------------------------------------------------------------------
 class StructureDesigner:
     def __init__(self, library_csv: Path = DEFAULT_INPUT, memory_path: Path = DEFAULT_MEMORY,
-                 use_llm: bool = True) -> None:
+                 use_llm: bool = True,
+                 source: tuple[list[str], list[dict[str, str]]] | None = None) -> None:
+        """``source`` = ``(fields, rows)`` from another library (e.g. ``atlantis_db.fetch_rows``) instead of the CSV."""
         self._lock = threading.RLock()
         self._render_lock = threading.Lock()
-        with open(library_csv, newline="", encoding="utf-8-sig") as fh:
-            reader = csv.DictReader(fh)
-            self.fields = [f for f in reader.fieldnames or [] if f]
-            rows = list(reader)
+        if source is not None:
+            self.fields, rows = list(source[0]), [dict(row) for row in source[1]]
+        else:
+            with open(library_csv, newline="", encoding="utf-8-sig") as fh:
+                reader = csv.DictReader(fh)
+                self.fields = [f for f in reader.fieldnames or [] if f]
+                rows = list(reader)
         self.library_rows = [dict(row) for row in rows
                              if (row.get("TestRow") or "").strip().lower().startswith("x81z")]
         if not self.library_rows:
@@ -997,40 +1067,67 @@ class StructureDesigner:
     def layout_png(self, design_id: str, dpi: int = 120,
                    visible_layers: set[str] | None = None, global_view: bool = False,
                    global_units: tuple[int, int] = (1, 1), coords: str = "unit",
-                   routing: bool = True) -> Path | None:
+                   routing: bool = True, scale: int = 1, fmt: str = "png", panel: bool = False) -> Path | None:
         design = self.get(design_id)
         from scalar_snapshot import OVERLAYS, layout_layers, render_global_snapshot, render_snapshot
-        if design.result is None or design.result.family not in OVERLAYS:
+        if design.result is None:
+            return None
+        generic_geometry = design.result.family not in OVERLAYS and has_generic_layout_geometry(design.row)
+        template_area = template_active_area_size(design.row) if design.result.family not in OVERLAYS else None
+        if design.result.family not in OVERLAYS and not generic_geometry and not template_area:
             return None
         LAYOUT_DIR.mkdir(exist_ok=True)
+        if template_area and not generic_geometry:
+            path = LAYOUT_DIR / f"{design.id}_v{design.version}_template-area.png"
+            with self._render_lock:
+                if not path.exists():
+                    _render_template_active_area(design.row, path, template_area)
+            return path
         available = layout_layers(design.row)
-        visible = set(available) if visible_layers is None else visible_layers
+        visible = set(available) if visible_layers is None else set(visible_layers)
+        if generic_geometry:
+            visible.discard("Fail paths")
         layer_mask = "".join("1" if layer in visible else "0" for layer in available)
         suffix = (f"_global{global_units[0]}x{global_units[1]}{'r' if routing else ''}" if global_view
                   else f"_tile{global_units[0]}x{global_units[1]}" if global_units != (1, 1) else "") + f"_{coords}"
         extras = sorted(visible - set(available))
         if extras:
             suffix += "_x" + hashlib.sha1("|".join(extras).encode()).hexdigest()[:8]
-        path = LAYOUT_DIR / f"{design.id}_v{design.version}_{dpi}_l{layer_mask}{suffix}.png"
+        if scale > 1:
+            suffix += f"_s{scale}"
+        if panel:
+            suffix += "_p"
+        path = LAYOUT_DIR / f"{design.id}_v{design.version}_{dpi}_r4_l{layer_mask}{suffix}.{fmt}"
         with self._render_lock:
             if not path.exists():
                 try:
                     if global_view:
                         render_global_snapshot(design.row, path, dpi=dpi, visible_layers=visible,
                                                units_ogd=global_units[0], units_pgd=global_units[1],
-                                               coords=coords, routing=routing)
+                                               coords=coords, routing=routing, scale=scale, panel=panel)
                     elif global_units != (1, 1):
                         render_global_snapshot(design.row, path, dpi=dpi, visible_layers=visible,
                                                units_ogd=global_units[0], units_pgd=global_units[1],
-                                               coords="unit", routing=False, buffer=False)
+                                               coords="unit", routing=False, buffer=False, scale=scale,
+                                               panel=panel)
                     else:
                         render_snapshot(design.row, design.result, path,
                                         f"AI design v{design.version} from {design.template}", dpi=dpi,
-                                        preview=True, visible_layers=visible, coords=coords)
+                                        preview=True, visible_layers=visible, coords=coords, scale=scale,
+                                        panel=panel)
                 except Exception as exc:  # rendering is a preview; keep the design usable
                     design.warnings.append(f"Layout rendering failed: {exc}")
                     return None
         return path
+
+    def generator_gds(self, design_id: str) -> tuple[Path, str]:
+        """GDS (GDS2 text) of the working buildsheet from claude_iso_gds_generator; returns (path, chassis)."""
+        from scalar_snapshot import generator_gds
+
+        design = self.get(design_id)
+        LAYOUT_DIR.mkdir(exist_ok=True)
+        with self._render_lock:
+            return generator_gds(design.row, LAYOUT_DIR / "gds" / f"{design.id}_v{design.version}")
 
     def buildsheet_csv(self, rows: list[dict[str, str]]) -> str:
         buffer = io.StringIO()

@@ -26,6 +26,7 @@ Used through ``ScalarCalculation.py --snapshots DIR``; needs matplotlib.
 from __future__ import annotations
 
 import csv
+import math
 import re
 import sys
 from dataclasses import dataclass
@@ -47,16 +48,28 @@ from ScalarCalculation import (  # noqa: E402
 
 C_NDIFF, C_PDIFF = "#b5dcb0", "#f6c9a0"
 C_FTI, C_POLY, C_TCN = "#3c3c3c", "#d62728", "#1f77b4"
-C_LO, C_HI, C_OTHER, C_PATH = "#1f5fbf", "#c0392b", "#8c8c8c", "#b000b0"
-C_BRIDGE, C_SHORT = "#8e44ad", "#e67e22"
-C_RAIL = "#d35400"
+C_POLY_ACTIVE, C_TCN_ACTIVE = "#8b0a0a", "#0b3d66"
+C_TCP, C_TCP_EDGE = "#00796b", "#004d40"
+C_VCR, C_VCRNUB, C_VCR_EDGE = "#ff7f0e", "#ffbb78", "#9a4d10"
+C_TRM, C_TRM_EDGE = "#c5b0d5", "#8c6bb1"
+# Nets are hues no layer uses: LO cyan, HI magenta.
+C_LO, C_HI, C_OTHER, C_PATH = "#17becf", "#d6006f", "#8c8c8c", "#7f00ff"
+C_BRIDGE, C_SHORT = "#66a61e", "#000000"
+C_RAIL = "#8c564b"
+C_M0, C_M0_ALT, C_M0_GRID, C_M0_CUT = "#3b4650", "#7a7a52", "#8d6e63", "#bcbd22"
+C_MISC = "#b8860b"
+C_V0_DUMMY = "#3949ab"
+VCRNUB_BASE_OGD_NM = 3 * 44.0
+VCRNUB_MIN_SPACE_NM = 110.0 - 26.8 - 28.0
+VCX_POR_SIZE_NM = {"vt": (12.0, 15.0), "vg": (12.0, 13.0)}
+VCX_BOTTOM_NUDGE_NM = 0.4
 NET_COLOR = {"LO": C_LO, "HI": C_HI, "BRIDGE": C_BRIDGE, "SHORT": C_SHORT, "": C_OTHER}
 M0_WIDTH_NM = {110: 12, 132: 15, 165: 14}
 M0_CUT_WIDTH_NM = 18
 PXL_NOMINAL_CD_NM = 14
 LAYOUT_LAYERS = (
-    "NDIFF", "PDIFF", "FTI", "PLY", "TCN", "TCP", "VG", "VT", "VCR", "PXL / TRM",
-    "M0 lines", "M0 LO1", "M0 HI1", "M0 cuts", "V0 landings", "Current flow", "Fail paths", "Grid",
+    "NDIFF", "PDIFF", "VT flavor", "FTI", "PLY", "TCN", "TCP", "VG", "VT", "VCR", "PXL / TRM",
+    "M0 lines", "M0 LO1", "M0 HI1", "M0 cuts", "V0 landings", "V0 dummy", "Current flow", "Fail paths", "Grid",
     "M0 Y grid", "Guide tracks",
 )
 
@@ -225,16 +238,77 @@ def default_tsdr_draw_layer(row: dict[str, str], choices: tuple[str, ...]) -> st
     return misc_layers[0] if misc_layers else "Off"
 
 
+# VT flavor in DiffPattern (4th field, after the n/p prefix) -> (structure-name flavor ID, label, hatch).
+VT_FLAVORS = {
+    "lvt": ("L", "LVT", ".."), "svt": ("S", "SVT", "--"), "hvt": ("H", "HVT", "xx"),
+    "ulvt": ("U", "ULVT", "//"), "uvt": ("U", "UVT", "/"), "elvt": ("E", "ELVT", "\\\\"), "evt": ("E", "EVT", "\\"),
+    "ulvtll": ("UL", "ULVTLL", "++"),
+}
+FLAVOR_BY_ID = {"L": "lvt", "S": "svt", "H": "hvt", "U": "ulvt", "E": "elvt", "UL": "ulvtll"}
+_NAME_FLAVOR = re.compile(r"[A-Z_]+\d{3}-[A-Z0-9]+-([A-Z]+)-")
+
+
+def name_flavor_id(name: str) -> str | None:
+    """Flavor ID in the structure name, e.g. 'U' in CTG132-NZ5-U-A:..."""
+    match = _NAME_FLAVOR.match(name)
+    return match[1] if match and match[1] in FLAVOR_BY_ID else None
+
+
+def diff_flavors(row: dict[str, str], include_global: bool = False) -> list[tuple[str, str]]:
+    """(polarity, flavor) for every DiffPattern segment, e.g. ('n', 'lvt'); the unit cell is the device under test."""
+    found = []
+    for field in ("DiffPatternUnit", "DiffPatternGlobal") if include_global else ("DiffPatternUnit",):
+        for segment in segments(row.get(field, "")):
+            parts = [part.strip() for part in strip_shift(segment).split(",")]
+            match = re.fullmatch(r"([np])([a-z]+)", parts[3].lower()) if len(parts) > 3 else None
+            if match:
+                found.append((match[1], match[2]))
+    return found
+
+
+def flavor_alignment(row: dict[str, str]) -> list[str]:
+    """Warnings when the name flavor ID and the DiffPattern VT flavors disagree."""
+    flavor_id = name_flavor_id(row.get("StructureName", ""))
+    flavors = {flavor for _polarity, flavor in diff_flavors(row)}
+    if not flavor_id or not flavors:
+        return []
+    wrong = sorted(f for f in flavors if VT_FLAVORS.get(f, ("?",))[0] != flavor_id)
+    if not wrong:
+        return []
+    return [f"VT flavor: name says '{flavor_id}' ({VT_FLAVORS[FLAVOR_BY_ID[flavor_id]][1]}) but DiffPattern uses "
+            f"{', '.join(VT_FLAVORS.get(f, ('?', f.upper()))[1] for f in wrong)}"]
+
+
+def _draw_flavor(ax, row: dict[str, str], token: str, x0: float, x1: float, y0: float, height: float) -> None:
+    """Hatch a diffusion band by VT flavor, tag it, and outline it red when it disagrees with the name ID."""
+    match = re.fullmatch(r"([np])([a-z]+)", token.strip().lower())
+    if not match:
+        return
+    polarity, flavor = match.groups()
+    flavor_id, label, hatch = VT_FLAVORS.get(flavor, ("?", flavor.upper(), "oo"))
+    name_id = name_flavor_id(row.get("StructureName", ""))
+    mismatch = name_id is not None and name_id != flavor_id
+    edge = "#3f6f3a" if polarity == "n" else "#a8692e"
+    ax.add_patch(Rectangle((x0, y0), x1 - x0, height, facecolor="none", hatch=hatch, edgecolor=edge,
+                           linewidth=0, zorder=1.05, gid=f"VTFLAV:{flavor}"))
+    if mismatch:
+        ax.add_patch(Rectangle((x0, y0), x1 - x0, height, facecolor="none", edgecolor="#e00000", linewidth=1.4,
+                               zorder=1.06, gid="VTFLAV:mismatch"))
+    ax.text(x0 + 0.62, y0 + height / 2, f"{polarity}{label}" + (f" ≠ {name_id}" if mismatch else ""),
+            fontsize=6.5, va="center", ha="left", color="#e00000" if mismatch else edge, zorder=8.2,
+            bbox=dict(facecolor="white", alpha=0.85, edgecolor="none", pad=0.5))
+
+
 def tsdr_color(name: str) -> str:
     """Overlay colour for a TSDR / misc ID, matching the layer it influences (prefix before ':')."""
     base = name.partition(":")[0].strip().lower()
-    for keys, color in ((("fti",), C_FTI), (("poly", "ply", "glk", "pc"), C_POLY), (("tcp", "tcp_mask"), "#0f8f8c"),
-                        (("tcn", "tcc"), C_TCN), (("vcrnub",), "#d48a0c"), (("vcr",), "#e07a25"),
-                        (("pxl", "pxl_mask", "trm"), "#2f8f84"), (("ndiff", "diff"), "#3f8f3a"),
-                        (("pdiff",), "#c8742c"), (("m0",), "#3b4650")):
+    for keys, color in ((("fti",), C_FTI), (("poly", "ply", "glk", "pc"), C_POLY), (("tcp", "tcp_mask"), C_TCP),
+                        (("tcn", "tcc"), C_TCN), (("vcrnub",), "#e08a3c"), (("vcr",), C_VCR),
+                        (("pxl", "pxl_mask", "trm"), C_TRM_EDGE), (("ndiff", "diff"), "#3f8f3a"),
+                        (("pdiff",), "#c98a5a"), (("m0",), C_M0)):
         if base in keys:
             return color
-    return "#cc33aa"
+    return C_MISC
 
 
 def _draw_misc_layer(ax, row: dict[str, str], g: Geometry, layer_name: str) -> None:
@@ -292,7 +366,12 @@ def tsdr_region_rects(row: dict[str, str], g: Geometry, tsdr_id: str) -> list[tu
                 if xs and base == "vcr":
                     rects.append((min(xs) - 0.5, 2 * track - 0.25, max(xs) + 0.5, 2 * track + 0.25))
                 elif base == "vcrnub":
-                    rects += [(x + 0.1, 2 * track - 0.25, x + 0.9, 2 * track + 0.25) for x in xs if x < ogd]
+                    height_match = re.search(r"\d+", row.get("CellHeight", ""))
+                    pitch = int(height_match[0]) / 2 if height_match else 66
+                    vcr_height = _preview_width_nm(row, "PreviewVcrWidthNm", 12) / pitch
+                    for x in (x for x in xs if x < ogd):
+                        rects += [(x0 - 0.05, y0 - 0.05, x1 + 0.05, y1 + 0.05)
+                                  for x0, y0, x1, y1 in _vcrnub_rects(row, segment, x, 2 * track, vcr_height, pitch)]
     elif base == "pxl_mask":
         rects.append((-0.5, 0, ogd + 0.5, ncell))
     return [(x0, max(0.0, y0), x1, min(float(ncell), y1)) for x0, y0, x1, y1 in rects]
@@ -358,7 +437,8 @@ def _draw_trm_layer(ax, row: dict[str, str], g: Geometry) -> bool:
         center_y = (y0 + y1) / 2
         local_cell = (center_y % source_unit_y) / source_y_cell
         y_center = local_cell * target_cells / source_cells
-        bar_height = (y1 - y0) / source_y_cell * target_cells / source_cells
+        target_cell_pitch_nm = int(height_match[0]) / 2
+        bar_height = (y1 - y0) / 10 / target_cell_pitch_nm
         if skew := _pxl_skew_geometry(row):
             direction, variant, delta_nm = skew
             if variant == "CD" and direction == "OGD":
@@ -372,7 +452,7 @@ def _draw_trm_layer(ax, row: dict[str, str], g: Geometry) -> bool:
             elif variant == "REG" and direction == "PGD":
                 y_center += delta_nm / (int(height_match[0]) / 2)
         ax.add_patch(Rectangle((local_x0, y_center - bar_height / 2), local_x1 - local_x0, bar_height,
-                               facecolor="#83cfc4", edgecolor="#4c9f95", linewidth=0.35,
+                               facecolor=C_TRM, edgecolor=C_TRM_EDGE, linewidth=0.35,
                                alpha=0.38, zorder=1.5))
     return True
 
@@ -385,7 +465,7 @@ def _m0_track_y(row: dict[str, str], track: int) -> float:
 def _via_track_y(g: Geometry, track: int, kind: str) -> float:
     ymap = g.ymap
     assert ymap is not None
-    return ymap.cell_f(track, kind) % g.n_cells
+    return ymap.cell_f(track, kind)
 
 
 def terminal_data(row: dict[str, str], field: str, default_side: str) -> dict:
@@ -457,7 +537,7 @@ def _via_shifts(row: dict[str, str], g: Geometry) -> dict[tuple[str, int, int], 
     out: dict[tuple[str, int, int], tuple[float, float]] = {}
     for segment in segments(row.get("VcxPatternUnit", "")):
         tokens = [token.strip() for token in strip_shift(segment).split(",")]
-        values = segment.partition("|")[2].split(",")
+        values = segment.partition("|")[2].partition("$")[0].split(",")
         if len(tokens) < 3 or len(values) < 4:
             continue
         try:
@@ -471,6 +551,48 @@ def _via_shifts(row: dict[str, str], g: Geometry) -> dict[tuple[str, int, int], 
             for track in int_list(tokens[2]):
                 out[(kind, pos, track)] = (dx, dy)
     return out
+
+
+def _vcx_site_rect(row: dict[str, str], g: Geometry, kind: str, x: int, track: int,
+                   base_x: float, base_y: float, global_scope: bool = False,
+                   global_width: int | None = None, global_cells: int | None = None
+                   ) -> tuple[float, float, float, float]:
+    """Return the POR/overridden Vcx via rectangle in layout units."""
+    height_match = re.search(r"\d+", row.get("CellHeight", ""))
+    cell_pitch_nm = int(height_match[0]) / 2 if height_match else 66.0
+    width_nm, height_nm = VCX_POR_SIZE_NM[kind]
+    center_x, center_y = base_x, base_y
+    cd_x_nm = cd_y_nm = dx_nm = dy_nm = 0.0
+    x_extent = global_width if global_scope and global_width is not None else g.ogd
+    track_extent = (m0_tracks_per_height(row) * global_cells // 2
+                    if global_scope and global_cells is not None else m0_tracks_per_height(row) * g.pgd)
+    x_axis_extent = x_extent - 1 if kind == "vt" else x_extent
+    pattern_field = "VcxPatternGlobal" if global_scope else "VcxPatternUnit"
+    for segment in segments(row.get(pattern_field, "")):
+        parts = [part.strip() for part in strip_shift(segment).split(",")]
+        if len(parts) < 3 or parts[0].lower() != kind:
+            continue
+        if x not in expand_axis(parts[1], x_axis_extent) or track not in expand_axis(parts[2], track_extent):
+            continue
+        try:
+            if len(parts) > 3 and parts[3]:
+                width_nm = float(parts[3]) * 1000
+            if len(parts) > 4 and parts[4]:
+                height_nm = float(parts[4]) * 1000
+        except ValueError:
+            pass
+        cd_x_nm, cd_y_nm, dx_nm, dy_nm = _resize_shift_nm(segment)
+        center_x += dx_nm / 44.0
+        center_y += dy_nm / cell_pitch_nm
+        y_axis = parts[2].split("/")
+        if any(token.strip().lower().endswith("-bottom")
+               and track in expand_axis(token.strip()[:-7], track_extent) for token in y_axis):
+            center_y += VCX_BOTTOM_NUDGE_NM / cell_pitch_nm
+        break
+    width_nm += cd_x_nm
+    height_nm += cd_y_nm
+    return center_x - width_nm / 88.0, center_y - height_nm / (2 * cell_pitch_nm), \
+        center_x + width_nm / 88.0, center_y + height_nm / (2 * cell_pitch_nm)
 
 
 def trace_nets(row: dict[str, str], g: Geometry) -> NetTrace:
@@ -768,7 +890,7 @@ def _m0_tracks(row: dict[str, str], g: Geometry) -> list[tuple[float, str, int |
     last_track = per_height * g.pgd
     return [(track * 2 / per_height,
              "M0 rail" if track % per_height == 0 else "M0 CLR2" if track % 2 == 0 else "M0 CLR1",
-             track, C_RAIL if track % per_height == 0 else "#857044" if track % 2 == 0 else "#3b4650")
+             track, C_RAIL if track % per_height == 0 else C_M0_ALT if track % 2 == 0 else C_M0)
             for track in range(last_track + 1)]
 
 
@@ -778,6 +900,11 @@ def _preview_width_nm(row: dict[str, str], field: str, default: float) -> float:
         return width if 0 < width <= 1000 else default
     except ValueError:
         return default
+
+
+def _cell_pitch_nm(row: dict[str, str]) -> float:
+    height_match = re.search(r"\d+", row.get("CellHeight", ""))
+    return int(height_match[0]) / 2 if height_match else 66.0
 
 
 _SKEW_SLOTS = (("OGD", "CD"), ("PGD", "CD"), ("OGD", "REG"), ("PGD", "REG"))
@@ -871,16 +998,39 @@ def _preview_gate_spans(row: dict[str, str], g: Geometry, col: int,
     return split_spans(spans, cuts)
 
 
+def dummy_via_points(row: dict[str, str], width: int, m0_count: int) -> list[tuple[float, int]]:
+    """``DummyViaPattern`` (X = global M1 track k at x = k - 0.5, Y = global M0 track; verified on the CTG132
+    chassis V0 56/0) -> [(global x, global M0 track)]. ``rK`` resolves against ``width`` / ``m0_count``."""
+    points = []
+    for segment in segments(row.get("DummyViaPattern", "")):
+        parts = [part.strip() for part in strip_shift(segment).split(",")]
+        if len(parts) < 2:
+            continue
+        for k in expand_axis(parts[0], width + 1):
+            points += [(k - 0.5, t) for t in expand_axis(parts[1], m0_count) if 0 <= t <= m0_count]
+    return points
+
+
+def _draw_v0_dummy(ax, x: float, y: float) -> None:
+    ax.add_patch(Rectangle((x - 0.2, y - 0.08), 0.4, 0.16, facecolor="white", edgecolor=C_V0_DUMMY,
+                           linewidth=1.3, zorder=8.8, gid="V0DUM"))
+
+
+def _nominal_outline(ax, center_x: float, center_y: float, width: float, height: float) -> None:
+    """Dashed outline of a shape before skew, so a TSDR CD/REG change is visible against the filled result."""
+    ax.add_patch(Rectangle((center_x - width / 2, center_y - height / 2), width, height, facecolor="none",
+                           edgecolor="#000000", linestyle=(0, (2, 2)), linewidth=0.7, zorder=7.6))
+
+
 def _preview_ply_geometry(row: dict[str, str], col: int, start: int, end: int,
                           width: float) -> tuple[float, float, float, float]:
     height_match = re.search(r"\d+", row.get("CellHeight", ""))
     cell_pitch_nm = int(height_match[0]) / 2 if height_match else 66
     center_x, center_y = col, (start + end + 1) / 2
     height = end - start + 0.9
-    for field in ("PolyCdSkew", "GLKSkew"):
-        center_x, center_y, width, height = _apply_skew_geometry(
-            center_x, center_y, width, height, _skew_geometry(row, field), 44, cell_pitch_nm
-        )
+    center_x, center_y, width, height = _apply_skew_geometry(
+        center_x, center_y, width, height, _skew_geometry(row, "PolyCdSkew"), 44, cell_pitch_nm
+    )
     return center_x, center_y, width, height
 
 
@@ -889,10 +1039,450 @@ def _resize_shift_nm(segment: str) -> tuple[float, float, float, float]:
     if not marker:
         return 0.0, 0.0, 0.0, 0.0
     try:
-        values = [float(value.strip()) * 1000 for value in raw.split(",")]
+        values = [float(value.strip()) * 1000 for value in raw.partition("$")[0].split(",")]
     except ValueError:
         return 0.0, 0.0, 0.0, 0.0
     return tuple((values + [0.0] * 4)[:4])
+
+
+def _vcrnub_rects(row: dict[str, str], segment: str, x: int, boundary: float, vcr_height: float,
+                  cell_pitch_nm: float) -> list[tuple[float, float, float, float]]:
+    """Nub rectangles (x0, y0, x1, y1) for one VcrnubPattern entry at TCN slot ``x`` and VCR boundary ``boundary``.
+
+    The cross-section dimensions are 3 poly pitches (132 nm) wide; the top/bottom PGD projections are
+    26.8/28 nm. OGD CD widens it, OGD REG shifts it in X, PGD CD moves only its far edge, and
+    PGD REG shifts it in Y, per the ``|d1,d2,d3,d4`` suffix.
+    """
+    parts = [part.strip() for part in strip_shift(segment).split(",")]
+    placement = parts[2].lower() if len(parts) > 2 else "both"
+    width = _preview_width_nm(row, "PreviewVcrnubWidthNm", 3 * 44) / 44
+    center_x, shift_y = x + 0.5, 0.0
+    skew = _pattern_skew_nm(row, segment)
+    pgd_cd = 0.0
+    for direction, variant, delta_nm in ([skew] if isinstance(skew, tuple) else (skew or [])):
+        if (direction, variant) == ("OGD", "CD"):
+            width = max(0.03, width + delta_nm / 44)
+        elif (direction, variant) == ("OGD", "REG"):
+            center_x += delta_nm / 44
+        elif (direction, variant) == ("PGD", "CD"):
+            pgd_cd += delta_nm
+        else:
+            shift_y += delta_nm / cell_pitch_nm
+    rects = []
+    for side in ((1,) if placement == "top" else (-1,) if placement == "bottom" else (1, -1)):
+        nominal_length = 26.8 if side > 0 else 28.0
+        length_nm = _preview_width_nm(row, "PreviewVcrnubLengthNm", nominal_length) + pgd_cd
+        length = max(0.01, length_nm / cell_pitch_nm)
+        y_far = boundary + side * length
+        rects.append((center_x - width / 2, min(boundary, y_far) + shift_y,
+                      center_x + width / 2, max(boundary, y_far) + shift_y))
+    return rects
+
+
+_PATTERN_SYNTAX_FIELDS = {
+    "DiffPatternUnit": "DiffPattern", "DiffPatternGlobal": "DiffPattern",
+    "FTITracksUnit": "FTITracks", "FTITracksGlobal": "FTITracks",
+    "PolyPlugsUnit": "PolyPlugs", "PolyPlugsGlobal": "PolyPlugs",
+    "TcnPlugsUnit": "TcnPlugs", "TcnPlugsGlobal": "TcnPlugs",
+    "TcnDepopUnit": "TcnDepop", "TcnDepopGlobal": "TcnDepop",
+    "VcrPatternUnit": "VcrPattern", "VcrPatternGlobal": "VcrPattern",
+    "VcrnubPatternUnit": "VcrnubPattern", "VcrnubPatternGlobal": "VcrnubPattern",
+    "TcnExtensionUnit": "TcnExtension", "TcnExtensionGlobal": "TcnExtension",
+    "TCPSkewPatternUnit": "TCPSkewPattern", "TCPSkewPatternGlobal": "TCPSkewPattern",
+    "M0CutPatternUnit": "M0CutPattern", "M0CutPatternGlobal": "M0CutPattern",
+    "VcxPatternUnit": "VcxPattern", "VcxPatternGlobal": "VcxPattern",
+    "DrawMiscIDsUnit": "DrawMiscIDs", "DrawMiscIDsGlobal": "DrawMiscIDs",
+}
+
+
+def buildsheet_syntax_issues(row: dict[str, str], fields: tuple[str, ...] | None = None) -> list[str]:
+    """Check supported buildsheet pattern DSL fields without rejecting legacy rows on load."""
+    issues: list[str] = []
+    required_ints = {
+        "UnitCellSizeOgd": (1, 1000), "UnitCellSizePgd": (1, 1000),
+        "ArraySizeOgd": (1, 10000), "ArraySizePgd": (1, 10000),
+        "BufferSizeL": (0, 10000), "BufferSizeR": (0, 10000),
+        "BufferSizeB": (0, 10000), "BufferSizeT": (0, 10000),
+    }
+    for field, (minimum, maximum) in required_ints.items():
+        if fields is not None and field not in fields:
+            continue
+        raw = row.get(field, "").strip()
+        if not raw or not raw.isdecimal() or not minimum <= int(raw) <= maximum:
+            issues.append(f"{field} must be an integer from {minimum} to {maximum}")
+    if fields is None or "PolyPitch" in fields:
+        poly_pitch = row.get("PolyPitch", "").strip().lower()
+        if poly_pitch != "pp44":
+            issues.append(f"PolyPitch {poly_pitch or '(empty)'} is unsupported; this geometry model is fixed at pp44 (44 nm)")
+    if fields is None or "CellHeight" in fields:
+        cell_height = row.get("CellHeight", "").strip().lower()
+        if cell_height not in {"ch110", "ch132", "ch165"}:
+            issues.append("CellHeight must be ch110, ch132, or ch165")
+
+    try:
+        g = geometry_from_row(row)
+        frame = global_frame(row, g, g.arr_ogd, g.arr_pgd)
+        per_height = m0_tracks_per_height(row)
+    except (TypeError, ValueError, KeyError) as exc:
+        return [*issues, f"Buildsheet dimensions: {exc}"]
+
+    try:
+        m0_max = m0_tracks_per_height(row) * max(1, int(row.get("UnitCellSizePgd", "1") or 1))
+    except (TypeError, ValueError):
+        m0_max = 0
+    for field in ("LO1ActiveTracks", "LO2ActiveTracks", "HI1ActiveTracks", "HI2ActiveTracks"):
+        if fields is not None and field not in fields:
+            continue
+        raw = row.get(field, "").strip()
+        if not raw:
+            continue
+        specs = segments(raw)
+        if not specs or any(not expand_axis(spec, m0_max) for spec in specs):
+            issues.append(f"{field} must use track-pattern syntax (e.g. 0;4;7 or 1:8[3])")
+            continue
+        tracks = [track for spec in specs for track in expand_axis(spec, m0_max)]
+        if family_of(row.get("StructureName", "")) != "VIA_CHAIN" and any(
+            track < 0 or track > m0_max for track in tracks):
+            issues.append(f"{field} tracks must be within the unit M0 range 0..{m0_max}")
+
+    for field in ("LO1Data", "LO2Data", "HI1Data", "HI2Data"):
+        if fields is not None and field not in fields:
+            continue
+        raw = row.get(field, "").strip()
+        if not raw:
+            continue
+        parts = [part.strip() for part in raw.split(",", 5)]
+        if (len(parts) != 6 or not re.fullmatch(r"[A-Za-z0-9_]+", parts[0])
+                or not re.fullmatch(r"[A-Za-z0-9_]+", parts[1])
+                or parts[2].upper() not in {"L", "R"} or parts[3].upper() not in {"B", "T"}
+                or not parts[4].isdigit() or int(parts[4]) < 1):
+            issues.append(f"{field} must be layer,layer,L|R,B|T,pinWidth,pinSpacing")
+            continue
+        stride, separator, offsets = parts[5].partition("/")
+        if not stride.isdigit() or int(stride) < 1:
+            issues.append(f"{field} pin spacing/stride must be a positive integer")
+            continue
+        if separator:
+            offset_pairs = offsets.split(";")
+            if any(not re.fullmatch(r"-?\d+\s*,\s*-?\d+", pair.strip()) for pair in offset_pairs):
+                issues.append(f"{field} row offsets must use row,offset pairs separated by semicolons")
+
+    for field in ("M0LegoPattern", "M0CutLegoPattern"):
+        if fields is not None and field not in fields:
+            continue
+        raw = row.get(field, "").strip().rstrip(";")
+        if not raw:
+            continue
+        try:
+            values = [float(value.strip()) for value in raw.split(";")]
+            if len(values) < 2 or len(values) % 2 or not all(math.isfinite(value) and value > 0 for value in values):
+                raise ValueError
+        except ValueError:
+            issues.append(f"{field} must be positive CD/space pairs separated by semicolons")
+
+    for field in ("kernelOffsetX", "kernelOffsetY"):
+        if fields is not None and field not in fields:
+            continue
+        raw = row.get(field, "").strip()
+        if raw and not _is_finite_number(raw):
+            issues.append(f"{field} must be a finite number")
+    if fields is None or "AddSpecialID" in fields:
+        for item in segments(row.get("AddSpecialID", "")):
+            if not re.fullmatch(r"digital(?::id)?", item, re.IGNORECASE):
+                issues.append("AddSpecialID entries must use the supported Digital:id form")
+                break
+    if fields is None or "DeleteLpps" in fields:
+        for item in segments(row.get("DeleteLpps", "")):
+            if not re.fullmatch(r"[^,:;]+:[^,:;]+", item):
+                issues.append("DeleteLpps entries must use layer:purpose syntax")
+                break
+
+    for field in ("FTICdMisregSkew", "TCNCdRegSkew", "PolyCdSkew", "GLKSkew"):
+        if fields is not None and field not in fields:
+            continue
+        raw = row.get(field, "").strip().rstrip(";")
+        if not raw:
+            continue
+        values = [value.strip() for value in raw.split(",")]
+        try:
+            for value in values[:4]:
+                if not value or not math.isfinite(float(value)):
+                    raise ValueError
+        except ValueError:
+            issues.append(f"{field} must start with comma-separated numeric OGD CD, PGD CD, OGD REG, PGD REG values")
+        if any(value.upper() not in {"Y", "N", "0"} for value in values[4:]):
+            issues.append(f"{field} has an invalid trailing flag")
+    if fields is None or "PXLSkew" in fields:
+        raw = row.get("PXLSkew", "").strip()
+        if raw:
+            values = [value.strip() for value in raw.split(",")]
+            try:
+                if len(values) < 2 or not all(math.isfinite(float(value)) for value in values[:2]):
+                    raise ValueError
+            except ValueError:
+                issues.append("PXLSkew must start with numeric CD and REG values")
+            if len(values) > 2 and not values[2]:
+                issues.append("PXLSkew selector cannot be empty")
+
+    def check_axis(spec: str, extent: int, label: str) -> None:
+        if not spec or not expand_axis(spec, extent):
+            issues.append(f"{label} axis is not parseable: {spec!r}")
+
+    for field, base in _PATTERN_SYNTAX_FIELDS.items():
+        if fields is not None and field not in fields:
+            continue
+        pattern = row.get(field, "")
+        if not pattern.strip():
+            continue
+        global_scope = field.endswith("Global")
+        width = frame["width"] if global_scope else g.ogd
+        cells = frame["cells"] - 1 if global_scope else g.n_cells
+        slots = width - 1
+        m0_tracks = per_height * frame["cells"] // 2 if global_scope else per_height * g.pgd
+        vcr_tracks = per_height * frame["cells"] // 2 if global_scope else g.pgd
+        for index, segment in enumerate(segments(pattern), 1):
+            parts = [part.strip() for part in strip_shift(segment).split(",")]
+            label = f"{field} segment {index}"
+            shift = segment.partition("|")[2]
+            if shift:
+                shift_values = [value.strip() for value in shift.partition("$")[0].split(",")]
+                net_name = shift.partition("$")[2].strip()
+                try:
+                    if len(shift_values) > 4 or not all(math.isfinite(float(value)) for value in shift_values):
+                        raise ValueError
+                except ValueError:
+                    issues.append(f"{label} resize-shift must contain up to four numeric values")
+                if "$" in shift and (base != "VcxPattern" or not net_name):
+                    issues.append(f"{label} net suffix is only supported as a non-empty VcxPattern $net name")
+            if base == "PolyPlugs" and len(parts) != 2:
+                issues.append(f"{label}: PolyPlugs requires exactly X-pattern,Y-pattern")
+                continue
+            if base == "PolyPlugs" and re.fullmatch(r"(-?\d+)/(-?\d+)", parts[0]):
+                first, second = (int(value) for value in parts[0].split("/"))
+                if abs(first - second) == 1:
+                    issues.append(f"{label}: consecutive PolyPlugs tracks must use a range (e.g. {min(first, second)}:{max(first, second)})")
+            if base == "VcxPattern":
+                if len(parts) not in {3, 4, 5} or parts[0].lower() not in {"vt", "vg"}:
+                    issues.append(f"{label}: expected vt|vg,X,Y")
+                    continue
+                x_extent = slots if parts[0].lower() == "vt" else width
+                check_axis(parts[1], x_extent, label + " X")
+                check_axis(parts[2], m0_tracks, label + " M0")
+                for value in parts[3:5]:
+                    try:
+                        if not math.isfinite(float(value)) or float(value) <= 0:
+                            raise ValueError
+                    except ValueError:
+                        issues.append(f"{label} optional via widths must be positive numbers")
+                continue
+            if base == "DrawMiscIDs":
+                if len(parts) >= 4:
+                    x_spec, y_spec = parts[2], parts[3]
+                elif len(parts) == 3 and ":" in parts[0]:
+                    x_spec, y_spec = parts[1], parts[2]
+                else:
+                    issues.append(f"{label}: expected layer:purpose,X,Y or layer,purpose,X,Y")
+                    continue
+                check_axis(x_spec, width, label + " X")
+                check_axis(y_spec, cells, label + " Y")
+                grow_values = parts[4:]
+                if grow_values and (len(grow_values) != 4 or any(not _is_finite_number(value) for value in grow_values)):
+                    issues.append(f"{label} grow values must provide four finite numbers")
+                if shift and global_scope and (len(shift_values) != 4 or any(not _is_finite_number(value) for value in shift_values)):
+                    issues.append(f"{label} global repeat syntax requires repeatX,repeatY,distX,distY")
+                continue
+            if len(parts) < 2:
+                issues.append(f"{label}: expected at least X,Y")
+                continue
+            if base == "M0CutPattern":
+                check_axis(parts[0], 2 * width, label + " X")
+                check_axis("/".join(parts[1:]), m0_tracks, label + " M0")
+            else:
+                slot_axis = base in {"TcnPlugs", "TcnDepop", "TcnExtension", "TCPSkewPattern",
+                                     "VcrPattern", "VcrnubPattern"}
+                x_extent = slots if slot_axis else width
+                check_axis(parts[0], x_extent, label + " X")
+                if base in {"VcrPattern", "VcrnubPattern", "TcnExtension"}:
+                    y_extent = vcr_tracks
+                    y_spec = parts[1]
+                elif base in {"PolyPlugs", "TcnPlugs", "TcnDepop"}:
+                    y_extent = cells
+                    y_spec = "/".join(parts[1:])
+                else:
+                    y_extent = cells
+                    y_spec = parts[1]
+                check_axis(y_spec, y_extent, label + " Y")
+                if base == "DiffPattern":
+                    try:
+                        width_um = float(parts[2])
+                    except (IndexError, ValueError):
+                        width_um = -1
+                    if not math.isfinite(width_um) or width_um < 0:
+                        issues.append(f"{label} diffusion width must be a non-negative um value")
+                    elif len(parts) not in {3, 4}:
+                        issues.append(f"{label}: DiffPattern requires X,Y,width[,devflav]")
+                    elif width_um > 0:
+                        allowed_flavors = {polarity + flavor for polarity in "np" for flavor in VT_FLAVORS}
+                        if len(parts) < 4 or parts[3].lower() not in allowed_flavors:
+                            issues.append(f"{label} positive diffusion width requires a supported devflav: "
+                                          + ", ".join(sorted(allowed_flavors)))
+                if base == "VcrnubPattern":
+                    if len(parts) < 3 or parts[2].lower() not in {"top", "bottom", "both"}:
+                        issues.append(f"{label} side must be top, bottom or both")
+    return list(dict.fromkeys(issues))
+
+
+def _is_finite_number(value: str) -> bool:
+    try:
+        return math.isfinite(float(value.strip()))
+    except ValueError:
+        return False
+
+
+def buildsheet_review_notes(row: dict[str, str], fields: tuple[str, ...] | None = None) -> list[str]:
+    """Non-blocking style notes for legal but potentially confusing track patterns."""
+    notes: list[str] = []
+    for field in ("LO1ActiveTracks", "LO2ActiveTracks", "HI1ActiveTracks", "HI2ActiveTracks"):
+        if fields is not None and field not in fields:
+            continue
+        for spec in segments(row.get(field, "")):
+            if "/" not in spec:
+                continue
+            tracks = expand_axis(spec, 10000)
+            if tracks and tracks != sorted(tracks):
+                notes.append(f"{field} slash list {spec!r} is descending; verify this intentional track order")
+    return notes
+
+
+def vcx_rule_issues(row: dict[str, str], fields: tuple[str, ...] | None = None) -> list[str]:
+    """Best-effort Vt/Vg via-CD range checks from the supplied X81Z skew table."""
+    issues: list[str] = []
+    for field in ("VcxPatternUnit", "VcxPatternGlobal"):
+        if fields is not None and field not in fields:
+            continue
+        for index, segment in enumerate(segments(row.get(field, "")), 1):
+            parts = [part.strip() for part in strip_shift(segment).split(",")]
+            if len(parts) < 3 or parts[0].lower() not in VCX_POR_SIZE_NM:
+                continue
+            kind = parts[0].lower()
+            por_ogd, por_pgd = VCX_POR_SIZE_NM[kind]
+            try:
+                ogd_nm = float(parts[3]) * 1000 if len(parts) > 3 and parts[3] else por_ogd
+                pgd_nm = float(parts[4]) * 1000 if len(parts) > 4 and parts[4] else por_pgd
+            except ValueError:
+                continue
+            cd_ogd_nm, cd_pgd_nm, _reg_ogd, _reg_pgd = _resize_shift_nm(segment)
+            ogd_nm += cd_ogd_nm
+            pgd_nm += cd_pgd_nm
+            if kind == "vt":
+                ogd_range = (8.0, 17.0)
+                pgd_range = (22.0, 29.0) if pgd_nm >= 22.0 else (8.0, 21.0)
+            else:
+                ogd_range = pgd_range = (8.0, 19.0)
+            for axis, value, bounds in (("OGD", ogd_nm, ogd_range), ("PGD", pgd_nm, pgd_range)):
+                if not bounds[0] <= value <= bounds[1]:
+                    issues.append(f"{field} segment {index} {kind.upper()} {axis} size {value:g} nm is outside "
+                                  f"the X81Z table range {bounds[0]:g}..{bounds[1]:g} nm (not-final advisory)")
+    return list(dict.fromkeys(issues))
+
+
+def design_rule_issues(row: dict[str, str], fields: tuple[str, ...] | None = None) -> list[str]:
+    """Best-effort cell-rule advisories grounded in the draft 1281 front-end deck."""
+    issues: list[str] = []
+    if fields is None or any(field in fields for field in ("VcrnubPatternUnit", "VcrnubPatternGlobal")):
+        issues.extend(vcrnub_rule_issues(row, fields))
+    if fields is None or any(field in fields for field in ("VcxPatternUnit", "VcxPatternGlobal")):
+        issues.extend(vcx_rule_issues(row, fields))
+    if fields is not None and not any(field in fields for field in (
+            "PolyPitch", "PreviewPlyWidthNm", "PreviewTcnWidthNm", "PreviewVcrWidthNm", "PreviewM0WidthNm")):
+        return list(dict.fromkeys(issues))
+    if row.get("PolyPitch", "").strip().lower() not in {"", "pp44"}:
+        issues.append("1281 deck advisory (not final): PolyPitch is specified as 44 nm (pp44)")
+    for field, expected in (("PreviewPlyWidthNm", 12.0), ("PreviewTcnWidthNm", 12.0),
+                            ("PreviewVcrWidthNm", 12.0)):
+        value = row.get(field, "").strip()
+        if not value:
+            continue
+        try:
+            actual = float(value)
+        except ValueError:
+            continue
+        if abs(actual - expected) > 1e-9:
+            issues.append(f"1281 deck advisory (not final): {field}={actual:g} nm; deck working assumption is {expected:g} nm")
+    m0_width = row.get("PreviewM0WidthNm", "").strip()
+    height_match = re.search(r"\d+", row.get("CellHeight", ""))
+    expected_m0 = M0_WIDTH_NM.get(int(height_match[0])) if height_match else None
+    if expected_m0 is not None and height_match:
+        actual_m0 = expected_m0
+        try:
+            if m0_width:
+                actual_m0 = float(m0_width)
+                if abs(actual_m0 - expected_m0) > 1e-9:
+                    issues.append(f"1281 deck advisory (not final): M0 preview width is {m0_width} nm; CH{height_match[0]} deck assumption is {expected_m0} nm")
+            track_pitch = int(height_match[0]) / m0_tracks_per_height(row)
+            clear_space = track_pitch - actual_m0
+            if clear_space < 9.0 - 1e-9:
+                issues.append(f"1281 deck advisory (not final): M0 preview track space is {clear_space:g} nm < 9 nm at CH{height_match[0]}")
+        except ValueError:
+            pass
+    return list(dict.fromkeys(issues))
+
+
+def vcrnub_rule_issues(row: dict[str, str], fields: tuple[str, ...] | None = None) -> list[str]:
+    """VCR-NUB rule violations: post-skew OGD size >= 3PP and clear space >= 55.2 nm."""
+    g = geometry_from_row(row)
+    issues: list[str] = []
+    cell_pitch_nm = _cell_pitch_nm(row)
+    vcr_height = _preview_width_nm(row, "PreviewVcrWidthNm", 12) / cell_pitch_nm
+    rectangles: list[tuple[str, float, float, float, float]] = []
+    pattern_fields = (("VcrnubPatternUnit", False), ("VcrnubPatternGlobal", True))
+    for field, global_scope in pattern_fields:
+        if fields is not None and field not in fields:
+            continue
+        if not row.get(field, "").strip():
+            continue
+        if global_scope:
+            frame = global_frame(row, g, g.arr_ogd, g.arr_pgd)
+            x_extent, y_extent = frame["width"] - 1, frame["cells"] // 2
+            x_offset, track_offset = 0, 0
+        else:
+            x_extent, y_extent = g.ogd - 1, g.pgd
+            x_offset, track_offset = 0, 0
+        for segment in segments(row.get(field, "")):
+            parts = [part.strip() for part in strip_shift(segment).split(",")]
+            if len(parts) < 2:
+                continue
+            skew = _pattern_skew_nm(row, segment)
+            delta = skew[2] if isinstance(skew, tuple) and skew[:2] == ("OGD", "CD") else 0.0
+            nominal_width = _preview_width_nm(row, "PreviewVcrnubWidthNm", VCRNUB_BASE_OGD_NM)
+            width_nm = nominal_width + delta
+            if width_nm < VCRNUB_BASE_OGD_NM - 1e-9:
+                issues.append(f"{field}: OGD CD gives {width_nm:g} nm; VCRNUB must remain at least 3PP "
+                              f"({VCRNUB_BASE_OGD_NM:g} nm)")
+            for x in expand_axis(parts[0], x_extent):
+                for track in expand_axis(parts[1], y_extent):
+                    for x0, y0, x1, y1 in _vcrnub_rects(row, segment, x + x_offset,
+                                                       2 * (track + track_offset), vcr_height, cell_pitch_nm):
+                        rectangles.append((field, x0, y0, x1, y1))
+    sweep = sorted(rectangles, key=lambda rect: rect[1])
+    active: list[tuple[str, float, float, float, float]] = []
+    for current in sweep:
+        field, x0, y0, x1, y1 = current
+        active = [other for other in active if other[3] > x0]
+        for other in active:
+            other_field, ox0, oy0, ox1, oy1 = other
+            if min(x1, ox1) <= max(x0, ox0):
+                continue
+            if y1 <= oy0:
+                gap = (oy0 - y1) * cell_pitch_nm
+            elif oy1 <= y0:
+                gap = (y0 - oy1) * cell_pitch_nm
+            else:
+                continue
+            if gap < VCRNUB_MIN_SPACE_NM - 1e-9:
+                issues.append(f"{field}: post-skew nub space {gap:g} nm < {VCRNUB_MIN_SPACE_NM:g} nm")
+        active.append(current)
+    return list(dict.fromkeys(issues))
 
 
 def _pattern_skew_nm(row: dict[str, str], segment: str):
@@ -950,7 +1540,7 @@ def _draw_m0(ax, row: dict[str, str], g: Geometry, visible: set[str]) -> list[st
                             ax.plot([g.ogd, g.ogd + 0.48], [y, y], color=color, linewidth=line_width, zorder=3.2)
         if draw_cuts:
             for x in cut_xs:
-                ax.plot([x, x], [y - 0.12, y + 0.12], color="#d21f3c", linewidth=1.6, zorder=7)
+                ax.plot([x, x], [y - 0.12, y + 0.12], color=C_M0_CUT, linewidth=1.6, zorder=7)
     return []
 
 
@@ -1000,14 +1590,15 @@ def draw_base(ax, row: dict[str, str], g: Geometry, visible_layers: set[str] | N
     _draw_m0(ax, row, g, visible)
     if "Guide tracks" in visible:
         for col in range(ogd + 1):
-            ax.axvline(col, color="#5b9b74", linewidth=0.7, alpha=0.5, zorder=0)
+            ax.axvline(col, color="#31566e", linewidth=0.75, alpha=0.6, zorder=7.2)
         for slot in range(ogd):
-            ax.axvline(slot + 0.5, color="#b68b51", linewidth=0.6, alpha=0.4, zorder=0)
+            ax.axvline(slot + 0.5, color="#78858f", linewidth=0.55, alpha=0.42,
+                       linestyle=(0, (2, 3)), zorder=7.1)
     if "M0 Y grid" in visible:
         for y, layer, _index, _color in _m0_tracks(row, g):
             rail = layer == "M0 rail"
-            ax.axhline(y, color=C_RAIL if rail else "#d58a35", linewidth=1.3 if rail else 0.75,
-                       alpha=0.7 if rail else 0.45, zorder=0.15)
+            ax.axhline(y, color=C_RAIL if rail else C_M0_GRID, linewidth=1.3 if rail else 0.8,
+                       linestyle="-" if rail else (0, (4, 3)), alpha=0.85, zorder=0.15)
     diff_widths: dict[int, float] = {}
     height_match = re.search(r"\d+", row.get("CellHeight", ""))
     cell_pitch_nm = int(height_match[0]) / 2 if height_match else 66
@@ -1042,22 +1633,20 @@ def draw_base(ax, row: dict[str, str], g: Geometry, visible_layers: set[str] | N
             diff_widths[c] = width_nm
             ax.add_patch(Rectangle((x0, c + 0.5 - band_height / 2), x1 - x0, band_height,
                                    facecolor=color, edgecolor="none", zorder=1))
+            if "VT flavor" in visible and len(parts) > 3:
+                _draw_flavor(ax, row, parts[3], x0, x1, c + 0.5 - band_height / 2, band_height)
 
     if "FTI" in visible:
         fti_skew = _skew_geometry(row, "FTICdMisregSkew")
-        for c, cells in g.fti_cells.items():
+        fti_columns = [(c, cells) for c, cells in g.fti_cells.items()]
+        if g.fti_cells.get(0):
+            fti_columns.append((ogd, g.fti_cells[0]))
+        for c, cells in fti_columns:
             for start, end in _contiguous_runs(cells):
-                center_x, center_y = c, (start + end + 1) / 2
+                center_x, center_y = float(c), (start + end + 1) / 2
                 width, height = 0.28, end - start + 1
-                center_x, center_y, width, height = _apply_skew_geometry(
-                    center_x, center_y, width, height, fti_skew, 44, cell_pitch_nm
-                )
-                ax.add_patch(Rectangle((center_x - width / 2, center_y - height / 2), width, height,
-                                       facecolor=C_FTI, edgecolor="none", zorder=3))
-        if 0 in g.fti_cells and g.fti_cells[0]:
-            for start, end in _contiguous_runs(g.fti_cells[0]):
-                center_x, center_y = float(ogd), (start + end + 1) / 2
-                width, height = 0.28, end - start + 1
+                if fti_skew:
+                    _nominal_outline(ax, center_x, center_y, width, height)
                 center_x, center_y, width, height = _apply_skew_geometry(
                     center_x, center_y, width, height, fti_skew, 44, cell_pitch_nm
                 )
@@ -1066,8 +1655,12 @@ def draw_base(ax, row: dict[str, str], g: Geometry, visible_layers: set[str] | N
 
     tcn_skew = _skew_geometry(row, "TCNCdRegSkew")
     if "PLY" in visible:
-        for c in range(ogd):
+        ply_skewed = bool(_skew_geometry(row, "PolyCdSkew"))
+        # Column ogd is column 0 of the next unit; draw it so the right edge is complete.
+        for c in range(ogd + 1):
             for a, b in plug_spans(g.poly_plugs.get(c % ogd, set()), ncell):
+                if ply_skewed:
+                    _nominal_outline(ax, c, (a + b + 1) / 2, poly_width, b - a + 0.9)
                 center_x, center_y, width, height = _preview_ply_geometry(row, c, a, b, poly_width)
                 ax.add_patch(Rectangle((center_x - width / 2, center_y - height / 2), width, height,
                                        facecolor=C_POLY, alpha=0.28, edgecolor="none", zorder=2))
@@ -1079,12 +1672,14 @@ def draw_base(ax, row: dict[str, str], g: Geometry, visible_layers: set[str] | N
                                       _fti_intervals(row, g, c, poly_width, cell_pitch_nm))
                 if y1 > y0:
                     ax.add_patch(Rectangle((center_x - width / 2, y0), width, y1 - y0,
-                                           facecolor="#9e2630", alpha=0.62, edgecolor="none", zorder=3.7))
+                                           facecolor=C_POLY_ACTIVE, alpha=0.62, edgecolor="none", zorder=3.7))
     if "TCN" in visible:
         for s in range(ogd):
             for a, b in g.tcn_spans(s):
                 center_x, center_y = s + 0.5, (a + b + 1) / 2
                 width, height = tcn_width, b - a + 0.8
+                if tcn_skew:
+                    _nominal_outline(ax, center_x, center_y, width, height)
                 center_x, center_y, width, height = _apply_skew_geometry(
                     center_x, center_y, width, height, tcn_skew, 44, cell_pitch_nm
                 )
@@ -1100,7 +1695,7 @@ def draw_base(ax, row: dict[str, str], g: Geometry, visible_layers: set[str] | N
                 center_x, center_y, width, height, tcn_skew, 44, cell_pitch_nm
             )
             ax.add_patch(Rectangle((center_x - width / 2, center_y - height / 2), width, height,
-                                   facecolor="#174f79", alpha=0.62, edgecolor="none", zorder=3.6))
+                                   facecolor=C_TCN_ACTIVE, alpha=0.62, edgecolor="none", zorder=3.6))
     if "TCP" in visible:
         # TCP fills the TCN tip-to-tip gap at boundary V of a TCN column (Y values are boundaries, like plugs).
         for segment in segments(row.get("TCPSkewPatternUnit", "")):
@@ -1120,22 +1715,23 @@ def draw_base(ax, row: dict[str, str], g: Geometry, visible_layers: set[str] | N
                     center_x = slot + 0.5 + ogd_reg / 44
                     center_y = boundary + pgd_reg / cell_pitch_nm
                     ax.add_patch(Rectangle((center_x - width / 2, center_y - height / 2), width, height,
-                                           facecolor="#0f8f8c", edgecolor="#0a5c5a", linewidth=0.5,
+                                           facecolor=C_TCP, edgecolor=C_TCP_EDGE, linewidth=0.5,
                                            alpha=0.85, zorder=4.05))
 
-    shifts = _via_shifts(row, g)
     if "VG" in visible:
         for c, tracks in g.vg_cols.items():
             for t in tracks:
-                dx, dy = shifts.get(("vg", c, t), (0.0, 0.0))
-                ax.scatter([c + dx], [_via_track_y(g, t, "vg") + dy], marker="s", s=70,
-                           color=NET_COLOR[trace.label(("vg", c, t))], edgecolor="k", linewidth=0.6, zorder=6)
+                x0, y0, x1, y1 = _vcx_site_rect(row, g, "vg", c, t, float(c), _via_track_y(g, t, "vg"))
+                ax.add_patch(Rectangle((x0, y0), x1 - x0, y1 - y0, gid="VG",
+                                       facecolor=NET_COLOR[trace.label(("vg", c, t))],
+                                       edgecolor="k", linewidth=0.6, zorder=6))
     if "VT" in visible:
         for s, tracks in g.vt_cols.items():
             for t in tracks:
-                dx, dy = shifts.get(("vt", s, t), (0.0, 0.0))
-                ax.scatter([s + 0.5 + dx], [_via_track_y(g, t, "vt") + dy], marker="D", s=60,
-                           color=NET_COLOR[trace.label(("vt", s, t))], edgecolor="k", linewidth=0.6, zorder=6)
+                x0, y0, x1, y1 = _vcx_site_rect(row, g, "vt", s, t, s + 0.5, _via_track_y(g, t, "vt"))
+                ax.add_patch(Rectangle((x0, y0), x1 - x0, y1 - y0, gid="VT",
+                                       facecolor=NET_COLOR[trace.label(("vt", s, t))],
+                                       edgecolor="k", linewidth=0.6, zorder=6))
     if "Current flow" in visible:
         _draw_current_flow(ax, row, g, trace, poly_width, tcn_width, tcn_skew, cell_pitch_nm, vcr_height)
 
@@ -1156,33 +1752,22 @@ def draw_base(ax, row: dict[str, str], g: Geometry, visible_layers: set[str] | N
                         skew, 44, cell_pitch_nm
                     )
                     ax.add_patch(Rectangle((center_x - width / 2, center_y - height / 2), width, height,
-                                           facecolor="#e07a25", edgecolor="#9a4d10", linewidth=0.7,
+                                           facecolor=C_VCR, edgecolor=C_VCR_EDGE, linewidth=0.7,
                                            alpha=0.8, zorder=5))
+                nub_rule_violations = vcrnub_rule_issues(row, ("VcrnubPatternUnit",))
+                nub_style = ({"facecolor": "#ffd6d6", "edgecolor": "#d00000", "linewidth": 1.5}
+                         if nub_rule_violations else
+                         {"facecolor": C_VCRNUB, "edgecolor": C_VCR_EDGE, "linewidth": 0.8})
         for segment in segments(row.get("VcrnubPatternUnit", "")):
             parts = [part.strip() for part in strip_shift(segment).split(",")]
             if len(parts) < 2:
                 continue
-            skew = _pattern_skew_nm(row, segment)
             xs = [x for x in expand_axis(parts[0], ogd - 1) if 0 <= x < ogd]
             tracks = [track for track in expand_axis(parts[1], g.pgd) if 0 <= track <= g.pgd]
-            placement = parts[2].lower() if len(parts) > 2 else "both"
             for x in xs:
                 for track in tracks:
-                    boundary = 2 * track
-                    if placement in ("top", "both"):
-                        center_x, center_y, width, height = _apply_skew_geometry(
-                            x + 0.5, boundary + vcr_height / 4, 0.64, vcr_height / 2,
-                            skew, 44, cell_pitch_nm
-                        )
-                        ax.add_patch(Rectangle((center_x - width / 2, center_y - height / 2), width, height,
-                                               facecolor="#f1b24a", edgecolor="#9a4d10", linewidth=0.6, zorder=6))
-                    if placement in ("bottom", "both"):
-                        center_x, center_y, width, height = _apply_skew_geometry(
-                            x + 0.5, boundary - vcr_height / 4, 0.64, vcr_height / 2,
-                            skew, 44, cell_pitch_nm
-                        )
-                        ax.add_patch(Rectangle((center_x - width / 2, center_y - height / 2), width, height,
-                                               facecolor="#f1b24a", edgecolor="#9a4d10", linewidth=0.6, zorder=6))
+                    for x0, y0, x1, y1 in _vcrnub_rects(row, segment, x, 2 * track, vcr_height, cell_pitch_nm):
+                        ax.add_patch(Rectangle((x0, y0), x1 - x0, y1 - y0, zorder=5.2, **nub_style))
 
     if "M0 LO1" in visible:
         for track in sorted(g.lo_tracks):
@@ -1202,6 +1787,15 @@ def draw_base(ax, row: dict[str, str], g: Geometry, visible_layers: set[str] | N
                 y = _m0_track_y(row, track)
                 ax.add_patch(Rectangle((x - 0.24, y - 0.11), 0.48, 0.22, facecolor="white",
                                        edgecolor=color, linewidth=2.0, zorder=9))
+
+    if "V0 dummy" in visible and row.get("DummyViaPattern"):
+        library = global_frame(row, g, g.arr_ogd, g.arr_pgd)
+        per_height = m0_tracks_per_height(row)
+        # The pattern is global (library frame); show the part that lands on the first unit cell.
+        for xg, track in dummy_via_points(row, library["width"], per_height * library["cells"] // 2):
+            x, t = xg - library["x0"], track - per_height * library["B"]
+            if -0.5 <= x <= ogd + 0.5 and 0 <= t <= per_height * g.pgd:
+                _draw_v0_dummy(ax, x, t * 2 / per_height)
 
     misc_names = {name for name, _parts in _misc_segments(row)}
     for layer_name in visible:
@@ -1352,7 +1946,8 @@ def _shift_new_artists(ax, before: set, dx: float, dy: float) -> None:
 
 def render_global_snapshot(row: dict[str, str], out_path: Path, dpi: int = 110,
                            visible_layers: set[str] | None = None, units_ogd: int = 1, units_pgd: int = 1,
-                           coords: str = "both", routing: bool = True, buffer: bool = True) -> None:
+                           coords: str = "both", routing: bool = True, buffer: bool = True,
+                           scale: int = 1, panel: bool = False) -> None:
     """Buffer ring around ``units_ogd x units_pgd`` unit cells (default one).
 
     Unit cells are drawn from the ``*Unit`` fields. ``*Global`` fields use global coordinates (``g``
@@ -1392,7 +1987,8 @@ def render_global_snapshot(row: dict[str, str], out_path: Path, dpi: int = 110,
     add_outside(-0.5, width + 0.5, 0, cells, facecolor=C_BUFFER, edgecolor="none", zorder=0)
 
     # Unit cells: the normal unit-cell renderer, shifted into place.
-    unit_visible = visible - {"Fail paths", "V0 landings", "Grid", "M0 Y grid", "Guide tracks", "M0 LO1", "M0 HI1"}
+    unit_visible = visible - {"Fail paths", "V0 landings", "V0 dummy", "Grid", "M0 Y grid", "Guide tracks", "M0 LO1",
+                              "M0 HI1"}
     for u in range(units_ogd):
         for v in range(units_pgd):
             before = set(ax.get_children())
@@ -1474,26 +2070,26 @@ def render_global_snapshot(row: dict[str, str], out_path: Path, dpi: int = 110,
                                     facecolor=C_TCN, alpha=0.3, edgecolor="none", zorder=2)
     if "VCR" in visible:
         vcr_height = _preview_width_nm(row, "PreviewVcrWidthNm", 12) / cell_pitch_nm
+        # Same axes as the unit fields: X = poly columns (bar) / TCN slots (nub), Y = CRL (cell-height boundary).
         for segment in segments(row.get("VcrPatternGlobal", "")):
             parts = [part.strip() for part in strip_shift(segment).split(",")]
-            xs = expand_axis(parts[0], width - 1) if len(parts) > 1 else []
-            for track in (expand_axis(parts[1], m0_count) if xs else []):
-                y = track * 2 / per_height
-                ax.add_patch(Rectangle((min(xs), y - vcr_height / 2), max(xs) + 1 - min(xs), vcr_height,
-                                       facecolor="#e07a25", edgecolor="#9a4d10", linewidth=0.7, alpha=0.8, zorder=5.1))
+            xs = [x for x in expand_axis(parts[0], width) if -0.5 <= x <= width + 0.5] if len(parts) > 1 else []
+            for track in (expand_axis(parts[1], cells // 2) if xs else []):
+                ax.add_patch(Rectangle((min(xs) - 0.5, 2 * track - vcr_height / 2), max(xs) - min(xs) + 1,
+                                       vcr_height, facecolor=C_VCR, edgecolor=C_VCR_EDGE, linewidth=0.7, alpha=0.8,
+                                       zorder=5.1))
+            nub_rule_violations = vcrnub_rule_issues(row, ("VcrnubPatternGlobal",))
+            nub_style = ({"facecolor": "#ffd6d6", "edgecolor": "#d00000", "linewidth": 1.5}
+                     if nub_rule_violations else
+                     {"facecolor": C_VCRNUB, "edgecolor": C_VCR_EDGE, "linewidth": 0.8})
         for segment in segments(row.get("VcrnubPatternGlobal", "")):
             parts = [part.strip() for part in strip_shift(segment).split(",")]
             if len(parts) < 2:
                 continue
-            placement = parts[2].lower() if len(parts) > 2 else "both"
-            for x in expand_axis(parts[0], width):
-                for track in expand_axis(parts[1], m0_count):
-                    y = track * 2 / per_height
-                    for lo, hi in (((y, y + vcr_height / 2),) if placement == "top" else
-                                   ((y - vcr_height / 2, y),) if placement == "bottom" else
-                                   ((y - vcr_height / 2, y + vcr_height / 2),)):
-                        ax.add_patch(Rectangle((x + 0.18, lo), 0.64, hi - lo, facecolor="#f1b24a",
-                                               edgecolor="#9a4d10", linewidth=0.6, zorder=6.1))
+            for x in (x for x in expand_axis(parts[0], width - 1) if 0 <= x < width):
+                for track in expand_axis(parts[1], cells // 2):
+                    for x0, y0, x1, y1 in _vcrnub_rects(row, segment, x, 2 * track, vcr_height, cell_pitch_nm):
+                        ax.add_patch(Rectangle((x0, y0), x1 - x0, y1 - y0, zorder=6.1, **nub_style))
 
     global_cuts: dict[int, list[float]] = {}
     for segment in segments(row.get("M0CutPatternGlobal", "")):
@@ -1522,9 +2118,11 @@ def render_global_snapshot(row: dict[str, str], out_path: Path, dpi: int = 110,
             continue
         for pos in expand_axis(tokens[1], width - 1 if kind == "vt" else width):
             for track in expand_axis(tokens[2], m0_count):
-                x, y = pos + (0.5 if kind == "vt" else 0.0), track * 2 / per_height
-                ax.scatter([x], [y], marker="D" if kind == "vt" else "s", s=40, color=C_OTHER,
-                           edgecolor="k", linewidth=0.5, zorder=6.1)
+                center_x = pos + (0.5 if kind == "vt" else 0.0)
+                x0, y0, x1, y1 = _vcx_site_rect(row, g, kind, pos, track, center_x,
+                                                track * 2 / per_height, global_scope=True,
+                                                global_width=width, global_cells=cells)
+                add_outside(x0, x1, y0, y1, facecolor=C_OTHER, edgecolor="k", linewidth=0.5, zorder=6.1)
 
     # LO1/HI1 tracks are unit M0 coordinates; shown on the global M0 track of every unit row, routed into the
     # castle where V0 lands on M1 jumpers per LO1Data/HI1Data.
@@ -1562,6 +2160,10 @@ def render_global_snapshot(row: dict[str, str], out_path: Path, dpi: int = 110,
                             coord_label(track, global_track, coords), ha="left" if term["side"] == "L" else "right",
                             va="bottom", fontsize=6.5, color=color, zorder=9)
 
+    if "V0 dummy" in visible:
+        for x, track in dummy_via_points(row, width, m0_count):
+            _draw_v0_dummy(ax, x, track * 2 / per_height)
+
     misc_names: list[str] = []
     for segment in segments(row.get("DrawMiscIDsGlobal", "")):
         parts = [part.strip() for part in strip_shift(segment).split(",")]
@@ -1597,7 +2199,12 @@ def render_global_snapshot(row: dict[str, str], out_path: Path, dpi: int = 110,
     ax.set_yticks([k + 0.5 for k in range(cells)], [coord_label(k - y_origin, k, coords) for k in range(cells)],
                   fontsize=8)
     ax.tick_params(axis="x", labelsize=8)
-    if "M0 lines" in visible:
+    fig._iso_ruler = {"x_unit0": x_origin, "x_glob0": 0, "y_unit0": y_origin, "y_glob0": 0, "m0_unit0": unit_m0,
+                      "m0_glob0": 0, "per_height": per_height, "coords": coords,
+                      "x_max": width, "cells": cells, "m0_max": m0_count}
+    if panel:
+        ax.tick_params(labelbottom=False, labelleft=False)
+    if "M0 lines" in visible and not panel:
         m0_axis = ax.secondary_yaxis("right")
         active = {t + unit_m0 + v * per_height * g.pgd for v in range(units_pgd) for t in g.lo_tracks | g.hi_tracks}
         shown = [t for t in range(m0_count + 1)
@@ -1623,24 +2230,322 @@ def render_global_snapshot(row: dict[str, str], out_path: Path, dpi: int = 110,
         legend.append(Line2D([], [], color=C_LO, ls="--", label="LO1 active track (M0)"))
     if "M0 HI1" in visible:
         legend.append(Line2D([], [], color=C_HI, ls="--", label="HI1 active track (M0)"))
+    if "V0 dummy" in visible and row.get("DummyViaPattern"):
+        legend.append(Line2D([], [], marker="s", ls="", color="white", markeredgecolor=C_V0_DUMMY,
+                             markeredgewidth=1.5, label="V0 dummy (DummyViaPattern)"))
+    if "VCR" in visible and row.get("VcrnubPatternGlobal") and vcrnub_rule_issues(row):
+        legend.append(Patch(facecolor="#ffd6d6", edgecolor="#d00000", linewidth=1.5,
+                            label="VCRNUB rule violation"))
     legend += [Patch(facecolor=tsdr_color(layer.partition(':')[2]), alpha=0.25, hatch="////",
                      edgecolor=tsdr_color(layer.partition(':')[2]), label=f"TSDR region {layer.partition(':')[2]}")
                for layer in visible if layer.startswith("TSDR region:")]
     legend += [Patch(facecolor=tsdr_color(name), alpha=0.3, label=name)
                for name in misc_names]
     legend_ax.legend(handles=legend, loc="upper left", fontsize=8, frameon=False, borderaxespad=0)
-    _save_figure(fig, ax, out_path, dpi, True, row, "global")
+    if panel:
+        fig._iso_legend = (legend_ax, legend)
+    _save_figure(fig, ax, out_path, dpi, True, row, "global", scale)
     plt.close(fig)
+
+
+# ---------------------------------------------------------------------------
+# GDS export (KLayout)
+# ---------------------------------------------------------------------------
+# (name, layer, datatype, colour). Mask layers use the chassis numbers; FTI/TCP/VCR and overlays use 1000+.
+GDS_LAYERS = (
+    ("NDIFF", 1, 0, C_NDIFF), ("POLY", 2, 0, C_POLY), ("TCN", 5, 0, C_TCN), ("PDIFF", 8, 0, C_PDIFF),
+    ("VT", 31, 0, "#7f7f7f"), ("VG", 32, 0, "#4d4d4d"), ("V0", 56, 0, "#ffffff"),
+    ("M0 CLR1", 241, 0, C_M0), ("M0 CLR2", 120, 0, C_M0_ALT), ("TRM", 509, 0, C_TRM),
+    ("FTI", 1001, 0, C_FTI), ("TCP", 1002, 0, C_TCP), ("VCR", 1003, 0, C_VCR), ("VCRNUB", 1004, 0, C_VCRNUB),
+    ("M0 rail (CRL)", 1005, 0, C_RAIL), ("M0 cut", 1006, 0, C_M0_CUT),
+    ("POLY active net", 2, 1, C_POLY_ACTIVE), ("TCN active net", 5, 1, C_TCN_ACTIVE),
+    ("LO1 net / track", 1100, 0, C_LO), ("HI1 net / track", 1101, 0, C_HI), ("M0 jumper net", 1102, 0, C_BRIDGE),
+    ("LO-HI short", 1103, 0, C_SHORT), ("Nominal (before skew)", 1200, 0, "#000000"),
+    ("TSDR region", 1300, 0, C_MISC), ("Misc / TSDR ID box", 1301, 0, "#cc79a7"),
+    ("Unit cell / frame", 1400, 0, "#1f4e79"), ("Buffer region", 1401, 0, "#e3efd3"), ("Other", 1999, 0, "#999999"),
+    *((f"VT {label}", 1500 + index, 0, "#555555") for index, (_id, label, _h) in enumerate(VT_FLAVORS.values())),
+    ("VT flavor != name ID", 1599, 0, "#e00000"),
+)
+_GDS_BY_NAME = {name: (layer, datatype) for name, layer, datatype, _color in GDS_LAYERS}
+_GDS_BY_COLOR = {color.lower(): name for name, _l, _d, color in GDS_LAYERS
+                 if name not in ("VT", "VG", "V0", "Nominal (before skew)", "Unit cell / frame", "Buffer region",
+                                 "Other", "VT flavor != name ID") and not name.startswith("VT ")}
+
+
+def _gds_real8(value: float) -> bytes:
+    """GDSII 8-byte excess-64 base-16 real."""
+    if value == 0:
+        return bytes(8)
+    sign = 0x80 if value < 0 else 0
+    value = abs(value)
+    exponent = 64
+    while value >= 1:
+        value /= 16
+        exponent += 1
+    while value < 1 / 16:
+        value *= 16
+        exponent -= 1
+    mantissa = int(round(value * (1 << 56)))
+    if mantissa >= 1 << 56:
+        mantissa >>= 4
+        exponent += 1
+    return bytes([sign | exponent]) + mantissa.to_bytes(7, "big")
+
+
+def _gds_record(kind: int, dtype: int, payload: bytes = b"") -> bytes:
+    import struct
+
+    if len(payload) % 2:
+        payload += b"\0"
+    return struct.pack(">HBB", 4 + len(payload), kind, dtype) + payload
+
+
+def _figure_shapes(ax, nm_per_unit: tuple[float, float]) -> list[tuple[str, str, list[tuple[float, float]], float]]:
+    """(layer name, 'poly'|'path', points in nm, path width nm) for every drawn shape, classified by colour."""
+    from matplotlib.collections import Collection
+    from matplotlib.colors import to_hex
+
+    to_data = ax.transData.inverted()
+    sx, sy = nm_per_unit
+    shapes = []
+
+    def nm(points) -> list[tuple[float, float]]:
+        return [(float(x) * sx, float(y) * sy) for x, y in points]
+
+    for artist in ax.get_children():
+        if not artist.get_visible():
+            continue
+        if isinstance(artist, Rectangle):
+            corners = to_data.transform(artist.get_transform().transform(artist.get_path().vertices))[:4]
+            face = artist.get_facecolor()
+            face_hex = to_hex(face).lower()
+            edge = to_hex(artist.get_edgecolor()).lower()
+            dashed = artist.get_linestyle() not in ("-", "solid")
+            gid = artist.get_gid() or ""
+            if gid.startswith("VTFLAV:"):
+                flavor = gid.partition(":")[2]
+                name = ("VT flavor != name ID" if flavor == "mismatch" else
+                        f"VT {VT_FLAVORS[flavor][1]}" if flavor in VT_FLAVORS else "Other")
+            elif artist.get_hatch():
+                name = "TSDR region"
+            elif dashed:
+                name = ("Nominal (before skew)" if edge == "#000000" else
+                        "Unit cell / frame" if edge == "#1f4e79" else "Misc / TSDR ID box")
+            elif face[3] == 0:
+                name = _GDS_BY_COLOR.get(edge, "Unit cell / frame")
+            elif face_hex == "#ffffff":
+                name = "V0" if edge in (C_LO, C_HI, C_V0_DUMMY) else ""
+            elif face_hex == "#e3efd3":
+                name = "Buffer region"
+            else:
+                name = _GDS_BY_COLOR.get(face_hex, "Other")
+            if name:
+                shapes.append((name, "poly", nm(corners), 0.0))
+        elif isinstance(artist, Line2D):
+            color = to_hex(artist.get_color()).lower()
+            name = _GDS_BY_COLOR.get(color)
+            points = to_data.transform(artist.get_transform().transform(artist.get_xydata()))
+            if name and len(points) >= 2 and name not in ("Nominal (before skew)",):
+                width_nm = {"M0 CLR1": 15.0, "M0 CLR2": 15.0, "M0 rail (CRL)": 15.0, "M0 cut": 2.0}.get(name, 6.0)
+                shapes.append((name, "path", nm(points), width_nm))
+        elif isinstance(artist, Collection) and artist.get_gid() in ("VG", "VT"):
+            offsets = to_data.transform(artist.get_offset_transform().transform(artist.get_offsets()))
+            half = 7.0
+            for x, y in nm(offsets):
+                shapes.append((artist.get_gid(), "poly",
+                               [(x - half, y - half), (x + half, y - half), (x + half, y + half), (x - half, y + half)],
+                               0.0))
+    return shapes
+
+
+@lru_cache(maxsize=1)
+def _generator_corpus():
+    generator_dir = Path(__file__).resolve().parent / "extracted"
+    if str(generator_dir) not in sys.path:
+        sys.path.insert(0, str(generator_dir))
+    import claude_iso_gds_generator as generator
+
+    training = generator.load_csv(generator_dir / "ISO_Mini_GDS.csv")
+    decoder_rows = {r["LayoutFiles"]: r for r in training if r.get("LayoutFiles")}
+    corpus = generator.load_corpus(generator_dir / "ISO-GDSNamed", decoder_rows.values())
+    layer_map = generator.load_layer_map(generator_dir / "svrf_layer_mapping.csv")
+    return generator, decoder_rows, corpus, layer_map
+
+
+def generator_decoder_row(row: dict[str, str]) -> dict[str, str]:
+    """Buildsheet row -> the generator's decoder row (CELLHEIGHT, DEVWIDTH, MG, patterns from the *Unit fields)."""
+    unit = [[p.strip() for p in strip_shift(s).split(",")] for s in segments(row.get("DiffPatternUnit", ""))]
+    unit = [p for p in unit if len(p) > 3]
+    try:
+        devwidth = str(round(float(unit[0][2]) * 1000)) if unit else ""
+    except ValueError:
+        devwidth = ""
+    flavor = re.sub(r"^[np]", "", unit[0][3].lower()) if unit else ""
+    mos = re.match(r"[A-Z_]+\d{3}-(NP|N|P)", row.get("StructureName", ""))
+    return {
+        "StructureName": row.get("StructureName", ""), "MOS": mos[1] if mos else "",
+        "MG": VT_FLAVORS.get(flavor, ("", flavor.upper(), ""))[1],
+        "CELLHEIGHT": re.sub(r"\D", "", row.get("CellHeight", "")), "DEVWIDTH": devwidth,
+        **{k: row.get(k, "") for k in ("UnitCellSizeOgd", "UnitCellSizePgd", "ArraySizeOgd", "ArraySizePgd")},
+        "FTIPattern": row.get("FTITracksUnit", ""), "PolyPlugs": row.get("PolyPlugsUnit", ""),
+        "TCNPlugs": row.get("TcnPlugsUnit", ""), "VcxPattern": row.get("VcxPatternUnit", ""),
+        "M0CutPattern": row.get("M0CutPatternUnit", ""),
+    }
+
+
+def generator_gds(row: dict[str, str], out_dir: Path) -> tuple[Path, str]:
+    """Full-array GDS (GDS2 text, KLayout-readable) from claude_iso_gds_generator plus a named ``.lyp``."""
+    import contextlib
+    import io as _io
+
+    height = int(re.sub(r"\D", "", row.get("CellHeight", "")) or 0)
+    if height != 132:
+        raise ValueError(f"Generator chassis is CTG132-only; refusing approximate CH{height} GDS. "
+                         "Select 'Preview drawing' or provide a matching chassis.")
+    generator, decoder_rows, corpus, layer_map = _generator_corpus()
+    target = generator_decoder_row(row)
+    chassis, _file = generator._pick_chassis(target, corpus, decoder_rows)
+    with contextlib.redirect_stderr(_io.StringIO()):
+        path = generator.generate_one(target, row, corpus, decoder_rows, layer_map, out_dir)
+    colors = {(1, 0): C_NDIFF, (8, 0): C_PDIFF, (2, 0): C_POLY, (5, 0): C_TCN, (184, 0): C_FTI, (31, 0): "#7f7f7f",
+              (32, 0): "#4d4d4d", (56, 0): C_V0_DUMMY, (4, 0): "#00838f", (120, 0): C_M0_ALT, (241, 0): C_M0,
+              (509, 0): C_TRM}
+    used = sorted({(int(a), int(b)) for a, b in re.findall(r"LAYER (\d+)\s*\n\s*DATATYPE (\d+)", path.read_text())})
+    entries = []
+    for key in used:
+        info = layer_map.get(key)
+        color = colors.get(key, "#9e9e9e")
+        name = f"{info.layer_name if info else 'L'} {key[0]}/{key[1]}"
+        entries.append(f" <properties><frame-color>{color}</frame-color><fill-color>{color}</fill-color>"
+                       f"<dither-pattern>{'I5' if key in colors else 'I1'}</dither-pattern><valid>true</valid>"
+                       f"<visible>{'true' if key in colors else 'false'}</visible><width>1</width>"
+                       f"<name>{name}</name><source>{key[0]}/{key[1]}@1</source></properties>\n")
+    path.with_suffix(".lyp").write_text('<?xml version="1.0" encoding="utf-8"?>\n<layer-properties>\n'
+                                        + "".join(entries) + "</layer-properties>\n", encoding="utf-8")
+    return path, chassis
+
+
+def write_gds(ax, out_path: Path, row: dict[str, str], cell_name: str) -> None:
+    """Write the drawn layout as GDSII (database unit 0.1 nm) plus a KLayout ``.lyp`` with names and colours."""
+    import struct
+    import time
+
+    height_match = re.search(r"\d+", row.get("CellHeight", ""))
+    nm_per_unit = (44.0, int(height_match[0]) / 2 if height_match else 66.0)
+    shapes = _figure_shapes(ax, nm_per_unit)
+    now = time.localtime()[:6]
+    stamp = struct.pack(">12h", *now, *now)
+    name = re.sub(r"[^A-Za-z0-9_$]", "_", cell_name)[:120] or "ISO"
+    data = [_gds_record(0x00, 0x02, struct.pack(">h", 600)), _gds_record(0x01, 0x02, stamp),
+            _gds_record(0x02, 0x06, b"ISO_PREVIEW"), _gds_record(0x03, 0x05, _gds_real8(1e-4) + _gds_real8(1e-10)),
+            _gds_record(0x05, 0x02, stamp), _gds_record(0x06, 0x06, name.encode())]
+    for layer_name, kind, points, width_nm in shapes:
+        layer, datatype = _GDS_BY_NAME[layer_name]
+        xy = [(round(x * 10), round(y * 10)) for x, y in points]
+        if kind == "poly":
+            if len(xy) < 3:
+                continue
+            xy = xy + [xy[0]]
+            head = _gds_record(0x08, 0x00)
+        else:
+            head = _gds_record(0x09, 0x00)
+        body = [head, _gds_record(0x0D, 0x02, struct.pack(">h", layer)),
+                _gds_record(0x0E, 0x02, struct.pack(">h", datatype))]
+        if kind == "path":
+            body.append(_gds_record(0x0F, 0x03, struct.pack(">i", max(1, round(width_nm * 10)))))
+        body += [_gds_record(0x10, 0x03, b"".join(struct.pack(">ii", x, y) for x, y in xy)), _gds_record(0x11, 0x00)]
+        data += body
+    data += [_gds_record(0x07, 0x00), _gds_record(0x04, 0x00)]
+    Path(out_path).write_bytes(b"".join(data))
+
+    used = {layer_name for layer_name, *_rest in shapes}
+    entries = []
+    for layer_name, layer, datatype, color in GDS_LAYERS:
+        if layer_name not in used:
+            continue
+        outline = layer_name in ("Nominal (before skew)", "Misc / TSDR ID box", "Unit cell / frame", "V0",
+                                 "Buffer region")
+        frame = "#000000" if color.lower() == "#ffffff" else color
+        entries.append(
+            "  <properties>\n"
+            f"   <frame-color>{frame}</frame-color><fill-color>{color}</fill-color>\n"
+            "   <frame-brightness>0</frame-brightness><fill-brightness>0</fill-brightness>\n"
+            f"   <dither-pattern>{'I1' if outline else 'I0' if layer_name in ('VG', 'VT', 'FTI') else 'I5'}</dither-pattern>\n"
+            "   <valid>true</valid><visible>true</visible><transparent>false</transparent><width>1</width>\n"
+            "   <marked>false</marked><animation>0</animation>\n"
+            f"   <name>{layer_name} {layer}/{datatype}</name><source>{layer}/{datatype}@1</source>\n"
+            "  </properties>\n")
+    Path(out_path).with_suffix(".lyp").write_text(
+        '<?xml version="1.0" encoding="utf-8"?>\n<layer-properties>\n' + "".join(entries) + "</layer-properties>\n",
+        encoding="utf-8")
 
 
 # ---------------------------------------------------------------------------
 # Driver
 # ---------------------------------------------------------------------------
-def _save_figure(fig, ax, out_path: Path, dpi: int, tight: bool, row: dict[str, str], frame: str) -> None:
-    """Save the PNG plus ``<name>.json``: data (poly pitch x diffusion cell) -> image pixel calibration."""
+def _snap_coordinates(ax) -> tuple[list[float], list[float]]:
+    """Data-unit X/Y of drawn layer edges, M0/LO/HI track centres and via centres (not grids, overlays or labels)."""
+    import numpy as np
+    from matplotlib.collections import Collection
+    from matplotlib.colors import to_hex
+
+    track_colors = {C_M0, C_M0_ALT, C_RAIL, C_LO, C_HI, C_M0_CUT}
+    to_data = ax.transData.inverted()
+    (x_lo, x_hi), (y_lo, y_hi) = sorted(ax.get_xlim()), sorted(ax.get_ylim())
+    chunks = []
+    for artist in ax.get_children():
+        if not artist.get_visible():
+            continue
+        try:
+            if isinstance(artist, Rectangle):
+                gid = artist.get_gid() or ""
+                overlay = (artist.get_hatch() or artist.get_linestyle() not in ("-", "solid")
+                           or gid.startswith("VTFLAV") or (artist.get_facecolor()[3] == 0 and not gid))
+                if overlay:
+                    continue
+                corners = to_data.transform(artist.get_transform().transform(artist.get_path().vertices))
+                chunks.append(corners)
+                chunks.append(((corners.min(axis=0) + corners.max(axis=0)) / 2)[None, :])
+            elif isinstance(artist, Line2D) and to_hex(artist.get_color()).lower() in track_colors:
+                chunks.append(to_data.transform(artist.get_transform().transform(artist.get_xydata())))
+            elif isinstance(artist, Collection) and artist.get_gid() in ("VG", "VT"):
+                chunks.append(to_data.transform(artist.get_offset_transform().transform(artist.get_offsets())))
+        except (ValueError, TypeError, AttributeError):
+            continue
+    if not chunks:
+        return [], []
+    points = np.concatenate([chunk for chunk in chunks if len(chunk)])
+    points = points[np.isfinite(points).all(axis=1)]
+    xs = np.unique(np.round(points[:, 0], 4))
+    ys = np.unique(np.round(points[:, 1], 4))
+    return ([float(x) for x in xs if x_lo <= x <= x_hi], [float(y) for y in ys if y_lo <= y <= y_hi])
+
+
+def _save_figure(fig, ax, out_path: Path, dpi: int, tight: bool, row: dict[str, str], frame: str,
+                 scale: int = 1) -> None:
+    """Save the PNG plus ``<name>.json``: data (poly pitch x diffusion cell) -> image pixel calibration.
+
+    ``scale`` enlarges the figure (not the DPI), so shapes grow while lines and text keep their size.
+    """
     import json
 
+    if Path(out_path).suffix.lower() == ".gds":
+        write_gds(ax, Path(out_path), row, row.get("StructureName", "ISO"))
+        return
     pad = 0.08
+    legend_info = getattr(fig, "_iso_legend", None)
+    if legend_info:
+        legend_ax, handles = legend_info
+        legend_ax.set_visible(False)
+        legend_path = Path(out_path).with_suffix(".legend.png")
+        if handles and not legend_path.exists():
+            legend_fig = plt.figure(figsize=(3.4, 0.24 * len(handles) + 0.3))
+            legend_fig.legend(handles=handles, loc="upper left", fontsize=8, frameon=False, handlelength=1.4)
+            legend_fig.savefig(legend_path, dpi=110, bbox_inches="tight", pad_inches=0.05)
+            plt.close(legend_fig)
+    if scale > 1:
+        width, height = fig.get_size_inches()
+        fig.set_size_inches(width * scale, height * scale)
     fig.set_dpi(dpi)
     fig.canvas.draw()
     renderer = fig.canvas.get_renderer()
@@ -1656,10 +2561,13 @@ def _save_figure(fig, ax, out_path: Path, dpi: int, tight: bool, row: dict[str, 
     ax0, ay1 = to_image(x_limits[0], y_limits[0])
     ax1, ay0 = to_image(x_limits[1], y_limits[1])
     height_match = re.search(r"\d+", row.get("CellHeight", ""))
+    snap_x, snap_y = _snap_coordinates(ax)
     calibration = {
         "origin_px": [ox, oy], "px_per_unit": [ux - ox, oy - vy],
         "nm_per_unit": [44.0, (int(height_match[0]) / 2) if height_match else 66.0],
-        "axes_px": [ax0, ay0, ax1, ay1], "frame": frame,
+        "axes_px": [ax0, ay0, ax1, ay1], "frame": frame, "scale": scale,
+        "snap_x": snap_x, "snap_y": snap_y, "ruler": getattr(fig, "_iso_ruler", None),
+        "xlim": list(x_limits), "ylim": list(y_limits),
     }
     Path(out_path).with_suffix(".json").write_text(json.dumps(calibration), encoding="utf-8")
 
@@ -1675,7 +2583,9 @@ def coord_label(unit_value: int, global_value: int, coords: str) -> str:
 
 def render_snapshot(row: dict[str, str], res: Result, out_path: Path, subtitle: str = "",
                     dpi: int = 140, preview: bool = False,
-                    visible_layers: set[str] | None = None, coords: str = "unit") -> None:
+                    visible_layers: set[str] | None = None, coords: str = "unit", scale: int = 1,
+                    panel: bool = False) -> None:
+    """``panel``: GUI mode - axis labels go to the GUI rulers and the legend to a separate PNG."""
     g = geometry_from_row(row)
     visible = set(layout_layers(row)) if visible_layers is None else visible_layers
     ogd, ncell = g.ogd, g.n_cells
@@ -1701,12 +2611,18 @@ def render_snapshot(row: dict[str, str], res: Result, out_path: Path, subtitle: 
     ax.set_xticks(x_ticks, [coord_label(x, x + dx, coords) for x in x_ticks])
     ax.set_yticks([k + 0.5 for k in range(ncell)])
     ax.set_yticklabels([coord_label(k, k + dy, coords) for k in range(ncell)], fontsize=9)
-    if "VCR" in visible and row.get("VcrPatternUnit"):
+    per_height = m0_tracks_per_height(row)
+    fig._iso_ruler = {"x_unit0": 0, "x_glob0": -dx, "y_unit0": 0, "y_glob0": -dy, "m0_unit0": 0,
+                      "m0_glob0": -dm, "per_height": per_height, "coords": coords,
+                      "x_max": ogd, "cells": ncell, "m0_max": per_height * g.pgd}
+    if panel:
+        ax.tick_params(labelbottom=False, labelleft=False)
+    if "VCR" in visible and row.get("VcrPatternUnit") and not panel:
         vcr_axis = ax.secondary_yaxis("right")
         vcr_axis.set_yticks([2 * track for track in range(g.pgd + 1)],
                            [str(track) for track in range(g.pgd + 1)])
         vcr_axis.tick_params(axis="y", colors="#9a4d10", labelsize=9)
-    if visible & {"M0 lines", "M0 cuts", "M0 Y grid"}:
+    if visible & {"M0 lines", "M0 cuts", "M0 Y grid"} and not panel:
         tracks = _m0_tracks(row, g)
         if tracks:
             m0_axis = ax.secondary_yaxis(1.09 if "VCR" in visible and row.get("VcrPatternUnit") else "right")
@@ -1721,7 +2637,7 @@ def render_snapshot(row: dict[str, str], res: Result, out_path: Path, subtitle: 
                     label.set_fontweight("bold")
     ax.tick_params(axis="x", labelsize=9)
     if "Grid" in visible:
-        ax.grid(True, axis="both", color="#d5d9dc", linewidth=0.55, alpha=0.75)
+        ax.grid(True, axis="both", color="#b8bec4", linewidth=0.6, alpha=0.85)
     else:
         ax.grid(False)
     ax.set_aspect("equal", adjustable="box")
@@ -1731,42 +2647,56 @@ def render_snapshot(row: dict[str, str], res: Result, out_path: Path, subtitle: 
         legend.append(Patch(facecolor=C_NDIFF, label="NDIFF"))
     if "PDIFF" in visible:
         legend.append(Patch(facecolor=C_PDIFF, label="PDIFF"))
+    if "VT flavor" in visible:
+        name_id = name_flavor_id(row.get("StructureName", ""))
+        for flavor in sorted({flavor for _polarity, flavor in diff_flavors(row)}):
+            flavor_id, label, hatch = VT_FLAVORS.get(flavor, ("?", flavor.upper(), "oo"))
+            legend.append(Patch(facecolor="white", hatch=hatch, edgecolor="#555555",
+                                label=f"{label} (flavor ID {flavor_id})"))
+        if flavor_alignment(row):
+            legend.append(Patch(facecolor="none", edgecolor="#e00000", linewidth=1.4,
+                                label=f"VT flavor != name ID {name_id}"))
     if "FTI" in visible:
         legend.append(Patch(facecolor=C_FTI, label="FTI"))
     if "PLY" in visible:
         legend.append(Patch(facecolor=C_POLY, alpha=0.28,
                             label=f"PLY ({_preview_width_nm(row, 'PreviewPlyWidthNm', 12):g} nm)"))
         if g.vg_cols:
-            legend.append(Patch(facecolor="#9e2630", alpha=0.62, label="PLY active (traced net)"))
+            legend.append(Patch(facecolor=C_POLY_ACTIVE, alpha=0.62, label="PLY active (traced net)"))
     if "TCN" in visible:
         legend.append(Patch(facecolor=C_TCN, alpha=0.28,
                             label=f"TCN ({_preview_width_nm(row, 'PreviewTcnWidthNm', 12):g} nm)"))
         if g.vt_cols:
-            legend.append(Patch(facecolor="#174f79", alpha=0.62, label="TCN active (traced net)"))
+            legend.append(Patch(facecolor=C_TCN_ACTIVE, alpha=0.62, label="TCN active (traced net)"))
     if "TCP" in visible and row.get("TCPSkewPatternUnit"):
-        legend.append(Patch(facecolor="#0f8f8c", edgecolor="#0a5c5a", alpha=0.85, label="TCP (TCN-TCN gap)"))
+        legend.append(Patch(facecolor=C_TCP, edgecolor=C_TCP_EDGE, alpha=0.85, label="TCP (TCN-TCN gap)"))
     if "VG" in visible:
         legend.append(Line2D([], [], marker="s", ls="", color=C_OTHER, markeredgecolor="k", label="VG active"))
     if "VT" in visible:
         legend.append(Line2D([], [], marker="D", ls="", color=C_OTHER, markeredgecolor="k", label="VT active"))
     if "VCR" in visible and (row.get("VcrPatternUnit") or row.get("VcrnubPatternUnit")):
-        legend.append(Patch(facecolor="#e07a25", edgecolor="#9a4d10",
+        legend.append(Patch(facecolor=C_VCR, edgecolor=C_VCR_EDGE,
                             label=f"VCR ({_preview_width_nm(row, 'PreviewVcrWidthNm', 12):g} nm)"))
+        if row.get("VcrnubPatternUnit"):
+            legend.append(Patch(facecolor=C_VCRNUB, edgecolor=C_VCR_EDGE, label="VCRNUB"))
+            if vcrnub_rule_issues(row):
+                legend.append(Patch(facecolor="#ffd6d6", edgecolor="#d00000", linewidth=1.5,
+                                    label="VCRNUB rule violation"))
     if "M0 lines" in visible:
         cell_height = re.search(r"\d+", row.get("CellHeight", ""))
         height_nm = int(cell_height[0]) if cell_height else 132
         width_nm = _preview_width_nm(row, "PreviewM0WidthNm", M0_WIDTH_NM.get(height_nm, 15))
-        legend.append(Line2D([], [], color="#3b4650", lw=0.65, label=f"M0 line ({width_nm:g} nm)"))
+        legend.append(Line2D([], [], color=C_M0, lw=0.65, label=f"M0 line ({width_nm:g} nm)"))
         legend.append(Line2D([], [], color=C_RAIL, lw=1.2,
                              label=f"M0 rail / CRL (every {m0_tracks_per_height(row)} tracks, VCR site)"))
     if "M0 Y grid" in visible:
-        legend.append(Line2D([], [], color="#d58a35", lw=0.75, alpha=0.7, label="M0 Y grid"))
+        legend.append(Line2D([], [], color=C_M0_GRID, lw=0.8, ls=(0, (4, 3)), label="M0 Y grid (M0 track centres)"))
     if "M0 LO1" in visible:
         legend.append(Line2D([], [], color=C_LO, ls="--", label="LO1 active track (M0)"))
     if "M0 HI1" in visible:
         legend.append(Line2D([], [], color=C_HI, ls="--", label="HI1 active track (M0)"))
     if "M0 cuts" in visible:
-        legend.append(Line2D([], [], color="white", marker="|", markeredgecolor="#d21f3c",
+        legend.append(Line2D([], [], color="white", marker="|", markeredgecolor=C_M0_CUT,
                              markeredgewidth=1.5, label="M0 cut gap"))
     if "V0 landings" in visible:
         for field, default, color, name in (("LO1Data", "L", C_LO, "LO1"), ("HI1Data", "R", C_HI, "HI1")):
@@ -1775,7 +2705,17 @@ def render_snapshot(row: dict[str, str], res: Result, out_path: Path, subtitle: 
                                  label=f"{name} V0 {term['side']}: {len(term_columns(term, 0))}/{term['jumpers']} "
                                        f"jumpers, every {term['stride']}"))
     if "PXL / TRM" in visible:
-        legend.append(Patch(facecolor="#83cfc4", alpha=0.38, label="TRM / misc"))
+        legend.append(Patch(facecolor=C_TRM, alpha=0.38, label="TRM / misc"))
+    if "V0 dummy" in visible and row.get("DummyViaPattern"):
+        legend.append(Line2D([], [], marker="s", ls="", color="white", markeredgecolor=C_V0_DUMMY,
+                             markeredgewidth=1.5, label="V0 dummy (DummyViaPattern)"))
+    applied = [f"{name} {direction} {variant} {delta:+g} nm"
+               for field, name in (("FTICdMisregSkew", "FTI"), ("TCNCdRegSkew", "TCN"), ("PolyCdSkew", "PLY"),
+                                   ("GLKSkew", "GLK"))
+               for direction, variant, delta in _skew_geometry(row, field)]
+    if applied:
+        legend.append(Patch(facecolor="none", edgecolor="#000000", linestyle=(0, (2, 2)),
+                            label="nominal (before skew)\nskews: " + "\n".join(applied)))
     misc_names = {name for name, _parts in _misc_segments(row)}
     for layer in visible:
         if layer.startswith("Skew target:"):
@@ -1801,7 +2741,9 @@ def render_snapshot(row: dict[str, str], res: Result, out_path: Path, subtitle: 
     if legend:
         legend_ax.legend(handles=legend, loc="upper left", bbox_to_anchor=(0, 1), fontsize=8, frameon=False,
                          handlelength=1.3, borderaxespad=0)
-    _save_figure(fig, ax, out_path, dpi, preview, row, "unit")
+    if panel:
+        fig._iso_legend = (legend_ax, legend)
+    _save_figure(fig, ax, out_path, dpi, preview, row, "unit", scale)
     plt.close(fig)
 
 
@@ -1818,3 +2760,10 @@ def render_snapshots(picked: dict[str, tuple[dict[str, str], Result, str]], out_
         render_snapshot(row, res, path, subtitle)
         written[key] = path
     return written
+
+
+if __name__ == "__main__":
+    # This module is a library; running it directly opens the GUI.
+    from iso_ai_gui import App
+
+    App().mainloop()
