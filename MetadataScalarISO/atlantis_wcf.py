@@ -106,6 +106,14 @@ class AtlantisWcfClient:
     def list_structures(self, project: str, library: str, test_row: str) -> list[dict[str, Any]]:
         return self._call("structures", project, library, test_row)
 
+    def list_templates(self, project: str, library: str, test_row: str) -> list[dict[str, Any]]:
+        """Template definitions used by a test row (name, description, parameter captions and help text)."""
+        return self._call("templates", project, library, test_row)
+
+    def find_rows(self, project: str, fragment: str) -> list[dict[str, Any]]:
+        """Test rows in every library of ``project`` whose name contains ``fragment`` (case-insensitive)."""
+        return self._call("find-rows", project, fragment)
+
     def fetch_structures(self, project: str, library: str, test_row: str,
                          structure_names: list[str]) -> tuple[list[str], list[dict[str, str]]]:
         raw = self._call("parameters", project, library, test_row,

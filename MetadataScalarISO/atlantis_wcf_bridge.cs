@@ -4,6 +4,7 @@ using System.Globalization;
 using System.Linq;
 using System.Net;
 using System.ServiceModel;
+using System.Text;
 using System.Text.RegularExpressions;
 using System.Web.Script.Serialization;
 using Atlantis;
@@ -255,6 +256,83 @@ internal static class AtlantisWcfBridge
         finally { Close(catalog as IClientChannel, factory); }
     }
 
+    private static object Templates(string project, string library, string testRow)
+    {
+        var factory = Factory<IStreamingMessageDataService>(6000, "StreamingMessageDataService");
+        IStreamingMessageDataService service = null;
+        try
+        {
+            service = factory.CreateChannel();
+            var summary = service.GetTestRowSummary(new TestRowQueryKey
+            {
+                TestRowName = testRow,
+                Library = library,
+                Database = project,
+                Editable = (TestRowEditMode)Enum.Parse(typeof(TestRowEditMode), "ReadOnly")
+            });
+            if (summary == null)
+                throw new ArgumentException("Test row not found: " + testRow);
+            var result = new List<Dictionary<string, object>>();
+            foreach (Template template in service.GetOrderedTemplates(new TestRowComponentsQueryKey { trID = summary.TestRowID }))
+            {
+                var info = template.tSum;
+                result.Add(new Dictionary<string, object>
+                {
+                    { "TemplateName", info == null ? "" : info.TemplateName },
+                    { "CellName", info == null ? "" : info.CellName },
+                    { "Category", info == null ? "" : info.Category },
+                    { "Description", info == null ? "" : info.Description },
+                    { "TerminalNames", info == null ? "" : info.TerminalNames },
+                    { "Url", info == null ? "" : info.Url },
+                    { "Parameters", (template.Parameters ?? new List<TemplateParameter>()).Select(p => new Dictionary<string, object>
+                        {
+                            { "Name", p.ParameterName }, { "Caption", p.ParameterCaption }, { "Type", p.ParameterType },
+                            { "Default", p.ParameterValue }, { "Help", p.HelpText }
+                        }).ToArray() }
+                });
+            }
+            return result;
+        }
+        finally { Close(service as IClientChannel, factory); }
+    }
+
+    private static object FindRows(string project, string fragment)
+    {
+        // Case-insensitive; words in order with anything between ("diffchn 04" -> .*diffchn.*04.*).
+        var pattern = new StringBuilder(".*");
+        foreach (char c in fragment.Trim())
+        {
+            if (Char.IsLetter(c))
+                pattern.Append('[').Append(Char.ToLowerInvariant(c)).Append(Char.ToUpperInvariant(c)).Append(']');
+            else if (Char.IsWhiteSpace(c) || c == '_' || c == '-')
+                pattern.Append(".*");
+            else
+                pattern.Append(Regex.Escape(c.ToString()));
+        }
+        pattern.Append(".*");
+        var factory = Factory<ICatalogService>(6300, "CatalogService");
+        ICatalogService catalog = null;
+        try
+        {
+            catalog = factory.CreateChannel();
+            var rows = new Dictionary<string, Dictionary<string, object>>(StringComparer.OrdinalIgnoreCase);
+            foreach (TestRowSummary item in catalog.GetTestRowInfo(Query(project, pattern.ToString(), ".*")))
+            {
+                if (String.IsNullOrWhiteSpace(item.TestRowName) || String.IsNullOrWhiteSpace(item.Library))
+                    continue;
+                rows[item.Library + "\0" + item.TestRowName] = new Dictionary<string, object>
+                {
+                    { "TestRowName", item.TestRowName },
+                    { "Library", item.Library },
+                    { "Description", item.Description },
+                    { "Owner", item.Owner }
+                };
+            }
+            return rows.Values.OrderBy(r => r["Library"]).ThenBy(r => r["TestRowName"]).ToArray();
+        }
+        finally { Close(catalog as IClientChannel, factory); }
+    }
+
     private static void Main(string[] args)
     {
         try
@@ -268,6 +346,8 @@ internal static class AtlantisWcfBridge
                 case "library-structures": result = LibraryStructures(args[1], args[2]); break;
                 case "structures": result = Structures(args[1], args[2], args[3]); break;
                 case "parameters": result = Parameters(args[1], args[2], args[3], args[4]); break;
+                case "templates": result = Templates(args[1], args[2], args[3]); break;
+                case "find-rows": result = FindRows(args[1], args[2]); break;
                 default: throw new ArgumentException("Unknown Atlantis operation.");
             }
             Console.WriteLine(Json.Serialize(result));

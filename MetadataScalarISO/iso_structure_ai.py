@@ -946,7 +946,9 @@ class StructureDesigner:
         return design
 
     def open_library_row(self, source_row: dict[str, str]) -> Design:
-        row = dict(source_row)
+        from template_layouts import normalize_row
+
+        row = normalize_row(source_row)
         reference = Reference.from_row(row, "81Z library")
         flavor = next((name for name, letter in FLAVOR_LETTER.items() if letter == reference.flavor), None)
         spec = Spec(
@@ -1074,6 +1076,43 @@ class StructureDesigner:
             return None
         generic_geometry = design.result.family not in OVERLAYS and has_generic_layout_geometry(design.row)
         template_area = template_active_area_size(design.row) if design.result.family not in OVERLAYS else None
+        from template_layouts import TEMPLATE_LAYERS, TEMPLATE_LAYERS_OFF, render_template, template_kind
+        kind = template_kind(design.row)
+        if kind and fmt == "png":
+            LAYOUT_DIR.mkdir(exist_ok=True)
+            layers = TEMPLATE_LAYERS[kind]
+            visible = (set(layers) - TEMPLATE_LAYERS_OFF if visible_layers is None
+                       else set(visible_layers) & set(layers))
+            mask = "".join("1" if layer in visible else "0" for layer in layers)
+            path = LAYOUT_DIR / (f"{design.id}_v{design.version}_{kind.lower()}_{dpi}_l{mask}"
+                                 f"{f'_s{scale}' if scale > 1 else ''}{'_p' if panel else ''}.png")
+            try:
+                with self._render_lock:
+                    if not path.exists():
+                        render_template(design.row, path, visible, dpi=dpi, scale=scale, panel=panel)
+                return path
+            except Exception as exc:  # keep the design usable
+                design.warnings.append(f"{kind} layout rendering failed: {exc}")
+                return None
+        if design.result.family not in OVERLAYS and not generic_geometry:
+            from pft_layout import PFT_LAYERS, PFT_LAYERS_OFF, is_pft_row, pft_gds, render_pft
+            if is_pft_row(design.row):
+                LAYOUT_DIR.mkdir(exist_ok=True)
+                visible = (set(PFT_LAYERS) - PFT_LAYERS_OFF if visible_layers is None
+                           else set(visible_layers) & set(PFT_LAYERS))
+                mask = "".join("1" if layer in visible else "0" for layer in PFT_LAYERS)
+                try:
+                    with self._render_lock:
+                        gds = pft_gds(design.row, LAYOUT_DIR / "gds")
+                        if fmt == "gds":
+                            return gds
+                        path = LAYOUT_DIR / (f"{design.id}_v{design.version}_pft_{dpi}_w4_l{mask}"
+                                             f"{f'_s{scale}' if scale > 1 else ''}{'_p' if panel else ''}.png")
+                        if not path.exists():
+                            render_pft(design.row, gds, path, visible, dpi=dpi, scale=scale, panel=panel)
+                    return path
+                except Exception as exc:  # fall back to the template outline; keep the design usable
+                    design.warnings.append(f"XTRPFX layout generation failed: {exc}")
         if design.result.family not in OVERLAYS and not generic_geometry and not template_area:
             return None
         LAYOUT_DIR.mkdir(exist_ok=True)
@@ -1097,7 +1136,7 @@ class StructureDesigner:
             suffix += f"_s{scale}"
         if panel:
             suffix += "_p"
-        path = LAYOUT_DIR / f"{design.id}_v{design.version}_{dpi}_r4_l{layer_mask}{suffix}.{fmt}"
+        path = LAYOUT_DIR / f"{design.id}_v{design.version}_{dpi}_r7_l{layer_mask}{suffix}.{fmt}"
         with self._render_lock:
             if not path.exists():
                 try:

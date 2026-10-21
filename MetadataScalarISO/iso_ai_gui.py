@@ -22,7 +22,9 @@ from PIL import Image, ImageTk
 
 from iso_structure_ai import (FLAVOR_LETTER, STOPWORDS, Design, StructureDesigner, _name_type,
                               has_generic_layout_geometry, parse_prompt, template_active_area_size)
-from ScalarCalculation import (FAMILY_PREFIXES, expand_axis, family_of, geometry_from_row, int_list,
+from pft_layout import PFT_LAYERS, PFT_LAYERS_OFF, is_pft_row
+from template_layouts import TEMPLATE_LAYERS, TEMPLATE_LAYERS_OFF, TEMPLATE_TITLES, template_kind
+from ScalarCalculation import (FAMILY_PREFIXES, expand_axis, family_of, geometry_from_row, int_list, is_miller_row,
                                m0_tracks_per_height, mos_of, segments, strip_shift)
 
 LAYERS = (
@@ -70,6 +72,11 @@ TSDR_HINT = (
     "  global vcr 0:r0,6   global vcrnub 3,6,top   global id DBI_mask,drawing,4:r4,3:r3\n"
     "  unit fti 3/6,2:3   (same layer words, appended to the *Unit field)\n"
     "Any field:  set FIELD = value   |   append FIELD += segment\n"
+    "Remove shapes at a location (edits the *Unit pattern; right-click a shape for the command):\n"
+    "  remove fti at ply 4 diff 3      drop vg at ply 2 m0 5      delete vt at slot 3 m0 7\n"
+    "  remove m0 cut at ply 4.5 m0 8   remove tcn plug at slot 3 boundary 4   remove poly plug at ply 2 boundary 3\n"
+    "  remove vcr at ply 0:5 vcr 1     remove vcrnub at slot 3 vcr 2   remove tcp at slot 3 boundary 4\n"
+    "  positions accept ranges (ply 2:6, m0 3/5); omit an axis to remove along all of it\n"
     "Repetition (keep / skip / repeat, track numbers as in the buildsheet, 0-based):\n"
     "  tcn plug starting from 4th track, keep for 3 more, skip 1, repeat     -> TcnPlugsUnit += 4:7/9:12/...,<plugs>\n"
     "  global poly plug start 0 keep 2 skip 2 repeat y: 2/4\n"
@@ -179,6 +186,142 @@ def _pattern_request(clause: str, row: dict[str, str], changes: dict[str, str]) 
     return f"{field} {'=' if replace else '+='} {segment}  ({described})"
 
 
+def _encode_axis(values) -> str:
+    """Sorted positions -> compact buildsheet axis (``a:b``, ``a:b[s]``, ``a/b``)."""
+    vals = sorted(set(values))
+    parts, i = [], 0
+    while i < len(vals):
+        j = i
+        step = vals[i + 1] - vals[i] if i + 1 < len(vals) else 0
+        while step and j + 1 < len(vals) and vals[j + 1] - vals[j] == step:
+            j += 1
+        if j > i and (step == 1 or j - i >= 2):
+            parts.append(f"{vals[i]}:{vals[j]}" + (f"[{step - 1}]" if step > 1 else ""))
+            i = j + 1
+        else:
+            parts.append(str(vals[i]))
+            i += 1
+    return "/".join(parts)
+
+
+# layer words -> (field, Vcx kind, X axis, Y axis, Y takes all remaining comma parts)
+REMOVE_LAYERS = (
+    (r"m0\s*cuts?", "M0CutPatternUnit", "", "half", "m0", True),
+    (r"(?:poly|ply|gate)\s*plugs?", "PolyPlugsUnit", "", "poly", "boundary", True),
+    (r"tcn\s*plugs?", "TcnPlugsUnit", "", "poly", "boundary", True),
+    (r"vcrnubs?", "VcrnubPatternUnit", "", "slot", "vcr", False),
+    (r"vcrs?", "VcrPatternUnit", "", "poly", "vcr", False),
+    (r"tcps?", "TCPSkewPatternUnit", "", "slot", "boundary", False),
+    (r"ftis?", "FTITracksUnit", "", "poly", "cell", False),
+    (r"vgs?", "VcxPatternUnit", "vg", "poly", "m0", False),
+    (r"vts?", "VcxPatternUnit", "vt", "slot", "m0", False),
+)
+_REMOVE_RE = re.compile(r"^\s*(?:remove|drop|delete|del|erase|take\s+out)\s+(?:the\s+|a\s+|an\s+)?(?P<layer>"
+                        + "|".join(pattern for pattern, *_rest in REMOVE_LAYERS) + r")\b(?P<rest>.*)$",
+                        re.IGNORECASE)
+_AXIS_VALUE = r"([\dr][\dr.:\[\]/]*)"
+_X_WORDS = re.compile(r"\b(?:ply|poly|pc|gate|col(?:umn)?|x|tcn\s*slot|slot|tcn)\s*(?:track\s*)?[:=#]?\s*" + _AXIS_VALUE,
+                      re.IGNORECASE)
+_Y_WORDS = re.compile(r"\b(?:diff(?:usion)?|cell|row|y|m0|metal\s*0|track|boundary|bnd|plug|vcr|crl)"
+                      r"\s*(?:track\s*)?[:=#]?\s*" + _AXIS_VALUE, re.IGNORECASE)
+
+
+def _remove_request(clause: str, row: dict[str, str], changes: dict[str, str]) -> str | None:
+    """'remove fti at ply 4 diff 3', 'drop vg at ply 2 m0 5', 'remove m0 cut at ply 4.5 m0 8',
+    'remove tcn plug at slot 3 boundary 4': delete those positions from the *Unit buildsheet pattern."""
+    match = _REMOVE_RE.match(clause)
+    if not match:
+        return None
+    rest = match["rest"]
+    x_match = _X_WORDS.search(rest)
+    y_match = _Y_WORDS.search(rest[:x_match.start()] + " " * len(x_match[0]) + rest[x_match.end():]
+                              if x_match else rest)
+    if not x_match and not y_match:
+        return None  # e.g. 'remove fti' = reset the FTI skew
+    layer_word = match["layer"].lower()
+    _p, field, kind, x_axis, y_axis, y_rest = next(item for item in REMOVE_LAYERS
+                                                   if re.fullmatch(item[0], layer_word))
+    merged = {**row, **changes}
+    if field not in merged:
+        raise ValueError(f"{field} is not a buildsheet column.")
+    g = geometry_from_row(merged)
+    ogd, ncell = g.ogd, g.n_cells
+    n_tracks = m0_tracks_per_height(merged) * g.pgd
+    x_extent = {"poly": ogd, "slot": ogd - 1, "half": 2 * ogd}[x_axis]
+    y_extent = {"m0": n_tracks, "cell": ncell, "boundary": ncell, "vcr": g.pgd}[y_axis]
+
+    def targets(spec: str, extent: int, half: bool = False) -> set[int]:
+        if half:
+            if re.fullmatch(r"\d+(?:\.5)?", spec):
+                return {round(2 * float(spec))}
+            return {2 * v for v in expand_axis(spec, extent // 2)}
+        values = set(expand_axis(spec, extent))
+        if not values:
+            raise ValueError(f"Cannot read position '{spec}'.")
+        return values
+
+    want_x = targets(x_match[1], x_extent, x_axis == "half") if x_match else None
+    want_y = targets(y_match[1], y_extent) if y_match else None
+    wrap = ogd if x_axis == "poly" and ogd else 0
+
+    def x_hit(x: int) -> bool:
+        return want_x is None or x in want_x or bool(wrap and any(x % wrap == t % wrap for t in want_x))
+
+    def y_hit(y: int) -> bool:
+        return want_y is None or y in want_y
+
+    removed = 0
+    out: list[str] = []
+    for segment in (merged.get(field, "") or "").split(";"):
+        if not segment.strip():
+            continue
+        base, sep, marker = segment.partition("|")
+        tag = re.search(r"\?[A-Za-z]\w*", base)
+        parts = [p.strip() for p in re.sub(r"\?[A-Za-z]\w*", "", base).split(",")]
+        head = parts[:1] if kind else []
+        if (kind and parts[0].lower() != kind) or len(parts) < len(head) + 2:
+            out.append(segment)
+            continue
+        x_text = parts[len(head)]
+        y_parts = parts[len(head) + 1:] if y_rest else parts[len(head) + 1:len(head) + 2]
+        tail = [] if y_rest else parts[len(head) + 2:]
+        y_text = "/".join(y_parts)
+        xs = expand_axis(x_text, x_extent)
+        hit_x = [x for x in xs if x_hit(x)]
+        fragments = [(frag, re.search(r"-[A-Za-z]+$", frag.strip()), expand_axis(frag, y_extent))
+                     for frag in y_text.split("/") if frag.strip()]
+        hit_y = [y for _f, _m, values in fragments for y in values if y_hit(y)]
+        if not hit_x or not hit_y:
+            out.append(segment)
+            continue
+        removed += len(set(hit_x)) * len(set(hit_y))
+        suffix = sep + marker if sep else ""
+
+        def build(x_spec: str, y_spec: str) -> str:
+            return ",".join([*head, x_spec, y_spec + (tag[0] if tag else ""), *tail]) + suffix
+
+        kept_x = [x for x in xs if x not in hit_x]
+        if kept_x:
+            out.append(build(_encode_axis(kept_x), y_text))
+        kept_frags = []
+        for frag, modifier, values in fragments:
+            remaining = [y for y in values if not y_hit(y)]
+            if remaining == values:
+                kept_frags.append(frag.strip())
+            elif remaining and modifier:
+                kept_frags.extend(f"{y}{modifier[0]}" for y in remaining)
+            elif remaining:
+                kept_frags.append(_encode_axis(remaining))
+        if kept_frags:
+            out.append(build(_encode_axis(sorted(set(hit_x))), "/".join(kept_frags)))
+    if not removed:
+        where = " ".join(m[0] for m in (x_match, y_match) if m)
+        raise ValueError(f"No {layer_word.upper()} at {where} in {field}.")
+    changes[field] = ";".join(out) + (";" if out else "")
+    where = " ".join(m[0].strip() for m in (x_match, y_match) if m)
+    return f"removed {removed} {layer_word.upper()} position(s) at {where} from {field}"
+
+
 def set_name_flavor(name: str, flavor_id: str) -> str:
     """Replace the flavor ID token (3rd dash field) of a structure name."""
     return re.sub(r"^([A-Z_]+\d{3}-[A-Z0-9]+-)([A-Z]+)(-)", rf"\g<1>{flavor_id}\g<3>", name, count=1)
@@ -226,6 +369,9 @@ def _flavor_edit(polarity: str | None, flavor: str, row: dict[str, str], changes
 def _structure_edit(clause: str, row: dict[str, str], changes: dict[str, str]) -> str | None:
     """Buffer/array/terminal/pattern/field edits; returns a note, or None when the clause is not one."""
     words = clause.lower()
+    note = _remove_request(clause, row, changes)
+    if note:
+        return note
     if re.search(r"\b(keep|skip|repeat\w*|repetition)\b", words):
         return _pattern_request(clause, row, changes)
 
@@ -672,10 +818,13 @@ def tsdr_suggest(text: str, row: dict[str, str] | None) -> str:
                 if issues:
                     return "Blocked: " + "; ".join(issues)
             issues = design_rule_issues(edited, tuple(_changes))
+            from tsdr_rules import review_rules
+
+            coverage = review_rules(edited, tuple(_changes))
             notes = [*notes, *buildsheet_review_notes(edited, tuple(_changes))]
             if issues:
                 return "Enter to apply:  " + ";  ".join(notes) + "   |   Rule review: " + "; ".join(issues[:2])
-            return "Enter to apply:  " + ";  ".join(notes)
+            return "Enter to apply:  " + ";  ".join(notes) + "   |   " + coverage.plain_summary
         except ValueError:
             pass
     first = words.split()[0]
@@ -700,6 +849,10 @@ def tsdr_suggest(text: str, row: dict[str, str] | None) -> str:
         return f"{first[:2]} 6;14   (unit M0 track numbers for {first[:2].upper()}1ActiveTracks)"
     if first in ("reset", "clear", "nominal"):
         return "reset fti | tcn | poly | glk | pxl | vcr | vcrnub | tcp"
+    if first in ("remove", "drop", "delete", "del", "erase"):
+        return ("remove fti at ply 4 diff 3  |  remove vg at ply 2 m0 5  |  remove vt at slot 3 m0 7  |  "
+                "remove m0 cut at ply 4.5 m0 8  |  remove tcn plug at slot 3 boundary 4   "
+                "(no position: 'remove fti' resets the FTI skew)")
     if first in ("id", "add", "draw"):
         return "id <layer> <name> x 0:50 y 2:5     e.g. id tcn TSDRActiveL x 0:50 y 2:5"
     if first in ("global", "unit"):
@@ -756,6 +909,24 @@ def _normalize(text: str) -> str:
     return re.sub(r"[^a-z0-9]+", "", text.casefold())
 
 
+def _match_rank(query: str, text: str) -> int | None:
+    """0 = contains the query, 1 = contains every word of it (any order), 2 = its characters appear in order
+    (e.g. 'iso 81z' -> isox81z_x81_lay); None = no match."""
+    words = re.findall(r"[a-z0-9]+", query.casefold())
+    target = _normalize(text)
+    joined = "".join(words)
+    if not joined or joined in target:
+        return 0
+    if all(word in target for word in words):
+        return 1
+    position = 0
+    for char in joined:
+        position = target.find(char, position) + 1
+        if not position:
+            return None
+    return 2
+
+
 def _atlantis_row_matcher(query: str):
     """Apply simple word matching while anchoring family/height/direction to row identity."""
     words = [word for word in re.findall(r"[a-z0-9]+", query.casefold())
@@ -782,6 +953,11 @@ def _atlantis_row_matcher(query: str):
         return lambda _item: True
 
     def match(item: dict) -> bool:
+        if any(_match_rank(query, str(item.get(key) or "")) in (0, 1) for key in ("TestRowName", "Library")):
+            return True
+        if normalized_query and any(normalized_query in _normalize(str(value)) for key, value in item.items()
+                                    if key != "BatchResult" and value not in (None, "")):
+            return True
         identity = [_normalize(str(item.get(key) or "")) for key in identity_keys]
         if any(not any(alias in value for alias in alternatives for value in identity)
                for alternatives in identity_terms):
@@ -865,6 +1041,156 @@ class _Tooltip:
         if self.window:
             self.window.destroy()
             self.window = None
+
+
+ALL_OPEN_ROWS = "All open test rows"
+
+
+class _HeaderFilter:
+    """Excel-style filters on a ttk.Treeview: click a column header to tick values, search them, sort or clear."""
+
+    BLANK = "(blank)"
+
+    def __init__(self, tree: ttk.Treeview, labels: dict[str, str], rows, on_change) -> None:
+        self.tree, self.labels, self.rows, self.on_change = tree, labels, rows, on_change
+        self.selected: dict[str, set[str]] = {}
+        self.sort: tuple[str, bool] | None = None
+        self.popup: tk.Toplevel | None = None
+        tree.bind("<Button-1>", self._clicked, add="+")
+        self._headings()
+
+    def accepts(self, values: dict[str, str], skip: str | None = None) -> bool:
+        return all((values.get(key) or self.BLANK) in chosen for key, chosen in self.selected.items() if key != skip)
+
+    def order(self, items: list[tuple[str, dict[str, str]]]) -> list[tuple[str, dict[str, str]]]:
+        if not self.sort:
+            return items
+        key, reverse = self.sort
+        return sorted(items, key=lambda item: str(item[1].get(key) or "").casefold(), reverse=reverse)
+
+    def clear(self) -> None:
+        self.selected.clear()
+        self.sort = None
+        self._headings()
+        self.on_change()
+
+    def summary(self) -> str:
+        return ", ".join(f"{self.labels[key]} ({len(values)})" for key, values in self.selected.items())
+
+    def _headings(self) -> None:
+        for key, label in self.labels.items():
+            mark = " \u25bc" if key in self.selected else " \u25be"
+            if self.sort and self.sort[0] == key:
+                mark += " \u2193" if self.sort[1] else " \u2191"
+            self.tree.heading(key, text=label + mark)
+
+    def _clicked(self, event):
+        if self.tree.identify_region(event.x, event.y) != "heading":
+            return None
+        column = self.tree.identify_column(event.x)
+        shown = self.tree["displaycolumns"]
+        columns = self.tree["columns"] if not shown or shown[0] == "#all" else shown
+        try:
+            key = columns[int(column.lstrip("#")) - 1]
+        except (ValueError, IndexError):
+            return None
+        if key in self.labels:
+            self._open(key, event.x_root, event.y_root)
+            return "break"
+        return None
+
+    def _open(self, key: str, x: int, y: int) -> None:
+        if self.popup is not None and self.popup.winfo_exists():
+            self.popup.destroy()
+        counts: dict[str, int] = {}
+        for _iid, values in self.rows():
+            if self.accepts(values, skip=key):
+                value = values.get(key) or self.BLANK
+                counts[value] = counts.get(value, 0) + 1
+        options = sorted(counts, key=str.casefold)
+        chosen = set(self.selected.get(key, options))
+        popup = self.popup = tk.Toplevel(self.tree)
+        popup.title(f"Filter: {self.labels[key]}")
+        popup.transient(self.tree.winfo_toplevel())
+        popup.geometry(f"+{x}+{y + 8}")
+        frame = ttk.Frame(popup, padding=6)
+        frame.pack(fill="both", expand=True)
+        sort_bar = ttk.Frame(frame)
+        sort_bar.pack(fill="x")
+
+        def sort(reverse: bool) -> None:
+            self.sort = (key, reverse)
+            self._headings()
+            popup.destroy()
+            self.on_change()
+
+        ttk.Button(sort_bar, text="Sort A \u2192 Z", command=lambda: sort(False)).pack(side="left")
+        ttk.Button(sort_bar, text="Sort Z \u2192 A", command=lambda: sort(True)).pack(side="left", padx=(4, 0))
+        search = tk.StringVar()
+        ttk.Entry(frame, textvariable=search).pack(fill="x", pady=(6, 4))
+        all_var = tk.BooleanVar(value=len(chosen) == len(options))
+        box = ttk.Frame(frame)
+        box.pack(fill="both", expand=True)
+        listbox = tk.Listbox(box, selectmode="multiple", exportselection=False, height=14, width=46,
+                             activestyle="none", font=("Segoe UI", 9))
+        scroll = ttk.Scrollbar(box, orient="vertical", command=listbox.yview)
+        listbox.configure(yscrollcommand=scroll.set)
+        listbox.pack(side="left", fill="both", expand=True)
+        scroll.pack(side="right", fill="y")
+        shown: list[str] = []
+
+        def remember() -> None:
+            picked = {shown[index] for index in listbox.curselection()}
+            chosen.difference_update(set(shown) - picked)
+            chosen.update(picked)
+
+        def fill(*_args) -> None:
+            text = search.get().strip().casefold()
+            shown[:] = [value for value in options if text in value.casefold()]
+            listbox.delete(0, "end")
+            for index, value in enumerate(shown):
+                listbox.insert("end", f"{value}   ({counts[value]})")
+                if value in chosen:
+                    listbox.selection_set(index)
+
+        def toggle_all() -> None:
+            if all_var.get():
+                chosen.update(shown)
+            else:
+                chosen.difference_update(shown)
+            fill()
+
+        def apply() -> None:
+            remember()
+            if chosen >= set(options):
+                self.selected.pop(key, None)
+            else:
+                self.selected[key] = set(chosen)
+            self._headings()
+            popup.destroy()
+            self.on_change()
+
+        def clear() -> None:
+            self.selected.pop(key, None)
+            self._headings()
+            popup.destroy()
+            self.on_change()
+
+        listbox.bind("<<ListboxSelect>>", lambda _e: remember())
+        search.trace_add("write", fill)
+        ttk.Checkbutton(frame, text="(Select all shown)", variable=all_var, command=toggle_all).pack(
+            anchor="w", before=box)
+        buttons = ttk.Frame(frame)
+        buttons.pack(fill="x", pady=(6, 0))
+        ttk.Button(buttons, text="OK", command=apply).pack(side="right")
+        ttk.Button(buttons, text="Cancel", command=popup.destroy).pack(side="right", padx=(0, 4))
+        ttk.Button(buttons, text="Clear filter", command=clear).pack(side="left")
+        popup.bind("<Return>", lambda _e: apply())
+        popup.bind("<Escape>", lambda _e: popup.destroy())
+        fill()
+        popup.focus_set()
+
+
 class App(tk.Tk):
     def __init__(self) -> None:
         super().__init__()
@@ -885,14 +1211,14 @@ class App(tk.Tk):
         except tk.TclError:
             pass
         self.designer: StructureDesigner | None = None
-        self.csv_designer: StructureDesigner | None = None
+        self.schema_designer: StructureDesigner | None = None
         self.atlantis_designer: StructureDesigner | None = None
         self.atlantis_client = None
         self.atlantis_window: ttk.Frame | None = None
         self.atlantis_choice: tuple[str, str] = ("", "")
         self.atlantis_results: "queue.Queue[tuple]" = queue.Queue()
         self.atlantis_tokens: dict[str, int] = {}
-        self.library_source = "CSV"
+        self.library_source = "Atlantis"
         self.design: Design | None = None
         self.baseline: Design | None = None
         self.edit_field = tk.StringVar()
@@ -909,9 +1235,8 @@ class App(tk.Tk):
         self.zoom_scale = 1.0
         self.tsdr_var = tk.StringVar(value="Off")
         self.query_var = tk.StringVar()
-        self.family_var = tk.StringVar(value="All families")
-        self.testrow_var = tk.StringVar(value="All test rows")
-        self.library_source_var = tk.StringVar(value="Source: CSV")
+        self.testrow_var = tk.StringVar(value=ALL_OPEN_ROWS)
+        self.library_source_var = tk.StringVar(value="Source: Atlantis (open a test row)")
         self.layer_vars: dict[str, tk.BooleanVar] = {}
         self.layer_buttons: list[ttk.Checkbutton] = []
         self.library_iids: dict[str, dict[str, str]] = {}
@@ -929,8 +1254,8 @@ class App(tk.Tk):
         self.search_visible = True
         self.trm_forced = False
         self._build()
-        self._run(lambda: StructureDesigner(use_llm=False), self._loaded, "Loading 81Z structure library...")
         self._poll_after = self.after(100, self._poll)
+        self.after(150, self._load_atlantis)
         self.protocol("WM_DELETE_WINDOW", self._close)
 
     # -- layout --------------------------------------------------------------
@@ -946,22 +1271,19 @@ class App(tk.Tk):
         filters = ttk.Frame(top)
         filters.pack(side="left", fill="x", expand=True)
         self.search_filters = filters
-        ttk.Label(filters, text="Search row / structure").pack(side="left", padx=(0, 6))
+        ttk.Label(filters, text="Search structure").pack(side="left", padx=(0, 6))
         self.query_entry = ttk.Entry(filters, textvariable=self.query_var, width=36)
         self.query_entry.pack(side="left")
         self.query_entry.bind("<Return>", self._filter_library)
-        self.family_filter = ttk.Combobox(
-            filters, textvariable=self.family_var, state="readonly",
-            values=("All families", *FAMILY_PREFIXES, "VIA_CHAIN", "Other / unmodeled"), width=20,
-        )
-        self.family_filter.pack(side="left", padx=(6, 0))
-        self.family_filter.bind("<<ComboboxSelected>>", self._filter_library)
+        ttk.Label(filters, text="Test row").pack(side="left", padx=(12, 4))
         self.testrow_filter = ttk.Combobox(
-            filters, textvariable=self.testrow_var, state="readonly", values=("All test rows",), width=24,
+            filters, textvariable=self.testrow_var, state="readonly", values=(ALL_OPEN_ROWS,), width=28,
         )
-        self.testrow_filter.pack(side="left", padx=(6, 0))
-        self.testrow_filter.bind("<<ComboboxSelected>>", self._filter_library)
-        self.result_count = tk.StringVar(value="Loading library...")
+        self.testrow_filter.pack(side="left")
+        self.testrow_filter.bind("<<ComboboxSelected>>", self._switch_test_row)
+        _Tooltip(self.testrow_filter, "Switch between the open test rows (select several rows in Atlantis lookup\n"
+                                      "and press Open to batch-open them).")
+        self.result_count = tk.StringVar(value="Open an Atlantis test row")
         ttk.Label(filters, textvariable=self.result_count).pack(side="right", padx=(8, 0))
         ttk.Label(filters, textvariable=self.library_source_var).pack(side="right", padx=(8, 0))
         self.query_var.trace_add("write", self._filter_library)
@@ -994,6 +1316,9 @@ class App(tk.Tk):
         library.rowconfigure(0, weight=1)
         library.columnconfigure(0, weight=1)
         self.library_table.bind("<<TreeviewSelect>>", self._select_library_row)
+        self.library_filter = _HeaderFilter(
+            self.library_table, {"testrow": "Test row", "family": "Family", "name": "Structure name"},
+            self._library_items, self._filter_library)
         self.library_iids = {}
 
         preview = ttk.Frame(body)
@@ -1002,8 +1327,6 @@ class App(tk.Tk):
         header.pack(fill="x")
         self.add_testrow_btn = ttk.Button(header, text="+ Add to test row", command=self._testrow_add_current)
         self.add_testrow_btn.pack(side="right")
-        self.csv_library_btn = ttk.Button(header, text="CSV library", command=self._use_csv_library)
-        self.csv_library_btn.pack(side="right", padx=(0, 4))
         paste_btn = ttk.Button(header, text="Paste buildsheet", command=self._testrow_paste)
         paste_btn.pack(side="right", padx=(0, 4))
         _Tooltip(paste_btn, "Paste rows copied from Excel / CSV / another tool (header matched by name)\n"
@@ -1075,6 +1398,13 @@ class App(tk.Tk):
         _Tooltip(legend_check, "Include the layout legend beside the image when copying PNG.")
         self.copy_image_btn = ttk.Button(zoom_tools, text="Copy PNG", command=self._copy_layout_image)
         self.copy_image_btn.pack(side="right")
+        catalog_btn = ttk.Button(zoom_tools, text="Catalog", command=self._show_catalog)
+        catalog_btn.pack(side="right", padx=(0, 4))
+        _Tooltip(catalog_btn, "Show the slides of the structure catalogs (81Z Catalog folder) that name this\n"
+                              "structure, its test row or its skew feature, to compare with the preview.")
+        rules_btn = ttk.Button(zoom_tools, text="Design rules", command=self._show_design_rules)
+        rules_btn.pack(side="right", padx=(0, 4))
+        _Tooltip(rules_btn, "Search the supplied TSDR outsheet by rule label, layer or description.")
         klayout_btn = ttk.Button(zoom_tools, text="Open in KLayout", command=self._open_klayout)
         klayout_btn.pack(side="right", padx=(0, 4))
         self.gds_source = tk.StringVar(value="Generator (buildsheet)")
@@ -1094,6 +1424,21 @@ class App(tk.Tk):
         measure_check = ttk.Checkbutton(measure_tools, text="Measure", variable=self.measure_var,
                         command=self._measure_toggled, style="Toolbutton")
         measure_check.pack(side="left")
+        self.dr_highlight_var = tk.BooleanVar(value=False)
+        dr_check = ttk.Checkbutton(measure_tools, text="DR highlights", variable=self.dr_highlight_var,
+                       command=self._draw_dr_overlay)
+        dr_check.pack(side="left", padx=(8, 0))
+        self.dr_details_var = tk.BooleanVar(value=False)
+        self._dr_detail_listeners: list = []
+        dr_details = ttk.Checkbutton(measure_tools, text="DR details", variable=self.dr_details_var,
+                                     command=self._dr_details_changed)
+        dr_details.pack(side="left", padx=(6, 0))
+        _Tooltip(dr_details, "Off: design rules and DR warnings in plain language.\n"
+                             "On: original outsheet rule text, sources and the list of unchecked rule groups.")
+        self.dr_highlight_count = tk.StringVar()
+        ttk.Label(measure_tools, textvariable=self.dr_highlight_count, foreground="#b00020").pack(side="left")
+        _Tooltip(dr_check, "Numbered boxes locate geometric advisories in Unit view (1 x 1).\n"
+                   "Design rules > Review structure lists matching rule labels and coordinates.")
         _Tooltip(measure_check, "Toggle measurement mode with K. The shortcut is ignored while typing in a text field.\n"
                     "Measurement grid in nm with minor lines (labels adapt to zoom).\n"
                                 "Click two points per measurement; measurements are kept and numbered.\n"
@@ -1119,8 +1464,12 @@ class App(tk.Tk):
                                         "Right-click a measurement on the layout to erase just that one;\n"
                                         "right-click elsewhere or Esc cancels a half-finished pick.")
         ttk.Button(measure_tools, text="Erase all", command=self._measure_clear_all).pack(side="left", padx=(4, 0))
-        ttk.Label(measure_tools, text="right-click a measurement to erase it", foreground="#6b7680").pack(
-            side="left", padx=(10, 0))
+        remove_hint = ttk.Label(measure_tools, foreground="#6b7680",
+                                text="right-click a shape to remove it from the buildsheet, or a measurement to erase it")
+        remove_hint.pack(side="left", padx=(10, 0))
+        _Tooltip(remove_hint, "Right-click an FTI / VG / VT / M0 cut / PLY or TCN plug in the Unit view to remove it.\n"
+                              "This runs the matching Edit command (e.g. 'remove fti at ply 4 diff 3') on the working\n"
+                              "copy and recalculates; 'Reset working copy' undoes it.")
         _Tooltip(snap_check, "Snap measurement picks to the nearest drawn edge, line, track or via centre\n"
                              "(within 8 screen pixels, each axis independently) for exact distances.")
         self.view_var = tk.StringVar(value="Unit")
@@ -1138,10 +1487,16 @@ class App(tk.Tk):
         self.global_units = (1, 1)
         ttk.Label(view_tools, text="units").pack(side="left", padx=(6, 2))
         for variable in (self.global_units_ogd, self.global_units_pgd):
-            ttk.Spinbox(view_tools, from_=1, to=4, width=2, textvariable=variable,
+            ttk.Spinbox(view_tools, from_=1, to=500, width=3, textvariable=variable,
                         command=self._global_view_changed).pack(side="left")
             if variable is self.global_units_ogd:
                 ttk.Label(view_tools, text="x").pack(side="left")
+        full_btn = ttk.Button(view_tools, text="Full structure", command=self._show_full_structure)
+        full_btn.pack(side="left", padx=(6, 0))
+        _Tooltip(full_btn, "Global view of the whole structure as built: the library array\n"
+                           "(ArraySizeOgd x ArraySizePgd unit cells) inside its buffer ring.")
+        unit_btn = ttk.Button(view_tools, text="Unit cell", command=self._show_unit_cell)
+        unit_btn.pack(side="left", padx=(4, 0))
         self.coords_var = tk.StringVar(value="Unit")
         self.coords_mode = "unit"
         ttk.Label(view_tools, text="Coords:").pack(side="left", padx=(10, 2))
@@ -1555,12 +1910,11 @@ class App(tk.Tk):
         ready = self.designer is not None and not self.busy
         geometry_supported = bool(self.design and family_of(self.design.row.get("StructureName", "")) in FAMILY_PREFIXES)
         geometry_layers_available = bool(self.design and (geometry_supported or
-                                         has_generic_layout_geometry(self.design.row)))
+                                         has_generic_layout_geometry(self.design.row) or
+                                         self._special_layers(self.design.row)))
         self.query_entry.state(["!disabled"] if ready else ["disabled"])
-        self.family_filter.state(["!disabled"] if ready else ["disabled"])
         self.testrow_filter.state(["!disabled"] if ready else ["disabled"])
         self.library_table.state(["!disabled"] if ready else ["disabled"])
-        self.csv_library_btn.state(["!disabled"] if self.csv_designer is not None and not self.busy else ["disabled"])
         self.copy_btn.state(["!disabled"] if ready and self.design else ["disabled"])
         self.export_btn.state(["!disabled"] if ready and self.design else ["disabled"])
         self.add_testrow_btn.state(["!disabled"] if ready and geometry_supported else ["disabled"])
@@ -1615,12 +1969,13 @@ class App(tk.Tk):
     def _visible_layers_for_row(self, row: dict[str, str]) -> set[str]:
         from scalar_snapshot import layout_layers, tsdr_draw_layers
 
-        layers = layout_layers(row)
-        tsdr_layers = set(tsdr_draw_layers(row))
+        special = self._special_layers(row)
+        layers = special[0] if special else layout_layers(row)
+        tsdr_layers = set() if special else set(tsdr_draw_layers(row))
         visible = {layer for layer in layers if layer not in tsdr_layers and layer in self.layer_vars
                    and self.layer_vars[layer].get()}
         visible.update(layer for layer in layers if layer not in tsdr_layers and layer not in self.layer_vars
-                       and layer not in LAYERS_OFF_BY_DEFAULT)
+                       and layer not in (special[1] if special else LAYERS_OFF_BY_DEFAULT))
         if self.design is None or self.design.row.get("StructureName") != row.get("StructureName"):
             if row.get("PXLSkew"):
                 visible.add("PXL / TRM")
@@ -1759,12 +2114,28 @@ class App(tk.Tk):
             mismatches.append("requested standard/non-open-cal, closest is open-cal")
         return mismatches
 
+    def _library_items(self) -> list[tuple[str, dict[str, str]]]:
+        """(iid, column values) of the structures in the selected open test row(s)."""
+        if not self.designer:
+            return []
+        selected_testrow = self.testrow_var.get()
+        return [(str(index), {"testrow": row.get("TestRow", ""), "family": family_of(row.get("StructureName", "")),
+                              "name": row.get("StructureName", "")})
+                for index, row in enumerate(self.designer.library_rows)
+                if selected_testrow == ALL_OPEN_ROWS or row.get("TestRow", "") == selected_testrow]
+
+    def _switch_test_row(self, _event=None) -> None:
+        self._filter_library()
+        current = self.design.row.get("StructureName") if self.design else None
+        children = self.library_table.get_children()
+        if children and not any(self.library_iids[iid].get("StructureName") == current for iid in children):
+            self.library_table.selection_set(children[0])
+            self.library_table.see(children[0])
+
     def _filter_library(self, _event=None, *_args) -> None:
         if not self.designer or not hasattr(self, "library_table"):
             return
         query = self.query_var.get().strip().lower()
-        selected_family = self.family_var.get()
-        selected_testrow = self.testrow_var.get()
         self.library_table.delete(*self.library_table.get_children())
         self.library_iids.clear()
         matches = []
@@ -1781,17 +2152,12 @@ class App(tk.Tk):
             self._apply_search_negations(query, query_spec)
         is_atlantis = self.library_source == "Atlantis"
         atlantis_match = _atlantis_matcher(query, self.designer.prompt_fields) if is_atlantis else None
-        for index, row in enumerate(self.designer.library_rows):
-            name = row.get("StructureName", "")
-            testrow = row.get("TestRow", "")
-            family = family_of(name)
-            if selected_family == "Other / unmodeled":
-                if family in FAMILY_PREFIXES:
-                    continue
-            elif selected_family != "All families" and family != selected_family:
+        for iid, values in self._library_items():
+            if not self.library_filter.accepts(values):
                 continue
-            if selected_testrow != "All test rows" and testrow != selected_testrow:
-                continue
+            index = int(iid)
+            row = self.designer.library_rows[index]
+            name, testrow = values["name"], values["testrow"]
             if is_atlantis and query:
                 if not atlantis_match({"TestRow": testrow, "StructureName": name,
                                        "StructureComments": row.get("StructureComments", "")}):
@@ -1804,6 +2170,11 @@ class App(tk.Tk):
             matches.sort(key=lambda item: item[1].get("StructureName", "").casefold())
         elif query:
             matches.sort(key=lambda item: (-(item[2] or 0.0), item[0]))
+        if self.library_filter.sort:
+            key, reverse = self.library_filter.sort
+            field = {"testrow": "TestRow", "name": "StructureName"}.get(key)
+            matches.sort(key=lambda item: (item[1].get(field, "") if field else
+                                           family_of(item[1].get("StructureName", ""))).casefold(), reverse=reverse)
         for index, row, score in matches:
             testrow = row.get("TestRow", "")
             name = row.get("StructureName", "")
@@ -1817,7 +2188,10 @@ class App(tk.Tk):
             longest = max(name_font.measure(row.get("StructureName", "")) for _i, row, _s in matches[:400])
             self.library_table.column("name", width=max(250, longest + 16))
         if is_atlantis:
-            self.result_count.set(f"{len(matches)} matches of {len(self.designer.library_rows)} Atlantis structures")
+            shown = len(self._library_items())
+            filtered = self.library_filter.summary()
+            self.result_count.set(f"{len(matches)} of {shown} structures"
+                                  + (f" · column filters: {filtered}" if filtered else ""))
             self.status.set("Search Atlantis test-row names, structure names, or comments; select a result to inspect its layout and buildsheet.")
         elif query and matches:
             best = matches[0][2] or 0.0
@@ -1904,16 +2278,20 @@ class App(tk.Tk):
                 self.edit_feedback.set(label + "; ".join(syntax_issues[:2]))
                 return
             rule_issues = design_rule_issues(edited)
+            from tsdr_rules import review_rules
+
+            coverage = review_rules(edited, (field,))
             review_notes = buildsheet_review_notes(edited, (field,))
         except Exception as exc:
             self.edit_feedback_label.configure(foreground="#8a5a00")
             self.edit_feedback.set(f"Rule review unavailable: {exc}")
             return
-        self.edit_feedback_label.configure(foreground="#8a5a00" if rule_issues else "#52606d")
+        self.edit_feedback_label.configure(foreground="#8a5a00")
         if rule_issues or review_notes:
             self.edit_feedback.set("Rule review (best effort): " + "; ".join([*rule_issues[:2], *review_notes[:2]]))
         else:
-            self.edit_feedback.set("No issue found by the supported buildsheet syntax and draft-rule checks.")
+            self.edit_feedback.set(coverage.display_summary(self.dr_details_var.get())
+                                   + (" " + coverage.skipped[0] if coverage.skipped and self.dr_details_var.get() else ""))
 
     def _apply_edit(self, _event=None) -> None:
         if not (self.designer and self.design and self.baseline) or self.busy:
@@ -2032,18 +2410,31 @@ class App(tk.Tk):
                                                 global_units=self.global_units, coords=self.coords_mode,
                                                 panel=True)
 
+    def _is_pft_preview(self, row: dict[str, str] | None) -> bool:
+        """XTRPFX rows are drawn from the PFT GDS generator, not from the ISO buildsheet DSL."""
+        return bool(row) and family_of(row.get("StructureName", "")) not in FAMILY_PREFIXES \
+            and not template_kind(row) and not has_generic_layout_geometry(row) and is_pft_row(row)
+
+    def _special_layers(self, row: dict[str, str] | None) -> tuple[tuple[str, ...], frozenset[str]] | None:
+        """(layer toggles, default-off layers) for previews that are not drawn by the ISO renderer."""
+        kind = template_kind(row) if row else ""
+        if kind:
+            return TEMPLATE_LAYERS[kind], TEMPLATE_LAYERS_OFF
+        return (PFT_LAYERS, PFT_LAYERS_OFF) if self._is_pft_preview(row) else None
+
     def _set_layer_controls(self, row: dict[str, str] | None) -> None:
         from scalar_snapshot import default_tsdr_draw_layer, layout_layers, tsdr_draw_layers
 
         selected = {layer: variable.get() for layer, variable in self.layer_vars.items()}
-        layers = layout_layers(row) if row else LAYERS
-        if row and template_active_area_size(row) and not has_generic_layout_geometry(row) \
+        special = self._special_layers(row)
+        layers = special[0] if special else layout_layers(row) if row else LAYERS
+        if row and not special and template_active_area_size(row) and not has_generic_layout_geometry(row) \
                 and family_of(row.get("StructureName", "")) not in FAMILY_PREFIXES:
             layers = ()
         if row and family_of(row.get("StructureName", "")) not in FAMILY_PREFIXES \
                 and has_generic_layout_geometry(row):
             layers = tuple(layer for layer in layers if layer != "Fail paths")
-        tsdr_options = tsdr_draw_layers(row) if row else ()
+        tsdr_options = tsdr_draw_layers(row) if row and not special else ()
         tsdr_layers = set(tsdr_options)
         self.tsdr_combo.configure(values=("Off", *tsdr_options))
         self.tsdr_count.set(f"{len(tsdr_options)} IDs" if len(tsdr_options) != 1 else "1 ID")
@@ -2058,7 +2449,7 @@ class App(tk.Tk):
         for layer in layers:
             if layer in tsdr_layers:
                 continue
-            default_visible = layer not in LAYERS_OFF_BY_DEFAULT
+            default_visible = layer not in (special[1] if special else LAYERS_OFF_BY_DEFAULT)
             # PXL skew rows change only TRM geometry, so show it for those rows.
             pxl_row = layer == "PXL / TRM" and bool(row and row.get("PXLSkew"))
             if layer == "PXL / TRM" and self.trm_forced and not pxl_row:
@@ -2195,11 +2586,17 @@ class App(tk.Tk):
         split.add(left, weight=0)
         left.columnconfigure(0, weight=1)
         left.rowconfigure(2, weight=1)
-        ttk.Label(left, text="Library (type to filter, Enter to open)").grid(row=0, column=0, columnspan=2, sticky="w")
+        ttk.Label(left, text="Library or test row (contains; Enter to open)").grid(row=0, column=0, columnspan=2,
+                                                                                    sticky="w")
         self.atlantis_library_filter = tk.StringVar()
+        self.atlantis_row_hits: dict[str, list[str]] = {}
+        self.atlantis_row_hits_query = ""
         library_entry = ttk.Entry(left, textvariable=self.atlantis_library_filter)
         library_entry.grid(row=1, column=0, columnspan=2, sticky="ew", pady=(2, 4))
-        self.atlantis_library_filter.trace_add("write", lambda *_a: self._atlantis_filter_libraries())
+        _Tooltip(library_entry, "Type part of a library name or a test-row name. Libraries whose name contains it\n"
+                                "are listed first; then (after a short search of the whole project) libraries that\n"
+                                "contain matching test rows, with the rows shown. Opening one filters its rows.")
+        self.atlantis_library_filter.trace_add("write", lambda *_a: self._atlantis_library_text_changed())
         library_entry.bind("<Return>", lambda _e: self._atlantis_library_chosen())
         library_entry.bind("<Down>", lambda _e: self.atlantis_library_list.focus_set())
         self.atlantis_library_list = tk.Listbox(left, exportselection=False, activestyle="none",
@@ -2230,11 +2627,16 @@ class App(tk.Tk):
             "write", lambda *_a: self._atlantis_schedule("rows", self._atlantis_filter_rows))
         row_entry.bind("<Return>", lambda _e: self._atlantis_open_row())
         row_entry.bind("<Down>", lambda _e: self.atlantis_row_tree.focus_set())
-        self.atlantis_column_filter_toggle = ttk.Button(
-            rows_tab, text="Hide column filters", command=self._atlantis_toggle_column_filters)
-        self.atlantis_column_filter_toggle.grid(row=2, column=0, sticky="w", pady=(0, 3))
-        self.atlantis_column_filter_frame = ttk.Frame(rows_tab)
-        self.atlantis_column_filter_frame.grid(row=3, column=0, columnspan=2, sticky="ew", pady=(0, 4))
+        filter_bar = ttk.Frame(rows_tab)
+        filter_bar.grid(row=2, column=0, columnspan=2, sticky="ew", pady=(0, 3))
+        ttk.Label(filter_bar, text="Click a column header to filter or sort; Ctrl/Shift-click to pick several rows",
+                  foreground="#4a5560").pack(side="left")
+        ttk.Button(filter_bar, text="Clear column filters",
+                   command=lambda: self.atlantis_row_filter.clear()).pack(side="right")
+        open_rows_btn = ttk.Button(filter_bar, text="Open selected rows", command=lambda: self._atlantis_open_row())
+        open_rows_btn.pack(side="right", padx=(0, 4))
+        _Tooltip(open_rows_btn, "Open every selected test row in the Structure viewer;\n"
+                                "switch between them with its Test row dropdown.")
         row_columns = (("name", "Test row", "TestRowName", 175, False),
                        ("status", "State / status", "Status", 150, False),
                        ("modified", "Last modified", "LastModified", 125, False),
@@ -2251,18 +2653,6 @@ class App(tk.Tk):
                        ("templates", "Templates used", "TemplatesUsed", 190, True),
                        ("tapeout", "Tapeout label", "TapeoutLabel", 130, False))
         self.atlantis_column_filter_fields = row_columns
-        self.atlantis_column_filter_vars = {}
-        for index, (key, label, _data_key, _width, _stretch) in enumerate(row_columns):
-            column = index % 4
-            cell = ttk.Frame(self.atlantis_column_filter_frame)
-            cell.grid(row=index // 4, column=column, sticky="ew", padx=(0, 6), pady=2)
-            ttk.Label(cell, text=label, width=15, anchor="w").pack(side="left")
-            variable = tk.StringVar()
-            self.atlantis_column_filter_vars[key] = variable
-            ttk.Entry(cell, textvariable=variable).pack(side="left", fill="x", expand=True)
-            variable.trace_add("write", lambda *_a: self._atlantis_schedule("rows", self._atlantis_filter_rows))
-        for column in range(4):
-            self.atlantis_column_filter_frame.columnconfigure(column, weight=1)
 
         row_split = ttk.PanedWindow(rows_tab, orient="horizontal")
         row_split.grid(row=4, column=0, columnspan=2, sticky="nsew")
@@ -2273,7 +2663,7 @@ class App(tk.Tk):
         row_table_panel.columnconfigure(0, weight=1)
         row_table_panel.rowconfigure(0, weight=1)
         self.atlantis_row_tree = ttk.Treeview(row_table_panel, columns=[c[0] for c in row_columns], show="headings",
-                                              selectmode="browse")
+                                              selectmode="extended")
         for key, label, _data_key, width, stretch in row_columns:
             self.atlantis_row_tree.heading(key, text=label)
             self.atlantis_row_tree.column(key, width=width, minwidth=50, stretch=stretch)
@@ -2281,6 +2671,9 @@ class App(tk.Tk):
         row_x = ttk.Scrollbar(row_table_panel, orient="horizontal", command=self.atlantis_row_tree.xview)
         self.atlantis_row_tree.configure(yscrollcommand=row_y.set, xscrollcommand=row_x.set)
         self.atlantis_row_tree.grid(row=0, column=0, sticky="nsew")
+        self.atlantis_row_filter = _HeaderFilter(
+            self.atlantis_row_tree, {key: label for key, label, *_rest in row_columns},
+            self._atlantis_row_items, self._atlantis_filter_rows)
         row_y.grid(row=0, column=1, sticky="ns")
         row_x.grid(row=1, column=0, sticky="ew")
         row_structure_panel.columnconfigure(0, weight=1)
@@ -2302,6 +2695,10 @@ class App(tk.Tk):
         self.atlantis_row_struct_tree.configure(yscrollcommand=row_struct_y.set)
         self.atlantis_row_struct_tree.grid(row=2, column=0, sticky="nsew")
         row_struct_y.grid(row=2, column=1, sticky="ns")
+        self.atlantis_row_struct_filter = _HeaderFilter(
+            self.atlantis_row_struct_tree,
+            {"name": "Structure name", "pad": "Pad-row template", "description": "Description"},
+            self._atlantis_row_structure_items, self._atlantis_filter_row_structures)
         self.atlantis_row_struct_tree.bind("<Double-Button-1>", lambda _e: self._atlantis_open_row_structure())
         self.atlantis_row_tree.bind("<<TreeviewSelect>>", lambda _e: self._atlantis_schedule(
             "row-structures", self._atlantis_row_selected))
@@ -2325,6 +2722,10 @@ class App(tk.Tk):
                                            ("pad", "Pad row", 160, False), ("description", "Description", 240, True)):
             self.atlantis_struct_tree.heading(key, text=label)
             self.atlantis_struct_tree.column(key, width=width, minwidth=60, stretch=stretch)
+        self.atlantis_struct_filter = _HeaderFilter(
+            self.atlantis_struct_tree,
+            {"name": "Structure name", "row": "Test row", "pad": "Pad row", "description": "Description"},
+            self._atlantis_structure_items, self._atlantis_filter_structures)
         struct_y = ttk.Scrollbar(structures_tab, orient="vertical", command=self.atlantis_struct_tree.yview)
         self.atlantis_struct_tree.configure(yscrollcommand=struct_y.set)
         self.atlantis_struct_tree.grid(row=2, column=0, sticky="nsew")
@@ -2334,8 +2735,9 @@ class App(tk.Tk):
         self.atlantis_struct_tree.bind("<Return>", lambda _e: self._atlantis_open_structure())
 
         ttk.Label(win, foreground="#4a5560", padding=(8, 4, 8, 8),
-                   text="Select a test row to see its structures beside it. Double-click a structure to open it in "
-                       "the Structure viewer. Add to test row remains a separate action there.",
+                   text="Select a test row to see its structures beside it. Ctrl/Shift-click several rows and press "
+                       "Open selected rows (or Enter / double-click) to open them together; switch rows with the "
+                       "Structure viewer's Test row dropdown. Double-click a structure to open it directly.",
                   ).pack(fill="x")
         project, _library = self.atlantis_choice
         self.atlantis_project_var.set(project if project in projects else "X81" if "X81" in projects
@@ -2368,13 +2770,21 @@ class App(tk.Tk):
         if tree.identify_region(event.x, event.y) in ("cell", "tree"):
             action()
 
+    def _schema_designer(self) -> StructureDesigner:
+        """Empty library carrying the buildsheet column schema (search fields, pasted rows) before Atlantis loads."""
+        if self.schema_designer is None:
+            from atlantis_wcf import AtlantisWcfClient
+
+            self.schema_designer = StructureDesigner(use_llm=False, source=(AtlantisWcfClient._csv_fields(), []))
+        return self.schema_designer
+
     def _atlantis_fields(self) -> list[str]:
-        designer = self.csv_designer or self.designer
-        return designer.prompt_fields if designer else []
+        return (self.designer or self._schema_designer()).prompt_fields
 
     def _atlantis_project_selected(self) -> None:
         project = self.atlantis_project_var.get()
         self.atlantis_libraries_all = []
+        self.atlantis_row_hits, self.atlantis_row_hits_query = {}, ""
         self.atlantis_rows = []
         self.atlantis_library_structures = []
         self._atlantis_filter_libraries()
@@ -2396,15 +2806,61 @@ class App(tk.Tk):
             self.atlantis_library_filter.set(saved_library)
             self._atlantis_library_chosen(saved_library, force=True)
 
+    def _atlantis_library_text_changed(self) -> None:
+        self._atlantis_filter_libraries()
+        text = self.atlantis_library_filter.get().strip()
+        if len(text) >= 3 and text not in self.atlantis_libraries_all:
+            self._atlantis_schedule("find-rows", self._atlantis_find_rows)
+
+    def _atlantis_find_rows(self) -> None:
+        text, project = self.atlantis_library_filter.get().strip(), self.atlantis_project_var.get()
+        if len(text) < 3 or not project:
+            return
+
+        def done(rows: list[dict]) -> None:
+            if text != self.atlantis_library_filter.get().strip():
+                return
+            hits: dict[str, list[str]] = {}
+            for row in rows:
+                hits.setdefault(str(row.get("Library") or ""), []).append(str(row.get("TestRowName") or ""))
+            hits.pop("", None)
+            self.atlantis_row_hits, self.atlantis_row_hits_query = hits, text
+            self._atlantis_filter_libraries()
+            self.atlantis_lookup_status.set(f"'{text}': {sum(map(len, hits.values()))} test row(s) in "
+                                            f"{len(hits)} librar{'y' if len(hits) == 1 else 'ies'}")
+
+        def search() -> list[dict]:
+            # Server-side by the most selective word; the rest may sit in the row or the library name.
+            words = re.findall(r"[a-z0-9]+", text.casefold())
+            if not words:
+                return []
+            rows = self.atlantis_client.find_rows(project, max(words, key=len) if len(words) > 1 else text)
+            return [row for row in rows if _match_rank(text, f"{row.get('Library')} {row.get('TestRowName')}")
+                    in (0, 1)]
+
+        self._atlantis_run("find-rows", search, done,
+                           f"Searching every library in {project} for test rows matching '{text}'...")
+
     def _atlantis_filter_libraries(self) -> None:
-        text = _normalize(self.atlantis_library_filter.get())
-        self.atlantis_libraries_shown = [name for name in self.atlantis_libraries_all if text in _normalize(name)]
+        raw = self.atlantis_library_filter.get().strip()
+        hits = self.atlantis_row_hits if raw and raw == self.atlantis_row_hits_query else {}
+        ranked = sorted(((rank, name.casefold(), name) for name in self.atlantis_libraries_all
+                         if (rank := _match_rank(raw, name)) is not None))
+        # Loose in-order matches only when nothing matches by word.
+        best = ranked[0][0] if ranked else None
+        shown = [name for rank, _key, name in ranked if rank < 2 or best == 2]
+        self.atlantis_library_name_matches = set(shown)
+        shown += [name for name in sorted(hits, key=str.casefold) if name not in shown]
+        self.atlantis_libraries_shown = shown
         listbox = self.atlantis_library_list
         listbox.delete(0, "end")
-        listbox.insert("end", *self.atlantis_libraries_shown)
+        for name in shown:
+            rows = hits.get(name, [])
+            listbox.insert("end", name if not rows else
+                           f"{name}   ← {len(rows)} row(s): {', '.join(rows[:3])}{' …' if len(rows) > 3 else ''}")
         current = self.atlantis_choice[1]
         highlight = (self.atlantis_libraries_shown.index(current) if current in self.atlantis_libraries_shown
-                     else 0 if text and self.atlantis_libraries_shown else None)
+                     else 0 if raw and self.atlantis_libraries_shown else None)
         if highlight is not None:
             listbox.selection_set(highlight)
             listbox.see(highlight)
@@ -2417,6 +2873,10 @@ class App(tk.Tk):
             library = self.atlantis_libraries_shown[selection[0]]
         project = self.atlantis_project_var.get()
         key = (project, library)
+        query = self.atlantis_library_filter.get().strip()
+        if (library in self.atlantis_row_hits and query == self.atlantis_row_hits_query
+                and library not in getattr(self, "atlantis_library_name_matches", set())):
+            self.atlantis_row_filter_var.set(query)
         if key == self.atlantis_choice and self.atlantis_rows and not force:
             return
         self.atlantis_choice = key
@@ -2435,13 +2895,28 @@ class App(tk.Tk):
         self.atlantis_rows = sorted(rows, key=lambda row: str(row.get("TestRowName") or "").casefold())
         self._atlantis_filter_rows()
 
-    def _atlantis_toggle_column_filters(self) -> None:
-        if self.atlantis_column_filter_frame.winfo_ismapped():
-            self.atlantis_column_filter_frame.grid_remove()
-            self.atlantis_column_filter_toggle.configure(text="Show column filters")
-        else:
-            self.atlantis_column_filter_frame.grid()
-            self.atlantis_column_filter_toggle.configure(text="Hide column filters")
+    def _atlantis_row_items(self) -> list[tuple[str, dict[str, str]]]:
+        """(iid, column values) for every test row of the open library, as shown in the table."""
+        items = []
+        for index, row in enumerate(getattr(self, "atlantis_rows", [])):
+            values = {}
+            for key, _label, data_key, _width, _stretch in self.atlantis_column_filter_fields:
+                value = row.get(data_key)
+                values[key] = ("Yes" if value else "No") if data_key == "Locked" else \
+                    " · ".join(str(value or "").split())
+            items.append((str(index), values))
+        return items
+
+    def _atlantis_row_structure_items(self) -> list[tuple[str, dict[str, str]]]:
+        return [(str(index), {"name": str(item.get("StructureName") or ""), "pad": str(item.get("PadRowName") or ""),
+                              "description": " · ".join(str(item.get("Description") or "").split())})
+                for index, item in enumerate(getattr(self, "atlantis_row_structures", []))]
+
+    def _atlantis_structure_items(self) -> list[tuple[str, dict[str, str]]]:
+        return [(str(index), {"name": str(item.get("StructureName") or ""), "row": str(item.get("TestRowName") or ""),
+                              "pad": str(item.get("PadRowName") or ""),
+                              "description": " · ".join(str(item.get("Description") or "").split())})
+                for index, item in enumerate(getattr(self, "atlantis_library_structures", []))]
 
     def _atlantis_row_selected(self) -> None:
         selection = self.atlantis_row_tree.selection()
@@ -2450,7 +2925,8 @@ class App(tk.Tk):
             self.atlantis_row_structures = []
             self._atlantis_filter_row_structures()
             return
-        row = self.atlantis_rows[int(selection[0])]
+        focus = self.atlantis_row_tree.focus()
+        row = self.atlantis_rows[int(focus if focus in selection else selection[-1])]
         test_row = str(row.get("TestRowName") or "")
         self.atlantis_selected_row = test_row
         key = (*self.atlantis_choice, test_row)
@@ -2475,16 +2951,16 @@ class App(tk.Tk):
         self.atlantis_lookup_status.set(f"{len(structures)} structures in {key[2]}")
 
     def _atlantis_filter_row_structures(self) -> None:
-        if not hasattr(self, "atlantis_row_struct_tree"):
+        if not hasattr(self, "atlantis_row_struct_filter"):
             return
         tree = self.atlantis_row_struct_tree
         tree.delete(*tree.get_children())
         query = self.atlantis_row_structure_filter_var.get()
         match = _atlantis_matcher(query, self._atlantis_fields())
-        for index, item in enumerate(self.atlantis_row_structures):
-            if match(item):
-                tree.insert("", "end", iid=str(index), values=(item.get("StructureName", ""),
-                    item.get("PadRowName") or "", " · ".join(str(item.get("Description") or "").split())))
+        items = [(iid, values) for iid, values in self._atlantis_row_structure_items()
+                 if match(self.atlantis_row_structures[int(iid)]) and self.atlantis_row_struct_filter.accepts(values)]
+        for iid, values in self.atlantis_row_struct_filter.order(items):
+            tree.insert("", "end", iid=iid, values=(values["name"], values["pad"], values["description"]))
 
     def _atlantis_open_row_structure(self) -> None:
         selection = self.atlantis_row_struct_tree.selection()
@@ -2493,42 +2969,34 @@ class App(tk.Tk):
             self._atlantis_open_row(self.atlantis_selected_row, str(item.get("StructureName") or ""))
 
     def _atlantis_filter_rows(self) -> None:
+        if not hasattr(self, "atlantis_row_filter"):
+            return
         tree = self.atlantis_row_tree
         tree.delete(*tree.get_children())
         query = self.atlantis_row_filter_var.get()
         match = _atlantis_row_matcher(query)
-        constraints = []
-        for key, _label, data_key, _width, _stretch in self.atlantis_column_filter_fields:
-            value = self.atlantis_column_filter_vars[key].get().strip().casefold()
-            if value:
-                constraints.append((data_key, value))
+        columns = [key for key, *_rest in self.atlantis_column_filter_fields]
+        items = [(iid, values) for iid, values in self._atlantis_row_items()
+                 if match(self.atlantis_rows[int(iid)]) and self.atlantis_row_filter.accepts(values)]
+        # When the words match test-row names (or library + name), don't pad with hits from dates or owners.
+        library = self.atlantis_choice[1]
+        named = [item for item in items
+                 if _match_rank(query, f"{library} {self.atlantis_rows[int(item[0])].get('TestRowName')}") in (0, 1)]
+        if query.strip() and named:
+            items = named
         first = None
-        for index, row in enumerate(self.atlantis_rows):
-            if not match(row):
-                continue
-            def column_value(key: str) -> str:
-                value = row.get(key)
-                if key == "Locked":
-                    return "yes" if value else "no"
-                return str(value or "").casefold()
-            if any(value not in column_value(key) for key, value in constraints):
-                continue
-            iid = str(index)
+        for iid, values in self.atlantis_row_filter.order(items):
             first = first or iid
-            tree.insert("", "end", iid=iid, values=(
-                row.get("TestRowName", ""), row.get("Status") or "", row.get("LastModified") or "",
-                row.get("Owner") or "", row.get("ModifiedBy") or "", row.get("Version") or "",
-                row.get("MetadataVersion") or "", "Yes" if row.get("Locked") else "No",
-                row.get("LockedBy") or "", row.get("BatchResult") or "", row.get("BusType") or "",
-                row.get("PadRowTemplate") or "", " · ".join(str(row.get("Description") or "").split()),
-                row.get("TemplatesUsed") or "", row.get("TapeoutLabel") or ""))
+            tree.insert("", "end", iid=iid, values=[values[key] for key in columns])
         if query.strip() and first:
             tree.selection_set(first)
             tree.see(first)
         if self.atlantis_rows:
             library = self.atlantis_choice[1]
+            filtered = self.atlantis_row_filter.summary()
             self.atlantis_lookup_status.set(f"{len(tree.get_children())} of {len(self.atlantis_rows)} test rows in "
-                                            f"{library}" + ("; Enter or click to list its structures" if first else ""))
+                                            f"{library}" + (f"; column filters: {filtered}" if filtered else "")
+                                            + ("; Enter or click to list its structures" if first else ""))
 
     def _atlantis_tab_changed(self) -> None:
         if self.atlantis_tabs.index("current") == 1:
@@ -2558,19 +3026,18 @@ class App(tk.Tk):
         self._atlantis_run("structures", load, done, f"Loading every structure in {library}...")
 
     def _atlantis_filter_structures(self) -> None:
+        if not hasattr(self, "atlantis_struct_filter"):
+            return
         tree = self.atlantis_struct_tree
         tree.delete(*tree.get_children())
         query = self.atlantis_structure_filter_var.get()
         match = _atlantis_matcher(query, self._atlantis_fields())
+        items = [(iid, values) for iid, values in self._atlantis_structure_items()
+                 if match(self.atlantis_library_structures[int(iid)]) and self.atlantis_struct_filter.accepts(values)]
         first = None
-        for index, item in enumerate(self.atlantis_library_structures):
-            if not match(item):
-                continue
-            iid = str(index)
+        for iid, values in self.atlantis_struct_filter.order(items):
             first = first or iid
-            tree.insert("", "end", iid=iid, values=(
-                item.get("StructureName", ""), item.get("TestRowName", ""), item.get("PadRowName") or "",
-                " · ".join(str(item.get("Description") or "").split())))
+            tree.insert("", "end", iid=iid, values=(values["name"], values["row"], values["pad"], values["description"]))
         if query.strip() and first:
             tree.selection_set(first)
             tree.see(first)
@@ -2589,19 +3056,22 @@ class App(tk.Tk):
             selection = self.atlantis_row_tree.selection()
             if not selection:
                 return
-            test_row = str(self.atlantis_rows[int(selection[0])].get("TestRowName") or "")
+            test_rows = [str(self.atlantis_rows[int(iid)].get("TestRowName") or "") for iid in selection]
+        else:
+            test_rows = [test_row]
         project, library = self.atlantis_choice
-        key = (project, library, test_row)
-        if key in self.atlantis_row_cache:
-            self._atlantis_show_row(key, self.atlantis_row_cache[key], focus_structure)
+        keys = [(project, library, name) for name in dict.fromkeys(test_rows) if name]
+        missing = [key for key in keys if key not in self.atlantis_row_cache]
+        if not missing:
+            self._atlantis_show_rows(keys, focus_structure)
             return
+        summaries = {item.get("TestRowName"): item for item in self.atlantis_rows}
 
-        def load() -> StructureDesigner:
+        def fetch(test_row: str) -> StructureDesigner | None:
             fields, rows = self.atlantis_client.fetch_structures(project, library, test_row, [])
             if not rows:
-                raise ValueError(f"{test_row} has no structures in Atlantis")
-            summary = next((item for item in self.atlantis_rows
-                            if item.get("TestRowName") == test_row), {})
+                return None
+            summary = summaries.get(test_row, {})
             metadata = {
                 "AtlantisProject": project,
                 "AtlantisLibrary": library,
@@ -2618,28 +3088,36 @@ class App(tk.Tk):
                 row.update({field: str(value or "") for field, value in metadata.items()})
             return StructureDesigner(use_llm=False, source=(fields, rows))
 
-        def done(designer: StructureDesigner) -> None:
-            self.atlantis_row_cache[key] = designer
-            self._atlantis_show_row(key, designer, focus_structure)
+        def load() -> dict:
+            return {key: fetch(key[2]) for key in missing}
 
-        self._atlantis_run("row", load, done, f"Loading structures in {test_row}...")
+        def done(loaded: dict) -> None:
+            self.atlantis_row_cache.update(loaded)
+            self._atlantis_show_rows(keys, focus_structure)
 
-    def _atlantis_show_row(self, key: tuple[str, str, str], designer: StructureDesigner,
-                           focus_structure: str | None) -> None:
-        project, library, test_row = key
+        self._atlantis_run("row", load, done, f"Loading structures in {', '.join(key[2] for key in missing)}...")
+
+    def _atlantis_show_rows(self, keys: list[tuple[str, str, str]], focus_structure: str | None) -> None:
+        loaded = [(key, self.atlantis_row_cache[key]) for key in keys if self.atlantis_row_cache.get(key)]
+        empty = [key[2] for key in keys if not self.atlantis_row_cache.get(key)]
+        if not loaded:
+            self.atlantis_lookup_status.set(f"No structures in {', '.join(empty)}")
+            return
+        project, library = keys[0][:2]
+        if len(loaded) == 1:
+            designer = loaded[0][1]
+            label = f"Atlantis {project} / {library} / {loaded[0][0][2]}"
+        else:
+            fields = list(dict.fromkeys(field for _key, d in loaded for field in d.fields))
+            rows = [row for _key, d in loaded for row in d.library_rows]
+            designer = StructureDesigner(use_llm=False, source=(fields, rows))
+            designer.library_rows = [dict(row) for row in rows]
+            label = f"Atlantis {project} / {library} / {len(loaded)} test rows"
         self.atlantis_designer = designer
-        self._activate_library(designer, "Atlantis", focus_structure=focus_structure,
-                               label=f"Atlantis {project} / {library} / {test_row}")
-        count = len(designer.library_rows)
-        self.atlantis_lookup_status.set(f"{count} structures from {test_row} listed in the main window")
-
-    def _loaded(self, designer: StructureDesigner) -> None:
-        self.csv_designer = designer
-        self._activate_library(designer, "CSV")
-
-    def _use_csv_library(self) -> None:
-        if self.csv_designer is not None and not self.busy:
-            self._activate_library(self.csv_designer, "CSV")
+        self._activate_library(designer, "Atlantis", focus_structure=focus_structure, label=label)
+        self.atlantis_lookup_status.set(f"{len(designer.library_rows)} structures from {len(loaded)} test row(s) "
+                                        "listed in the main window"
+                                        + (f"; no structures in {', '.join(empty)}" if empty else ""))
 
     def _activate_library(self, designer: StructureDesigner, source: str,
                           focus_structure: str | None = None, label: str | None = None) -> None:
@@ -2648,16 +3126,20 @@ class App(tk.Tk):
         self.library_source = source
         self.library_source_var.set(f"Source: {label or source}")
         self.query_var.set("")
-        self.family_var.set("All families")
-        self.testrow_var.set("All test rows")
+        self.library_filter.selected.clear()
+        self.library_filter.sort = None
+        self.library_filter._headings()
         if switching:
             self.design = None
             self.baseline = None
             self.edit_field.set("")
             self.edit_value.set("")
         designer.output_fields.extend(field for field in PREVIEW_WIDTH_FIELDS if field not in designer.output_fields)
-        testrows = sorted({row.get("TestRow", "") for row in designer.library_rows if row.get("TestRow", "")})
-        self.testrow_filter.configure(values=("All test rows", *testrows))
+        testrows = list(dict.fromkeys(row.get("TestRow", "") for row in designer.library_rows if row.get("TestRow", "")))
+        self.testrow_filter.configure(values=(ALL_OPEN_ROWS, *testrows) if len(testrows) > 1 else tuple(testrows))
+        focus_row = next((row.get("TestRow", "") for row in designer.library_rows
+                          if focus_structure and row.get("StructureName") == focus_structure), "")
+        self.testrow_var.set(focus_row or (testrows[0] if testrows else ALL_OPEN_ROWS))
         self._filter_library()
         if switching and (children := self.library_table.get_children()):
             target = next((iid for iid, row in self.library_iids.items()
@@ -2682,6 +3164,33 @@ class App(tk.Tk):
 
     def _current_visible(self) -> set[str]:
         return {layer for layer, variable in self.layer_vars.items() if variable.get()} | self._tsdr_region_layers()
+
+    def _remove_shape(self, command: str) -> None:
+        self.tsdr_request.set(command)
+        self._apply_tsdr_request()
+
+    def _element_menu(self, event) -> None:
+        """Right-click on the unit-cell layout: remove a shape under the cursor from the working buildsheet."""
+        cal = self.calibration
+        if not (self.design and cal and self.full_image) or self.busy:
+            return
+        if self.global_flag or self.global_units != (1, 1) or self._special_layers(self.design.row):
+            self.status.set("Right-click removal works in the Unit view (1 x 1 units) of ISO-style layouts.")
+            return
+        from scalar_snapshot import elements_at
+
+        ix = (self.canvas.canvasx(event.x) - self.image_origin[0]) / self.image_scale
+        iy = (self.canvas.canvasy(event.y) - self.image_origin[1]) / self.image_scale
+        x = (ix - cal["origin_px"][0]) / cal["px_per_unit"][0]
+        y = (cal["origin_px"][1] - iy) / cal["px_per_unit"][1]
+        hits = elements_at(self.design.row, x, y, self._current_visible())
+        if not hits:
+            return
+        menu = tk.Menu(self, tearoff=False)
+        for command, text in hits:
+            menu.add_command(label=f"Remove {text}   [{command}]", command=lambda c=command: self._remove_shape(c))
+        menu.tk_popup(event.x_root, event.y_root)
+        menu.grab_release()
 
     def _tsdr_region_layers(self) -> set[str]:
         tsdr_id = self.tsdr_var.get()
@@ -2722,7 +3231,8 @@ class App(tk.Tk):
         width_label = 7 * len(label(info["x_max"], info["x_unit0"], info["x_glob0"])) + 8
         step = next((s for s in (1, 2, 4, 5, 10, 20, 50, 100) if s * px_x >= width_label), 100)
         top_w, side_h = self.ruler_top.winfo_width(), self.ruler_left.winfo_height()
-        for x in range(0, int(info["x_max"]) + 1):
+        x_stride = step if px_x < 4 else 1
+        for x in range(0, int(info["x_max"]) + 1, x_stride):
             sx = screen_x(x)
             if not 0 <= sx <= top_w:
                 continue
@@ -2732,7 +3242,8 @@ class App(tk.Tk):
                 self.ruler_top.create_text(sx, 7, text=label(x, info["x_unit0"], info["x_glob0"]),
                                            font=self.ruler_font, fill="#2c3e50")
         cell_step = next((s for s in (1, 2, 4, 5, 10, 20) if s * px_y >= 13), 20)
-        for k in range(int(info["cells"])):
+        cell_stride = cell_step if px_y < 4 else 1
+        for k in range(0, int(info["cells"]), cell_stride):
             sy = screen_y(k + 0.5)
             if 0 <= sy <= side_h:
                 major = k % cell_step == 0
@@ -2743,12 +3254,14 @@ class App(tk.Tk):
         per_height = info["per_height"]
         track_px = px_y * 2 / per_height
         track_step = next((s for s in (1, 2, 5, 10, 20, 50) if s * track_px >= 12), 50)
-        for t in range(int(info["m0_max"]) + 1):
+        track_stride = per_height if track_px < 4 else 1
+        rail_step = max(1, math.ceil(13 / max(track_px * per_height, 0.001)))
+        for t in range(0, int(info["m0_max"]) + 1, track_stride):
             sy = screen_y(t * 2 / per_height)
             rail = t % per_height == 0
             if not 0 <= sy <= side_h:
                 continue
-            major = rail or t % track_step == 0
+            major = (rail and (t // per_height) % rail_step == 0) or (not rail and t % track_step == 0)
             self.ruler_right.create_line(0, sy, 8 if rail else 6 if major else 3, sy,
                                          fill=C_RAIL_UI if rail else "#59636b", width=2 if rail else 1)
             if major:
@@ -2998,8 +3511,10 @@ class App(tk.Tk):
         return rows, notes
 
     def _testrow_paste(self) -> None:
-        if not self.designer or self.busy:
+        if self.busy:
             return
+        if not self.designer:
+            self._activate_library(self._schema_designer(), "Pasted", label="pasted buildsheet (no Atlantis row open)")
         try:
             rows, notes = self._parse_pasted_buildsheet(self.clipboard_get())
         except (tk.TclError, csv.Error, ValueError) as exc:
@@ -3068,7 +3583,7 @@ class App(tk.Tk):
         design, png = value
         self.design = design
         cell_height = re.search(r"\d+", design.row.get("CellHeight", ""))
-        if cell_height and int(cell_height[0]) != 132:
+        if (cell_height and int(cell_height[0]) != 132) or is_miller_row(design.row):
             self.gds_source.set("Preview drawing")
         name = design.row.get("StructureName", "")
         geometry_supported = family_of(name) in FAMILY_PREFIXES
@@ -3101,10 +3616,19 @@ class App(tk.Tk):
             details.append(f"array {design.spec.array_ogd}x{design.spec.array_pgd}")
         generic_geometry = has_generic_layout_geometry(design.row)
         template_area = template_active_area_size(design.row)
+        pft_preview = self._is_pft_preview(design.row) and png is not None and "_pft_" in png.name
+        kind = template_kind(design.row)
+        miller = is_miller_row(design.row) and generic_geometry
+        tagged = not miller and generic_geometry and any(
+            "?" in design.row.get(field, "") for field in ("VcxPatternUnit", "VcrPatternUnit"))
         geometry_renderable = geometry_supported or generic_geometry or template_area is not None
         if not geometry_supported:
             pad_template = design.row.get("PadRowTemplate") or "not specified"
-            area_hint = (f"template active area {template_area[0]} x {template_area[1]} tracks"
+            area_hint = (f"{TEMPLATE_TITLES[kind]} preview" if kind else
+                         "PFT generator layout + buildsheet pins" if pft_preview else
+                         "Miller unit cell (DF/SF/GF/TAP)" if miller else
+                         "unit cell with tagged nets" if tagged else
+                         f"template active area {template_area[0]} x {template_area[1]} tracks"
                          if template_area else "generic base layers only" if generic_geometry else
                          "raw view only; geometry not modeled")
             details.extend((f"Templates {template_names}", f"Pad-row template {pad_template}",
@@ -3126,7 +3650,21 @@ class App(tk.Tk):
                      f"Owner: {design.row.get('AtlantisRowOwner') or '-'}",
                      f"Last modified: {design.row.get('AtlantisLastModified') or '-'}",
                      f"Comments: {design.row.get('StructureComments', '-') or '-'}",
-                     (f"Template active-area extent shown as {template_area[0]} x {template_area[1]} tracks; "
+                     (f"{TEMPLATE_TITLES[kind]} drawn from its Atlantis template parameters (meanings from the "
+                      "template help text); line CD/pitch from the structure name where encoded. Active chain / "
+                      "line / via is dark, dummy lines are light."
+                      if kind else
+                      "PFT generator layout (PFT_LLM.bat trained layouts) with the pin vias redrawn from this row's "
+                      "DrawGATE/SS/SF/DS/DF/TAP (coloured by pin); view is focused on the active PFT area - tick "
+                      "'Full cell' for the whole structure. Metals, fills and IDs are off by default."
+                      if pft_preview else
+                      "Miller (XTRCAP) unit cell drawn from the MLR buildsheet: DiffPatternGlobal stack, "
+                      "DF (drain) / SF (source, via VCRNUB-VCR) / GF (gate) / TAP (body) terminals coloured by net."
+                      if miller else
+                      "Unit cell drawn from the buildsheet patterns; vias / VCR tagged ?NET (e.g. GNAC, CNODE) are "
+                      "traced and coloured by net."
+                      if tagged else
+                      f"Template active-area extent shown as {template_area[0]} x {template_area[1]} tracks; "
                       "this is an outline, not detailed layer geometry."
                       if template_area and not generic_geometry else
                       "Generic base layers shown; no family-specific paths or scalar rules are modeled."
@@ -3154,15 +3692,10 @@ class App(tk.Tk):
                 layout_checks = []
         except Exception as exc:  # informational only
             layout_checks = [f"connectivity trace failed: {exc}"]
-        if layout_checks and geometry_supported:
-            lines += ["", "Layout / design-rule review (best effort; 1281 deck is not final):"] + [f"- {w}" for w in layout_checks]
-        if geometry_supported:
-            lines += ["", "DRC scope: modeled ISO cell patterns, connectivity, selected width/space assumptions and VCRNUB only; "
-                      "no full KLayout rule deck is configured."]
-        self.summary.configure(state="normal")
-        self.summary.delete("1.0", "end")
-        self.summary.insert("1.0", "\n".join(lines))
-        self.summary.configure(state="disabled")
+        from tsdr_rules import review_rules
+
+        self._summary_state = (lines, review_rules(design.row), layout_checks, geometry_supported)
+        self._render_summary()
 
         detail_lines = ["Library row:", design.row.get("StructureName", "-"),
                 f"Test row: {design.row.get('TestRow', '-')}", "",
@@ -3273,7 +3806,7 @@ class App(tk.Tk):
 
     def _schedule_sharp(self, scale: float) -> None:
         """Re-render with a larger figure when zoomed in, so shapes stay crisp and lines stay thin."""
-        wanted = min(4, max(1, math.ceil(scale - 0.05)))
+        wanted = 1 if self.global_units[0] * self.global_units[1] > 16 else min(4, max(1, math.ceil(scale - 0.05)))
         if self._sharp_after:
             self.after_cancel(self._sharp_after)
             self._sharp_after = None
@@ -3393,18 +3926,75 @@ class App(tk.Tk):
         self.canvas.yview_moveto(0)
 
     def _global_view_changed(self) -> None:
+        if self.busy:
+            self.view_var.set("Global + routing" if self.global_routing else "Global" if self.global_flag else "Unit")
+            self.global_units_ogd.set(self.global_units[0])
+            self.global_units_pgd.set(self.global_units[1])
+            return
+        returning_to_unit = self.global_flag and self.view_var.get() == "Unit"
         self.global_flag = self.view_var.get() != "Unit"
         self.global_routing = self.view_var.get() == "Global + routing"
+        if returning_to_unit:
+            self.global_units_ogd.set(1)
+            self.global_units_pgd.set(1)
         self.coords_box.configure(state="readonly" if self.global_flag else "disabled")
         if self.global_flag and self.coords_var.get() == "Unit":
             self.coords_var.set("Both")
         self.coords_mode = ({"Unit": "unit", "Global (g)": "global", "Both": "both"}[self.coords_var.get()]
                             if self.global_flag else "unit")
         try:
-            self.global_units = (min(4, max(1, self.global_units_ogd.get())), min(4, max(1, self.global_units_pgd.get())))
+            limit_ogd, limit_pgd = self._array_size()
+            self.global_units = (min(max(4, limit_ogd), max(1, self.global_units_ogd.get())),
+                                 min(max(4, limit_pgd), max(1, self.global_units_pgd.get())))
         except tk.TclError:
             self.global_units = (1, 1)
+        self.zoom_var.set("Fit")
+        if self._sharp_after:
+            self.after_cancel(self._sharp_after)
+            self._sharp_after = None
+        self._wanted_scale = 1
         self._layers_changed()
+
+    def _show_unit_cell(self) -> None:
+        if not self.design or self.busy:
+            return
+        self.global_units_ogd.set(1)
+        self.global_units_pgd.set(1)
+        for layer, state in getattr(self, "_grid_saved", {}).items():
+            if layer in self.layer_vars:
+                self.layer_vars[layer].set(state)
+        self._grid_saved = {}
+        self.view_var.set("Unit")
+        self._global_view_changed()
+
+    def _array_size(self) -> tuple[int, int]:
+        row = self.design.row if self.design else {}
+        values = []
+        for field in ("ArraySizeOgd", "ArraySizePgd"):
+            try:
+                values.append(max(1, int(float(row.get(field, "") or 1))))
+            except ValueError:
+                values.append(1)
+        return values[0], values[1]
+
+    def _show_full_structure(self) -> None:
+        if not self.design or self.busy:
+            return
+        if self._special_layers(self.design.row):
+            self.status.set("Full structure applies to ISO-style buildsheets; this template preview already "
+                            "shows its whole drawn area.")
+            return
+        ogd, pgd = self._array_size()
+        if not getattr(self, "_grid_saved", None):
+            self._grid_saved = {layer: self.layer_vars[layer].get()
+                                for layer in ("Grid", "M0 Y grid", "Guide tracks") if layer in self.layer_vars}
+        for layer in self._grid_saved:
+            self.layer_vars[layer].set(False)
+        self.global_units_ogd.set(ogd)
+        self.global_units_pgd.set(pgd)
+        self.view_var.set("Global")
+        self._global_view_changed()
+        self.status.set(f"Full structure: {ogd} x {pgd} unit cells (library array) inside the buffer ring")
 
     def _apply_tsdr_request(self, _event=None) -> None:
         if not (self.designer and self.design and self.baseline) or self.busy:
@@ -3503,6 +4093,9 @@ class App(tk.Tk):
         # Scale by layout pixels-per-track so every render shows the layout at the same size.
         ppu = (self.calibration or {}).get("px_per_unit", [0.0])[0]
         display = scale * self.base_ppu / ppu if self.base_ppu and ppu else scale / self.render_scale
+        if self.global_units[0] * self.global_units[1] > 16:
+            display = min(display, 8192 / max(self.full_image.size),
+                          math.sqrt(16_000_000 / (self.full_image.width * self.full_image.height)))
         if abs(display - 1.0) < 1e-6:
             if self.full_photo is None:
                 self.full_photo = ImageTk.PhotoImage(self.full_image)
@@ -3521,6 +4114,7 @@ class App(tk.Tk):
         self.image_scale = self.photo.width() / self.full_image.width
         self._draw_guide_extensions()
         self._draw_measure_overlay()
+        self._draw_dr_overlay()
         self._schedule_sharp(scale)
         self._draw_rulers()
 
@@ -3618,6 +4212,75 @@ class App(tk.Tk):
         ix = cal["origin_px"][0] + x_nm / cal["nm_per_unit"][0] * cal["px_per_unit"][0]
         iy = cal["origin_px"][1] - y_nm / cal["nm_per_unit"][1] * cal["px_per_unit"][1]
         return self.image_origin[0] + ix * self.image_scale, self.image_origin[1] + iy * self.image_scale
+
+    def _render_summary(self) -> None:
+        state = getattr(self, "_summary_state", None)
+        if not state:
+            return
+        from tsdr_rules import source_status
+
+        lines, coverage, layout_checks, geometry_supported = state
+        details = self.dr_details_var.get()
+        lines = [*lines, ""]
+        if details:
+            lines += [source_status(), coverage.summary]
+            lines.extend(f"Not checked: {reason}" for reason in coverage.skipped)
+        else:
+            lines.append(coverage.plain_summary)
+            if coverage.skipped:
+                lines.append(f"{len(coverage.skipped)} rule group(s) could not be checked - turn on DR details to list them.")
+        if not geometry_supported:
+            layout_checks = list(coverage.display_findings(details))
+        if layout_checks:
+            title = ("Layout / design-rule review (best effort; 1281 deck is not final):" if details
+                     else "Possible layout / rule problems:")
+            lines += ["", title] + [f"- {w}" for w in layout_checks]
+        if geometry_supported and details:
+            lines += ["", "DRC scope: modeled ISO cell patterns, connectivity, selected width/space assumptions and VCRNUB only; "
+                      "no full KLayout rule deck is configured."]
+        self.summary.configure(state="normal")
+        self.summary.delete("1.0", "end")
+        self.summary.insert("1.0", "\n".join(lines))
+        self.summary.configure(state="disabled")
+
+    def _dr_details_changed(self) -> None:
+        self._render_summary()
+        if self.design and self.edit_feedback.get():
+            self._edit_feedback()
+        for listener in list(self._dr_detail_listeners):
+            listener()
+
+    def _draw_dr_overlay(self) -> None:
+        self.canvas.delete("dr-finding")
+        self.dr_highlight_count.set("")
+        if not self.dr_highlight_var.get() or not (self.design and self.full_image and self.calibration):
+            return
+        if self.global_flag or self.global_units != (1, 1) or self._special_layers(self.design.row):
+            self.dr_highlight_count.set("Unit geometry only")
+            return
+        from dr_geometry import review_geometry
+
+        try:
+            report = review_geometry(self.design.row)
+        except (OSError, ValueError, TypeError, KeyError, ImportError) as exc:
+            self.dr_highlight_count.set("Review unavailable")
+            self.status.set(str(exc))
+            return
+        self.dr_highlight_count.set((f"{len(report.findings)} findings" + (" (first 200 shown)" if len(report.findings) > 200 else ""))
+                        if report.checks else "No geometry evaluated")
+        for index, finding in enumerate(report.findings[:200], 1):
+            x0, y0, x1, y1 = finding.bounds
+            left, top = self._nm_to_canvas(x0, y1)
+            right, bottom = self._nm_to_canvas(x1, y0)
+            color = "#b00020" if finding.reference else "#a65b00"
+            tags = ("dr-finding", f"dr-finding-{index}")
+            self.canvas.create_rectangle(left - 3, top - 3, right + 3, bottom + 3,
+                                         outline=color, width=2, dash=(5, 2), tags=tags)
+            self.canvas.create_text(left - 3, top - 4, text=f"#{index}", anchor="sw", fill=color,
+                                    font=("Segoe UI", 9, "bold"), tags=tags)
+            text = (f"#{index} {finding.label}: {finding.message}" if self.dr_details_var.get() or not finding.plain
+                    else f"#{index} {finding.plain}")
+            self.canvas.tag_bind(tags[1], "<Enter>", lambda _event, text=text: self.status.set(text))
 
     def _measure_toggled(self) -> None:
         self.measure_points = []
@@ -3757,7 +4420,10 @@ class App(tk.Tk):
             if tag:
                 self._measure_delete(int(tag[4:]))
                 return
-        self._measure_cancel()
+        if self.measure_points:
+            self._measure_cancel()
+            return
+        self._element_menu(event)
 
     def _measure_cancel(self, _event=None) -> None:
         if self.measure_points:
@@ -3893,15 +4559,261 @@ class App(tk.Tk):
                 pass
         return chosen or None
 
+    def _show_design_rules(self) -> None:
+        from dr_plain import format_value, glossary_for
+        from tsdr_rules import load_rules, review_rules
+
+        try:
+            book = load_rules()
+        except (OSError, ValueError, KeyError, ImportError) as exc:
+            messagebox.showerror("TSDR outsheet", str(exc), parent=self)
+            return
+        window = tk.Toplevel(self)
+        window.title("TSDR Design Rules")
+        window.geometry("1200x780")
+        bar = ttk.Frame(window, padding=6)
+        bar.pack(fill="x")
+        query = tk.StringVar()
+        ttk.Label(bar, text="Search").pack(side="left")
+        entry = ttk.Entry(bar, textvariable=query, width=50)
+        entry.pack(side="left", fill="x", expand=True, padx=6)
+        ttk.Button(bar, text="Open outsheet", command=lambda: os.startfile(str(book.source))).pack(side="right")
+        ttk.Checkbutton(bar, text="Show details", variable=self.dr_details_var,
+                        command=self._dr_details_changed).pack(side="right", padx=6)
+        ttk.Label(window, text=book.scope, wraplength=1100, padding=6).pack(fill="x")
+        count = tk.StringVar()
+        ttk.Label(window, textvariable=count, padding=(6, 0)).pack(anchor="w")
+        split = ttk.PanedWindow(window, orient="vertical")
+        split.pack(fill="both", expand=True, padx=6, pady=6)
+        table_panel = ttk.Frame(split)
+        split.add(table_panel, weight=3)
+        table = ttk.Treeview(table_panel, columns=("label", "value", "gating", "text"),
+                             show="headings", selectmode="browse")
+        for key, width in (("label", 170), ("value", 110), ("gating", 210), ("text", 600)):
+            table.column(key, width=width, stretch=key == "text")
+        scroll = ttk.Scrollbar(table_panel, orient="vertical", command=table.yview)
+        table.configure(yscrollcommand=scroll.set)
+        table.pack(side="left", fill="both", expand=True)
+        scroll.pack(side="right", fill="y")
+        detail = tk.Text(split, wrap="word", height=12, state="disabled")
+        split.add(detail, weight=2)
+        state = {"rules": [], "after": None, "view": "rule"}
+
+        def show_text(lines: list[str]) -> None:
+            detail.configure(state="normal")
+            detail.delete("1.0", "end")
+            detail.insert("1.0", "\n".join(lines))
+            detail.configure(state="disabled")
+
+        def review_structure() -> None:
+            if not self.design:
+                return
+            state["view"] = "review"
+            details = self.dr_details_var.get()
+            report = review_rules(self.design.row)
+            from dr_geometry import review_geometry
+
+            geometric = review_geometry(self.design.row)
+            text = [self.design.row.get("StructureName", ""), report.display_summary(details), ""]
+            if details:
+                text.append("Findings:")
+                text.extend(report.findings or ("No dimensional finding in the evaluated subset. Other rules remain unchecked.",))
+                text.extend(("", "Not checked:"))
+                text.extend(report.skipped)
+                text.extend(("", "Evaluated dimensional comparisons (TSDR ID conditions unverified):"))
+                text.extend(report.checks or ("None",))
+                text.extend(("", "Preview highlights (Unit view, physical nm bounds):"))
+                text.extend(f"#{index} {finding.layer} {finding.label} [{finding.reference or 'geometry advisory'}] "
+                            f"{finding.message}; bounds {finding.bounds}"
+                            for index, finding in enumerate(geometric.findings, 1))
+            else:
+                text.append("Possible problems:")
+                text.extend(f"- {finding}" for finding in report.display_findings())
+                if not report.findings:
+                    text.append("- None found in the rules that could be checked.")
+                if geometric.findings:
+                    text.extend(("", "Numbered boxes on the Unit view:"))
+                    text.extend(f"#{index} {finding.plain or finding.message}"
+                                for index, finding in enumerate(geometric.findings, 1))
+                text.extend(("", f"{len(report.checks)} check groups ran; {len(report.skipped)} rule group(s) could not be "
+                             "checked from the preview. Tick Show details for the full list and rule references."))
+            self.dr_highlight_var.set(True)
+            self._draw_dr_overlay()
+            show_text(text)
+
+        ttk.Button(bar, text="Review structure", command=review_structure,
+                   state="normal" if self.design else "disabled").pack(side="right", padx=6)
+
+        def describe(_event=None) -> None:
+            selected = table.selection()
+            if not selected:
+                return
+            state["view"] = "rule"
+            rule = state["rules"][int(selected[0])]
+            nearby = [item for item in book.rules if item.sheet == rule.sheet and item.section == rule.section
+                      and item.subsection == rule.subsection and item.label != rule.label]
+            if not self.dr_details_var.get():
+                text = [f"{rule.label} - {rule.plain_gating}", "", rule.plain, "",
+                        f"What this group of rules is about: {rule.plain_section}"]
+                if rule.numeric_um is not None:
+                    text.append(f"Limit: {format_value(rule.drawn, rule.description)}")
+                terms = glossary_for(rule.description, rule.section)
+                if terms:
+                    text += ["", "Terms used:"] + [f"- {term}" for term in terms]
+                if nearby:
+                    text += ["", "Related rules in the same group:"]
+                    text += [f"- {item.label}: {item.plain}" for item in nearby[:20]]
+                    if len(nearby) > 20:
+                        text.append(f"... {len(nearby) - 20} more (search the group name to list them)")
+                text += ["", "Plain wording is generated from the outsheet; tick Show details for the exact rule text."]
+                show_text(text)
+                return
+            numeric = "scalar numeric value; units per description" if rule.numeric_um is not None else "not a scalar numeric limit"
+            text = [rule.label, rule.description, "", f"Plain: {rule.plain}", "",
+                    f"Source: {book.source.name} / {rule.reference}",
+                    f"Section: {rule.section}", f"Subsection: {rule.subsection}", f"Origin: {rule.origin or 'not stated'}",
+                    f"Classification: {rule.gating}", f"Operator: {rule.operator or 'see description'}",
+                    f"Drawn: {rule.drawn or '(blank)'}; {numeric}", f"SLV: {rule.slv or '(blank)'}",
+                    f"SLL: {rule.sll or '(blank)'}", "",
+                    "Conditional reference only. Numeric values may be counts or ratios; units and ID/region "
+                    "conditions must be read from the description. This is not a signoff deck.", "", "Related subsection rules / notes:"]
+            text.extend(f"{item.label}: {item.description} [Drawn: {item.drawn or '-'}]" for item in nearby)
+            show_text(text)
+
+        def fill() -> None:
+            state["after"] = None
+            details = self.dr_details_var.get()
+            headings = (("Rule", "Drawn (raw)", "Classification", "Description / Conditions") if details
+                        else ("Rule", "Limit", "Status", "What it means"))
+            for key, title in zip(("label", "value", "gating", "text"), headings):
+                table.heading(key, text=title)
+            matches = book.search(query.get())
+            state["rules"] = matches[:400]
+            table.delete(*table.get_children())
+            for index, rule in enumerate(state["rules"]):
+                values = ((rule.label, rule.drawn, rule.gating, rule.description) if details else
+                          (rule.label, format_value(rule.drawn, rule.description) if rule.numeric_um is not None else "",
+                           rule.plain_gating, rule.plain))
+                table.insert("", "end", iid=str(index), values=values)
+            count.set(f"{len(matches)} matching records; showing {len(state['rules'])} of {len(book.rules)} total")
+            if state["rules"]:
+                table.selection_set("0")
+                describe()
+            else:
+                show_text([])
+
+        def schedule(*_args) -> None:
+            if state["after"]:
+                window.after_cancel(state["after"])
+            state["after"] = window.after(180, fill)
+
+        def details_changed() -> None:
+            if not window.winfo_exists():
+                return
+            selected = table.selection()
+            view = state["view"]
+            fill()
+            if selected and selected[0] in table.get_children():
+                table.selection_set(selected[0])
+                table.see(selected[0])
+            if view == "review":
+                review_structure()
+
+        self._dr_detail_listeners.append(details_changed)
+        window.bind("<Destroy>", lambda event: event.widget is window and details_changed in self._dr_detail_listeners
+                    and self._dr_detail_listeners.remove(details_changed))
+        table.bind("<<TreeviewSelect>>", describe)
+        query.trace_add("write", schedule)
+        fill()
+        entry.focus_set()
+
+    def _show_catalog(self) -> None:
+        if not self.design:
+            return
+        import catalog_refs
+
+        pending = catalog_refs.pending_decks()
+        if pending:
+            if not messagebox.askyesno(
+                    "Structure catalogs",
+                    f"{len(pending)} catalog deck(s) in '{catalog_refs.CATALOG_DIR.name}' have not been indexed yet.\n"
+                    "Export their slides now through PowerPoint (read-only; can take several minutes)?", parent=self):
+                if not catalog_refs._index():
+                    return
+            else:
+                row = dict(self.design.row)
+
+                def worker() -> None:
+                    try:
+                        catalog_refs.extract(pending, progress=lambda text: self.after(0, self.status.set, text))
+                        self.after(0, self._open_catalog_window, row)
+                    except Exception as exc:  # PowerPoint missing or a deck failed to open
+                        self.after(0, messagebox.showerror, "Structure catalogs", str(exc))
+
+                threading.Thread(target=worker, daemon=True).start()
+                return
+        self._open_catalog_window(dict(self.design.row))
+
+    def _open_catalog_window(self, row: dict[str, str]) -> None:
+        import catalog_refs
+
+        slides = catalog_refs.find_slides(row)
+        name = row.get("StructureName", "")
+        if not slides:
+            self.status.set(f"No catalog slide mentions {name}, its test row or its skew feature.")
+            return
+        window = tk.Toplevel(self)
+        window.title(f"Catalog: {name}")
+        window.geometry("1250x820")
+        bar = ttk.Frame(window, padding=4)
+        bar.pack(fill="x")
+        caption = tk.StringVar()
+        canvas = tk.Canvas(window, background="white", highlightthickness=0)
+        canvas.pack(fill="both", expand=True)
+        state = {"index": 0, "photo": None}
+
+        def show(step: int = 0) -> None:
+            state["index"] = (state["index"] + step) % len(slides)
+            slide = slides[state["index"]]
+            image = Image.open(slide["png"])
+            scale = min(max(1, canvas.winfo_width()) / image.width, max(1, canvas.winfo_height()) / image.height)
+            if scale > 0:
+                image = image.resize((max(1, round(image.width * scale)), max(1, round(image.height * scale))),
+                                     Image.Resampling.LANCZOS)
+            state["photo"] = ImageTk.PhotoImage(image)
+            canvas.delete("all")
+            canvas.create_image(canvas.winfo_width() // 2, canvas.winfo_height() // 2, image=state["photo"])
+            match = ("structure name" if slide["score"] >= 100 else "name without skew value" if slide["score"] >= 60
+                     else "test row" if slide["score"] >= 40 else "skew feature")
+            caption.set(f"{state['index'] + 1}/{len(slides)}   {slide['deck']}  -  slide {slide['slide']}   "
+                        f"(matched on {match})")
+
+        ttk.Button(bar, text="< Prev", command=lambda: show(-1)).pack(side="left")
+        ttk.Button(bar, text="Next >", command=lambda: show(1)).pack(side="left", padx=(4, 0))
+        ttk.Button(bar, text="Open PNG", command=lambda: os.startfile(slides[state["index"]]["png"])).pack(
+            side="right")
+        ttk.Label(bar, textvariable=caption).pack(side="left", padx=(10, 0))
+        canvas.bind("<Configure>", lambda _e: show())
+        window.bind("<Left>", lambda _e: show(-1))
+        window.bind("<Right>", lambda _e: show(1))
+
     def _open_klayout(self) -> None:
         if not (self.designer and self.design) or self.busy:
             self.status.set("Open a structure first")
             return
         cell_height = re.search(r"\d+", self.design.row.get("CellHeight", ""))
+        designer, design_id = self.designer, self.design.id
+        if self._is_pft_preview(self.design.row):
+            self._run(lambda: designer.layout_png(design_id, fmt="gds"), self._launch_klayout,
+                      "Generating XTRPFX GDS with the PFT generator...")
+            return
+        if template_kind(self.design.row):
+            self.status.set("KLayout export is not available for CHN / ECD / KLV template previews "
+                            "(no template generator); use Copy PNG.")
+            return
         if self.gds_source.get().startswith("Generator") and cell_height and int(cell_height[0]) != 132:
             self.gds_source.set("Preview drawing")
             self.status.set("Generator chassis is CTG132-only; switched to Preview drawing for this cell height")
-        designer, design_id = self.designer, self.design.id
         if self.gds_source.get().startswith("Generator"):
             self._run(lambda: designer.generator_gds(design_id), self._launch_generator_gds,
                       "Building GDS with claude_iso_gds_generator...")
