@@ -110,6 +110,10 @@ class AtlantisWcfClient:
         """Template definitions used by a test row (name, description, parameter captions and help text)."""
         return self._call("templates", project, library, test_row)
 
+    def list_structure_summaries(self, project: str, library: str, test_row: str) -> list[dict[str, Any]]:
+        """Structures of a test row with TestStructId, TemplateName and sequence."""
+        return self._call("struct-summaries", project, library, test_row)
+
     def find_rows(self, project: str, fragment: str) -> list[dict[str, Any]]:
         """Test rows in every library of ``project`` whose name contains ``fragment`` (case-insensitive)."""
         return self._call("find-rows", project, fragment)

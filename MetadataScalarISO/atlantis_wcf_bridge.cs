@@ -296,6 +296,45 @@ internal static class AtlantisWcfBridge
         finally { Close(service as IClientChannel, factory); }
     }
 
+    private static object StructureSummaries(string project, string library, string testRow)
+    {
+        var factory = Factory<IStreamingMessageDataService>(6000, "StreamingMessageDataService");
+        IStreamingMessageDataService service = null;
+        try
+        {
+            service = factory.CreateChannel();
+            var summary = service.GetTestRowSummary(new TestRowQueryKey
+            {
+                TestRowName = testRow,
+                Library = library,
+                Database = project,
+                Editable = (TestRowEditMode)Enum.Parse(typeof(TestRowEditMode), "ReadOnly")
+            });
+            if (summary == null)
+                throw new ArgumentException("Test row not found: " + testRow);
+            var result = new List<Dictionary<string, object>>();
+            foreach (TestStructSummary item in service.GetTestStructureSummaries(
+                         new TestRowComponentsQueryKey { trID = summary.TestRowID }))
+            {
+                result.Add(new Dictionary<string, object>
+                {
+                    { "TestRowName", summary.TestRowName },
+                    { "Library", summary.Library },
+                    { "Database", summary.Database },
+                    { "TestRowID", summary.TestRowID },
+                    { "TestStructId", item.TestStructId },
+                    { "TestStructName", item.TestStructName },
+                    { "TestStructSeq", item.TestStructSeq },
+                    { "TemplateName", item.TemplateName },
+                    { "TemplateLib", item.TemplateLib },
+                    { "Instance", item.Instance }
+                });
+            }
+            return result.OrderBy(r => (int)r["TestStructSeq"]).ToArray();
+        }
+        finally { Close(service as IClientChannel, factory); }
+    }
+
     private static object FindRows(string project, string fragment)
     {
         // Case-insensitive; words in order with anything between ("diffchn 04" -> .*diffchn.*04.*).
@@ -347,6 +386,7 @@ internal static class AtlantisWcfBridge
                 case "structures": result = Structures(args[1], args[2], args[3]); break;
                 case "parameters": result = Parameters(args[1], args[2], args[3], args[4]); break;
                 case "templates": result = Templates(args[1], args[2], args[3]); break;
+                case "struct-summaries": result = StructureSummaries(args[1], args[2], args[3]); break;
                 case "find-rows": result = FindRows(args[1], args[2]); break;
                 default: throw new ArgumentException("Unknown Atlantis operation.");
             }

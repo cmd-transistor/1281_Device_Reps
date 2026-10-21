@@ -1,0 +1,143 @@
+// Splits Corrected_Name from StructureName_Validation.csv into one column per field (family-specific names).
+// Run in JMP: File > Open this script > Run. Pick StructureName_Validation.csv when asked.
+Names Default To Here( 1 );
+
+onlySuperflow = 1;
+
+path = Pick File( "Select StructureName_Validation.csv", "", {"CSV Files|csv", "All Files|*"}, 1, 0 );
+If( path == "",
+	Throw( "No file selected" )
+);
+dt = Open( path );
+dt << Set Name( "Structure Names (split)" );
+If( onlySuperflow,
+	dt << Select Where( :Source != "Superflow" );
+	dt << Delete Rows;
+);
+
+// hyphen-field names per family; positions follow the BKM slot order
+fmap = Associative Array();
+fmap["PFT"] = {"Head", "Z", "Legs", "VT", "Env", "Nest", "Iso", "Height", "Skew"};
+fmap["FK"] = fmap["PFT"];
+fmap["MLR"] = {"Head", "Z", "ADF", "VT", "Env", "Nest", "Iso", "Height", "Skew"};
+fmap["ROS"] = {"Head", "Z", "Legs", "VT", "Style", "Stg", "FO", "Height", "Skew", "Routing", "Add"};
+fmap["ROSPFT"] = {"Head", "Z", "Legs", "VT", "Style", "Nest", "Iso", "Height", "Skew", "Routing", "Add1", "Add2"};
+fmap["BITCELL"] = {"Head", "Diff", "Legs", "DUT", "Lib", "Nest", "Iso", "Height", "Skew"};
+fmap["ISO"] = {"Head", "Z", "Legs", "VT", "Skew"};
+fmap["KLV"] = fmap["ISO"];
+fmap["QREL"] = {"F1", "F2", "F3", "F4", "F5", "F6", "F7", "F8", "F9", "F10", "F11", "F12"};
+fmap["BCLA"] = {"Head", "F2", "F3"};
+
+// BE: Head, Core2..CoreN, Skew (A:.. or DR), Add
+cols = {};
+keys = fmap << Get Keys;
+For( k = 1, k <= N Items( keys ), k++,
+	nmList = fmap[keys[k]];
+	For( i = 1, i <= N Items( nmList ), i++,
+		If( !Contains( cols, nmList[i] ),
+			Insert Into( cols, nmList[i] )
+		)
+	);
+);
+For( i = 2, i <= 8, i++,
+	Insert Into( cols, "Core" || Char( i ) )
+);
+extra = {"Add", "Overflow", "Base", "Instance", "TC", "Seat", "HeadCat", "CellHeight", "DiffPol", "DiffZ", "Skew1", "Skew2",
+"Skew3", "Skew4", "Skew5", "Skew6"};
+For( i = 1, i <= N Items( extra ), i++,
+	If( !Contains( cols, extra[i] ),
+		Insert Into( cols, extra[i] )
+	)
+);
+For( i = 1, i <= N Items( cols ), i++,
+	dt << New Column( cols[i], Character, "Nominal" )
+);
+
+dt << Begin Data Update;
+For( r = 1, r <= N Rows( dt ), r++,
+	nm = Column( dt, "Corrected_Name" )[r];
+	If( nm != "",
+		fam = Column( dt, "Family" )[r];
+		w = Words( nm, "_" );
+		nw = N Items( w );
+		Column( dt, "Base" )[r] = w[1];
+		If( nw >= 3,
+			Column( dt, "TC" )[r] = w[nw - 1];
+			Column( dt, "Seat" )[r] = w[nw];
+		);
+		If( nw >= 4,
+			Column( dt, "Instance" )[r] = w[2]
+		);
+		f = Words( w[1], "-" );
+		nf = N Items( f );
+
+		names = {};
+		If( fam == "BE",
+			names = {"Head"};
+			sk = 0;
+			For( i = 2, i <= nf, i++,
+				If( sk == 0 & (Starts With( f[i], "A:" ) | f[i] == "DR"),
+					sk = i
+				)
+			);
+			For( i = 2, i <= nf, i++,
+				If( sk == 0 | i < sk,
+					Insert Into( names, "Core" || Char( i ) ),
+					i == sk,
+					Insert Into( names, "Skew" ),
+					Insert Into( names, "Add" )
+				)
+			);
+		, Contains( fmap, fam ),
+			names = fmap[fam]
+		);
+
+		nn = N Items( names );
+		For( i = 1, i <= Min( nf, nn ), i++,
+			Column( dt, names[i] )[r] = f[i]
+		);
+		If( nf > nn,
+			Column( dt, "Overflow" )[r] = Concat Items( f[(nn + 1) :: nf], "-" )
+		);
+
+		// head = category + 3-digit cell height
+		x = Regex( f[1], "^(.*?)(\d{3})$", "\2" );
+		If( !Is Missing( x ),
+			Column( dt, "CellHeight" )[r] = x;
+			Column( dt, "HeadCat" )[r] = Regex( f[1], "^(.*?)(\d{3})$", "\1" );
+		);
+
+		// diffusion: polarity prefix + Z code (ISO/KLV carry the polarity here)
+		If( Contains( names, "Z" ),
+			zf = Column( dt, "Z" )[r];
+			y = Regex( zf, "^([A-Z]*)(Z\d+)$", "\2" );
+			If( !Is Missing( y ),
+				Column( dt, "DiffZ" )[r] = y;
+				Column( dt, "DiffPol" )[r] = Regex( zf, "^([A-Z]*)(Z\d+)$", "\1" );
+			);
+		);
+
+		// skew TYPE:LAYER:DIR:SKEW:MAG[:extra]
+		If( Contains( names, "Skew" ),
+			sw = Words( Column( dt, "Skew" )[r], ":" );
+			For( k = 1, k <= Min( 6, N Items( sw ) ), k++,
+				Column( dt, "Skew" || Char( k ) )[r] = sw[k]
+			);
+		);
+	);
+);
+dt << End Data Update;
+
+// aligned cross-family view first: the validator's parsed columns (same meaning in every family), then the split fields
+front = {"Family", "Corrected_Name", "Base", "TC", "Seat", "CAT", "POL", "CH", "DIFF", "LEGS", "ADF", "VT", "ENV", "NEST", "ISO",
+"HEIGHT", "ROUTING", "SKEW", "ADD"};
+For( i = N Items( front ), i >= 1, i--,
+	Try( dt << Move Selected Columns( {front[i]}, To First ) )
+);
+
+// drop columns nobody filled
+For( i = N Items( cols ), i >= 1, i--,
+	If( N Missing( Column( dt, cols[i] ) ) == N Rows( dt ),
+		dt << Delete Columns( cols[i] )
+	)
+);
