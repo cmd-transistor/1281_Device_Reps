@@ -22,9 +22,9 @@ fmap["FK"] = fmap["PFT"];
 fmap["MLR"] = {"Head", "Z", "ADF", "VT", "Env", "Nest", "Iso", "Height", "Skew"};
 fmap["ROS"] = {"Head", "Z", "Legs", "VT", "Style", "Stg", "FO", "Height", "Skew", "Routing", "Add"};
 fmap["ROSPFT"] = {"Head", "Z", "Legs", "VT", "Style", "Nest", "Iso", "Height", "Skew", "Routing", "Add1", "Add2"};
-fmap["BITCELL"] = {"Head", "Diff", "Legs", "DUT", "Lib", "Nest", "Iso", "Height", "Skew"};
+fmap["BITCELL"] = {"Head", "Diff", "Legs", "DUT", "Lib", "Nest", "Iso", "CellType", "Skew"};
 fmap["ISO"] = {"Head", "Z", "Legs", "VT", "Skew"};
-fmap["KLV"] = fmap["ISO"];
+fmap["KLV"] = {"Head", "Z", "Legs", "VT", "Env", "Skew"};
 fmap["QREL"] = {"F1", "F2", "F3", "F4", "F5", "F6", "F7", "F8", "F9", "F10", "F11", "F12"};
 fmap["BCLA"] = {"Head", "F2", "F3"};
 

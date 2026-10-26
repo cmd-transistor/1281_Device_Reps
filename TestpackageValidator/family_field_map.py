@@ -6,6 +6,7 @@ Reads OUTPUT/StructureName_Validation.csv (superflow, corrected names) and write
   Examples     one example name per family split into the same position columns
   Split_All    every corrected name split by '-' into F1..F12 (+ Family, instance, TC, seat)
   <FAMILY>     one sheet per family with the named fields (and the skew split into its 5 chunks)
+  Vocabulary   code -> meaning for VT, ENV, Z / LNR, and the skew chunks (TYPE, LAYER, DIR, SKEW, MAG)
 """
 from __future__ import annotations
 
@@ -27,9 +28,9 @@ FIELDS = {
     'MLR': ['Head', 'Z', 'ADF', 'VT', 'Env', 'Nest', 'Iso', 'Height', 'Skew'],
     'ROS': ['Head', 'Z', 'Legs', 'VT', 'Style', 'STG', 'FO', 'Height', 'Skew', 'Routing', 'Add'],
     'ROSPFT': ['Head', 'Z', 'Legs', 'VT', 'Style', 'Nest', 'Iso', 'Height', 'Skew', 'Routing', 'Add1', 'Add2'],
-    'BITCELL': ['Head', 'Diff', 'Legs', 'DUT', 'Lib', 'Nest', 'Iso', 'Height', 'Skew'],
+    'BITCELL': ['Head', 'Diff', 'Legs', 'DUT', 'Lib', 'Nest', 'Iso', 'CellType', 'Skew'],
     'ISO': ['Head', 'Z', 'Legs', 'VT', 'Skew'],
-    'KLV': ['Head', 'Z', 'Legs', 'VT', 'Skew'],
+    'KLV': ['Head', 'Z', 'Legs', 'VT', 'Env', 'Skew'],
     'BCLA': ['Head', 'Lib', 'Add'],
     'QREL': [f'F{i}' for i in range(1, 13)],
     'BE': ['Head', 'Core2', 'Core3', 'Core4', 'Core5', 'Skew', 'Add'],
@@ -66,6 +67,36 @@ def named(fam: str, f: list[str]) -> dict:
 
 def colour(n: str) -> str:
     return COLOURS[MEANING.get(n, 'Other')]
+
+
+KIND_MEANING = {'CD': 'critical dimension', 'CDPP': 'CD and poly pitch both change (layer PLYPP)',
+                'REG': 'registration / misalignment', 'REF': 'reference', 'DEN': 'density', 'ESD': 'ESD spacing',
+                'ENC': 'enclosure', 'EC': 'end cap', 'NES': 'nested', 'REM': 'layers removed (MAG ALL)',
+                'KEP': 'layer kept (MAG ALL)'}
+
+
+def vocabulary() -> pd.DataFrame:
+    """Code -> meaning table used to decode the split fields (Skew1..5 = TYPE, LAYER, DIR, SKEW, MAG)."""
+    rows = [('VT', c, f) for f, c in snv.VT_FULL_TO_CODE.items()]
+    rows += [('ENV', e, m) for e, m in [('CMOS', 'N + P diffusion'), ('ANALOG', 'analog-style ENV; legacy CMOS_A'),
+                                        ('UNI', 'unipolar (N or P only)'),
+                                        ('BCMOS', 'balanced CMOS'), ('LCMOS', 'L CMOS'), ('OCMOS', 'O CMOS'),
+                                        ('ANALOG', 'analog style, moved from legacy CMOS_A'),
+                                        ('ADTUNI', 'two active diffusion, unipolar'), ('/D', 'no diffusion'),
+                                        ('KLV N / P', 'UNI'), ('KLV NP', 'CMOS'), ('KLV ND', '/D with polarity N')]]
+    rows += [('Z / LNR', f'{ch}-{z}', f'{w} nm') for ch, d in snv.LOGIC_LIB.items() for z, w in d.items()]
+    rows += [('Skew1 TYPE', snv.DEFAULT_SKEW_TYPE, 'lego type (default)')]
+    rows += [('Skew3 DIR', d, m) for d, m in [('OGD', 'orthogonal to gate direction'),
+                                             ('PGD', 'parallel to gate direction'), ('Z', 'vertical / back-end'),
+                                             ('NOM', 'placeholder: series uses several directions')]]
+    rows += [('Skew4 SKEW', k, KIND_MEANING.get(k, '')) for k in sorted(snv.SKEW_KINDS)]
+    rows += [('Skew5 MAG', 'N# / P# / NOM / ALL', 'minus / plus nm (D = decimal point), nominal, all (REM)')]
+    rows += [('Skew2 LAYER (REM)', v, f'from {k}') for k, v in snv.REMOVAL_LAYERS.items()]
+    rows += [('Skew2 LAYER (REM)', v, f'from {k} (layer present)') for k, v in snv.PRESENT_LAYERS.items()]
+    rows += [('Skew2 LAYER', 'PLYPP', 'poly CD with poly pitch change'), ('Skew2 LAYER', 'PLYITCN',
+                                                                          'PLY CD with inverse TCN CD at 44PP')]
+    rows += [('Additional descriptor', 'JOG:n/Zm[/k]', 'diffusion path: start Z / active-device jog Z / optional end Z')]
+    return pd.DataFrame(rows, columns=['Field', 'Code', 'Meaning'])
 
 
 def main():
@@ -106,7 +137,7 @@ def main():
     wide['Instance'], wide['TC'] = sf.Instance, sf.TC
     wide = wide.drop(columns='Base').sort_values(['Family', 'Corrected_Name'])
 
-    sheets = {'Field_Map': matrix, 'Examples': examples, 'Split_All': wide}
+    sheets = {'Field_Map': matrix, 'Examples': examples, 'Split_All': wide, 'Vocabulary': vocabulary()}
     for fam in FAMILY_ORDER:
         g = sf[sf.Family == fam]
         if g.empty:
@@ -134,7 +165,7 @@ def main():
                 head = ws.cell(1, i)
                 head.font = Font(bold=True)
                 head.alignment = Alignment(horizontal='center')
-                if name in sheets and name not in ('Field_Map', 'Examples', 'Split_All'):
+                if name in sheets and name not in ('Field_Map', 'Examples', 'Split_All', 'Vocabulary'):
                     head.fill = PatternFill('solid', fgColor=colour(str(c)))
             if name == 'Field_Map':
                 for row in ws.iter_rows(min_row=2, max_row=MAXF + 1, min_col=2):

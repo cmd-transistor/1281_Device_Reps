@@ -114,7 +114,7 @@ def main():
     rules = pd.DataFrame([
         ('BKM violation', 'Original WW19 BKM rule not followed. Codes: ' + ', '.join(sorted(BKM_VIOLATION_CODES))),
         ('Standardization', 'Further consistency from the WW43-WW45 owner decisions (single-letter VT, A:NOM, TSDR skew grammar, '
-                            'PLY/TCN vocabulary, routing removal, NL/SR fields, :LLE tag, BE uniform layout, ...).'),
+                            'PLY/TCN identifiers, routing removal, NL fields, bitcell SR/RF type, WID in the skew, BE uniform layout, ...).'),
         ('Compliant', 'Original name unchanged by the validator.'),
         ('Counting', 'Structures = unique superflow names (incl. _TCxx_y) listed in the owner\'s rows; a name in two rows counts '
                      'in both. Owner = "Test Row Owner" of sheet X81Z_Row_Tracker.'),

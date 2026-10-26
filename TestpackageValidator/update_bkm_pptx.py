@@ -33,24 +33,24 @@ EDITS = [
     (10, 'ROSN132-Z3-2L-ELVT-NAN-1X1-IXI-SH-M1-WAC-6X_TCxx_y', 'ROSN132-Z3-2L-E-NAN-1X1-IXI-SH-NOM-M1-WAC-6X_TCxx_y'),
     (10, 'ROSP132-Z3-2L-SVT-AOI-10X10-IXI-SH-M2-STK-16X_TCxx_y', 'ROSP132-Z3-2L-S-AOI-10X10-IXI-SH-M2-STK-16X_TCxx_y'),
     (10, 'Precedes with M – Matching Pair PFT , Structure instance to be added in additional section',
-         'Precedes with M – Matching Pair PFT (MNS/MPS); pair given in environment as CMOS/NP or CMOS/PP'),
+         'Precedes with M – Matching Pair PFT (MNS = NMOS pair, MPS = PMOS pair); environment is the normal one (CMOS)'),
     (10, 'Precedes with W – Within Die PFTs, Structure instance to be added in additional section',
-         "Precedes with W – Within Die PFTs (W prefix replaces the '-WID' suffix; W before M)"),
+         'Within Die PFTs: no W prefix - WID is written in the TSDR skew position (A:WID)'),
     (11, _PFT_TAIL, _PFT_TAIL_NOROUTE),
     (11, 'NS132-Z5-1L-ULVT-CMOS-1X1-IXI-SH-M1-NOM_TCxx_y', 'NS132-Z5-1L-U-CMOS-1X1-IXI-SH-NOM_TCxx_y'),
     (11, 'NS110-Z8-1L-ELVT-BCMOS-1X1-IXI-DH_TCxx_y', 'NS110-Z8-1L-E-BCMOS-1X1-IXI-DH-NOM_TCxx_y'),
     (11, 'Precedes with M – Matching Pair PFT, Structure instance to be added in additional section',
-         'Precedes with M – Matching Pair PFT (MNS/MPS); pair given in environment as CMOS/NP or CMOS/PP'),
+         'Precedes with M – Matching Pair PFT (MNS = NMOS pair, MPS = PMOS pair); environment is the normal one (CMOS)'),
     (11, 'Precedes with W – Within Die PFTs, Structure instance to be added in additional section',
-         "Precedes with W – Within Die PFTs (W prefix replaces the '-WID' suffix; W before M)"),
+         'Within Die PFTs: no W prefix - WID is written in the TSDR skew position (A:WID)'),
     (11, 'FTI:PGD:CD:P5', 'A:FTI:PGD:CD:P5'),
     (11, 'PLY:OGD:CD:12', 'A:PLY:OGD:CD:12'),
     (11, 'PLY:OGD:PP:45', 'A:PLY:OGD:PP:45'),
     (12, 'DIFF-LEGS-VT-Environment-FTI-ISO-Bitcell-(Routing)-Additional_TCxx_Count',
-         'DIFF-LEGS-DUT-Bitcell-FTI-ISO-NH-NOM|Skew-Additional_TCxx_Count'),
-    (12, 'SRN192-30-1L-PD-HCC1-SNXSN-SNXSN-M1_TCxx_y', 'SRN192-30-1L-PD-HDC1-SNXSN-SNXSN-NH-NOM_TCxx_y'),
-    (12, 'SRP192-30-1L-PU-HCC1-SNXSN-SNXSN-M1_TCxx_y', 'SRP192-26-1L-PU-HDC1-SNXSN-SNXSN-NH-NOM_TCxx_y'),
-    (12, 'RFN315-49-1L-RP-TPRF1-SNXSN-SNXSN-M2_TCxx_y', 'RFN315-49-1L-RP-TPRF1-SNXSN-SNXSN-NH-NOM_TCxx_y'),
+         'DIFF-LEGS-DUT-Bitcell-FTI-ISO-CellType(SR|RF)-NOM|Skew-Additional_TCxx_Count'),
+    (12, 'SRN192-30-1L-PD-HCC1-SNXSN-SNXSN-M1_TCxx_y', 'SRN192-30-1L-PD-HDC1-SNXSN-SNXSN-SR-NOM_TCxx_y'),
+    (12, 'SRP192-30-1L-PU-HCC1-SNXSN-SNXSN-M1_TCxx_y', 'SRP192-26-1L-PU-HDC1-SNXSN-SNXSN-SR-NOM_TCxx_y'),
+    (12, 'RFN315-49-1L-RP-TPRF1-SNXSN-SNXSN-M2_TCxx_y', 'RFN315-49-1L-RP-TPRF1-SNXSN-SNXSN-RF-NOM_TCxx_y'),
     (13, 'DIFF-#ADF-VT-Environment-(Routing)-Additonal_TCxx_Count',
          'DIFF-#ADF-VT-Environment-FTI-ISO-LayoutHeight-NOM|Skew-Additional_TCxx_Count'),
     (13, 'NM132-Z5-1ADF-LVT-CMOS-M1-NOM_TCxx_y', 'NM132-Z5-1ADF-L-CMOS-0X0-IXI-SH-NOM_TCxx_y'),
@@ -75,31 +75,44 @@ TABLE_EDITS = {5: {'Symbol': 'Code in name', 'HVT': 'H', 'SVT': 'S', 'LVT': 'L',
 # (slide, anchor text identifying the text box, new paragraphs appended - fully highlighted)
 ADDS = [
     (3, 'Make a uniform delimiter', [
-        "'/' only inside the environment field (/D = no diffusion; CMOS/NP, CMOS/PP = matching pair), in "
-        'back-end layer pairs / W-S values, and between alternative DIR / SKEW values of a POR reference '
-        '(OGD/PGD, CD/REG)',
+        "'/' only inside the environment field (/D = no diffusion), between removed layers of a REM skew "
+        '(A:NPXL/NGLK:Z:REM:ALL), and inside a diffusion JOG path (A:JOG:2/Z5/2); back-end (BE) and QnR names are not changed (except BE-pattern '
+        'front-end via chains in device rows)',
         'POR structures without a TSDR skew carry A:NOM (lego type first, as in skews) as the first additional '
-        'token; POR / REF / SDR are written NOM',
+        'token; POR / SDR and DR (design rule) are written NOM; in LLE rows REF (reference of the LLE structures, '
+        'e.g. 9X9 for FTI roosting) is written NOM_LLE: A:NOM_LLE, A:UDEG:NOM_LLE',
         "Signed magnitudes are written N#/P#/NOM - never '+' / '-' (collides with the '-' delimiter)",
         "Inline '_' is not allowed; '_' only before seat name for a trailing instance index (e.g. _2)",
-        "LLE (local layout effects) rows: a structure carries an LLE layout descriptor (NEST, VTMX, UDEG, FTIRST, "
-        "...) or, if it has none (A:NOM, A:PXL), the tag ':LLE' (A:NOM:LLE)",
-        "Every TSDR skew (ISO, PFT, MLR, KLV, BE) uses TYPE:LAYER:DIR:SKEW:MAG[:extra]; TYPE = lego type ('A' when not "
+        'Gate KLV DR / SDR twins in separate rows are distinct structures: mark the DR copy _2 before _TCxx_y',
+        "Every first additional token starts with the lego type: A:NOM, A:WID, A:HV, A:STK, ...",
+        'In Atlantis WID rows, a final A:NOM is replaced row-specifically by A:WID; shared BE-row names are unchanged',
+        'Legacy CMOS_A is an analog environment and is written in ENV as ANALOG (not A:NOM_A)',
+        'Layer-removal variants are TSDR skews: A:{removed layers N<layer>, joined /}:Z:REM:ALL[:extra], e.g. '
+        'A:NPXL/NGLK:Z:REM:ALL, A:NDBI:Z:REM:ALL, A:NDBI/NIMP:Z:REM:ALL (IMPLANT = IMP), A:TAPNDBI:Z:REM:ALL; '
+        'XTRCAP VCR-present variant is A:NVCR (not TSDR); XTRCAP gate-count with implant kept is '
+        'A:YIMP:Z:KEP:ALL:{gate-count}',
+        'Preserve TCNVCR in XTRPFX LLE names: NONUB:6 -> A:TCNVCR:PGDNUB:NONUB (stable across cell heights); '
+        'PGDNUB:17 -> A:TCNVCR:PGDNUB:P3D6; OGDNUB:20 -> A:TCNVCR:OGDNUB:N24',
+        'Diffusion jog shorthand JOG:2A52 is written JOG:2/Z5/2 (start / active-device diffusion / end); '
+        'one-sided JOG:2A5 -> JOG:2/Z5',
+        "Every TSDR skew (ISO, PFT, MLR, KLV) uses TYPE:LAYER:DIR:SKEW:MAG[:extra]; TYPE = lego type ('A' when not "
         'specified); DIR: PXL=PGD, PLY/TCN/FTI=OGD; decimals as D (N1D2); CD relative to nominal (VCR 12 nm, '
         'VCRNUB 44 nm)',
         'Layout-variant descriptors that are not TSDR skews (VTMX, NEST, UDEG, JOG, FTIRST, ...) carry the lego '
         "type as prefix (A:VTMX:CRL:H); a trailing REF / POR inside them is written NOM; signed values '+5' -> P5"]),
     (5, 'Character limit is 64', ['64-character limit is checked on the full name including _TCxx_y',
                                   'Metal-gate VT is written with the single-letter code (table) and follows LEGS/#ADF']),
-    (11, 'BCMOS – Balanced NPN', ['/D – no diffusion (replaces CMOS/UNI)', 'CMOS/NP, CMOS/PP – matching pair',
-                                  'ADTUNI – two active diffusion (ADT)', 'If nesting not specified: 0X0-IXI']),
-    (11, 'Inline Structure Example', ['Matching: MNS132-Z5-1L-L-CMOS/NP-0X1-IXI-SH-NOM_TCxx_y',
-                                      'WID: WNS132-Z5-1L-L-CMOS-0X1-IXI-SH-NOM_TCxx_y',
-                                      'PLY/TCN CD skews - layer code states TCN and poly-pitch behaviour (POR PP 44): '
-                                      'PLYFTCN = PLY skew, TCN fixed, PP = 44+MAG (A:PLYFTCN:OGD:CD:N1 = 43PP); '
-                                      'PLYFPP = PLY only, fixed 44PP, TCN nominal; PLYITCN = PLY skew, TCN inverse, '
-                                      'fixed 44PP (A:PLYITCN:OGD:CD:N0D4 = PLY -0.4 / TCN +0.4); TCNFPP = TCN only, '
-                                      'fixed 44PP. ISO/KLV keep A:TCN:OGD:CD:{MAG}']),
+    (11, 'BCMOS – Balanced NPN', ['/D – no diffusion (replaces CMOS/UNI)',
+                                  'Matching pair (M head: MNS = NMOS pair, MPS = PMOS pair) keeps the normal environment',
+                                  'ADTUNI – two active diffusion (ADT); ADT and HV structures are double height (DH), '
+                                  'except the 1GANG ADT structures (SH)', 'If nesting not specified: 0X0-IXI']),
+    (11, 'Inline Structure Example', ['Matching: MNS132-Z5-1L-L-CMOS-0X1-IXI-SH-NOM_TCxx_y',
+                                      'WID: NS132-Z5-1L-U-CMOS-1X1-IXI-SH-A:WID_TCxx_y',
+                                      'PLY/TCN CD skews: PLY CD and poly pitch both change (TCN fixed, PP = 44+MAG) '
+                                      '= layer PLYPP, kind CDPP: A:PLYPP:OGD:CDPP:N1 (PP 43), series NOM '
+                                      'A:PLYPP:OGD:CDPP:NOM; '
+                                      'CD = CD only at fixed 44PP: A:PLY:OGD:CD:N0D4, A:TCN:OGD:CD:P0D4; PLYITCN = PLY '
+                                      'CD with inverse TCN CD at fixed 44PP (A:PLYITCN:OGD:CD:N0D4)']),
     (13, 'Inline Structure Example', ['Metal routing (M#) is not part of PFT / MLR / BITCELL names (kept only '
                                       'for ROS / ROSPFT where needed); FTI-ISO-LayoutHeight padded 0X0-IXI-SH',
                                       '/D environment = no diffusion: NM132-Z5-1ADF-E-/D-0X0-IXI-SH-NOM_TCxx_y',
@@ -107,12 +120,15 @@ ADDS = [
                                       '(132H, 165H); double-sided 16.8 / 26.8 nm']),
     (14, 'Examples:', ["POR layer 'SDR' is written NOM; diffusion always Z code (NZ1, not N27)",
                        'POR reference without its own direction lists all DIR / SKEW of its series: '
-                       'DIFFOGD132-NZ5-NL-L-A:FTIML:OGD/PGD:CD/REG:NOM',
+                       'DIFFOGD132-NZ5-NL-L-A:FTIML:NOM:NOM:NOM (NOM placeholder when the series uses several)',
                        "Qualifiers (e.g. NDBI) go to a trailing ':' chunk: A:NOM:PGD:ESD:2TRK1PP:NDBI",
                        "No legs in ISO / KLV names: 'NL' (no legs) keeps VT in field 4; SRAM bitcells already carry "
-                       "the device type (PD/PG/PU/RP/IR) in field 4 and 'NH' (no height) in field 8 so Nest, Iso and the "
-                       "skew line up with the logic families; two diffusions are joined with ':' (SRN192-29:28-1L-PD-...)",
-                       'KLV structures use this layout: GATEKLV132-NDZ5-NL-L-NPXLNGLK, VTKLV132-NZ5-NL-L-SDRENC']),
+                       "the device type (PD/PG/PU/RP/IR) in field 4 and the SR / RF cell type in the height position "
+                       "(field 8), so the skew lines up with the logic families; two diffusions are joined with ':' "
+                       "(SRN192-29:28-1L-PD-...)",
+                       'KLV structures use this layout plus an environment after VT (N/P = UNI, NP = CMOS, ND = /D): '
+                       'GATEKLV132-NPZ5-NL-L-CMOS-A:NPXL/NGLK:Z:REM:ALL, GATEKLV132-NZ5-NL-L-/D-A:NOM, '
+                       'VTKLV132-NZ5-NL-L-UNI-A:VT:Z:ENC:NOM']),
 ]
 
 NOTES = {5: 'WW43 decision: VT stays after LEGS/#ADF as in the slide templates (supersedes "Move VT after diff '
@@ -120,36 +136,13 @@ NOTES = {5: 'WW43 decision: VT stays after LEGS/#ADF as in the slide templates (
 
 NEW_SLIDES = [
     ('Structure Name – Full KTCN (FK) PFT   [NEW WW43]', [
-        'TESTNAME_{N|P}S{CH}-{Z}-1L-{VT}-CMOS-1X1-IXI-SH-A:FKTCN:{Dir}:{SkewType}:{Mag}:44PP_TCxx_y',
+        'TESTNAME_FK{N|P}S{CH}-{Z}-1L-{VT}-CMOS-1X1-IXI-SH-A:TCN:{Dir}:{SkewType}:{Mag}_TCxx_y',
         '',
-        'Follows the CMOS PFT template; full-KTCN identity carried by the skew layer FKTCN; 44 = 44 PP',
+        'Follows the CMOS PFT template; full-KTCN identity carried by the FK prefix on the head; POR pitch 44PP implied',
         'Old: FKNS44-132-Z5-L-TCN:OGD:CD:N1_TCxx_y',
-        'New: NS132-Z5-1L-L-CMOS-1X1-IXI-SH-A:FKTCN:OGD:CD:N1:44PP_TCxx_y',
+        'New: FKNS132-Z5-1L-L-CMOS-1X1-IXI-SH-A:TCN:OGD:CD:N1_TCxx_y',
         'Old: FKPS44-165-Z7-L-TCN:OGD:CD:NOM_TCxx_y',
-        'New: PS165-Z7-1L-L-CMOS-1X1-IXI-SH-A:FKTCN:OGD:CD:NOM:44PP_TCxx_y']),
-    ('Structure Name – Back-end (Via / Metal)   [NEW WW43]', [
-        '{VIA}{TEST}{CH}-{Layers}-{W/S}-{W/S}-{Dim}-A:{VIA}:{Dir}:{Skew}:{N#|P#|NOM}_TCxx_y',
-        '',
-        'TEST = back-end structure type, joined to the category like the front-end KLV family '
-        '(VT_KLV_…_132H -> VTKLV132-…, cf. VTKLV132-NZ5-L-…): KLV kelvin, MV via zipper, VCHN via chain, '
-        'ECD electrical CD, SRP serpentine',
-        "'-' replaces '_' as field delimiter; CH follows the category; '/' kept for layer pairs and W/S; "
-        'skew in TYPE:LAYER:DIR:SKEW:MAG with layer = via/metal and DIR Z (back-end, as DIFFCHN); '
-        'structures without skew carry A:NOM',
-        'Old: V0_KLV_M0B/M1_12/9_24/20_21X9_CD_-3_TCxx_y  ->  V0KLV-M0B/M1-12/9-24/20-21X9-A:V0:Z:CD:N3_TCxx_y',
-        'Old: V1_VCHN_M1/M2B_…_REGOGD_-13_TCxx_y  ->  V1VCHN-M1/M2B-…-A:V1:OGD:REG:N13_TCxx_y',
-        'Old: V0_MV_M0B/M1_12/9_24/20_24X12_V0M0_-10_TCxx_y  ->  V0MV-…-A:V0:Z:V0M0:N10_TCxx_y',
-        'Old: VG_KLV_Z1N/M0B_12X10_DR_E_110H_TCxx_y  ->  VGKLV110-Z1N/M0B-12X10-DR-E_TCxx_y',
-        "DR -> NOM only where confirmed per structure (DR_to_NOM_Decisions.csv)",
-        'Uniform field count per {VIA}{TEST}: core fields - skew field (A:... / A:NOM / DR) - one optional '
-        "':'-joined additional field (NUB:0:1VCR, WL:DEN, TOP:L); '-WID' -> 'W' head prefix"]),
-    ('Structure Name – QnR (draft, decoder pending)   [NEW WW43]', [
-        '{QFAM}{CH}-{Z}-{VT}-{ENV}-{NEST}-{ISO}-R{rev}:{MOS code}:{CH variant}:{Geometry}:{Style}:{Topology}-{Location}',
-        '',
-        'Old: QMN3-NM44-132A-Z521616I-0X0-IXI-SVT-L-2T-CMOS-BP35_TCxx_y',
-        'Draft: QMN132-Z5-S-CMOS-0X0-IXI-R3:NM44:A:21616I:L:2T-BP35_TCxx_y',
-        "Interim rule: '-' delimiter (QCNP used '_'), single-letter VT, 'ULVT-LL' -> UL",
-        'MOS code NM/PM/PC + 44 (PP); A = lego/orientation variant; BP/VP = pad/site index']),
+        'New: FKPS165-Z7-1L-L-CMOS-1X1-IXI-SH-A:TCN:OGD:CD:NOM_TCxx_y']),
 ]
 
 

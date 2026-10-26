@@ -28,6 +28,10 @@ DEFAULT_OUT = OUTPUT_DIR / 'StructureName_Validation.xlsx'
 DR_FILE = VALIDATE_DIR / 'DR_to_NOM_Decisions.csv'
 ISO_DIR_FILE = VALIDATE_DIR / 'ISO_Skew_Direction_Decisions.csv'
 REPORT_FILE = OUTPUT_DIR / 'StructureName_Validation_Report.md'
+TRACKER_FILE = HERE / 'X81Z_Device_Testrow_Tracker.xlsx'
+ATLANTIS_STRUCTS = OUTPUT_DIR / 'Atlantis_81Z_TapeIn_Structures_raw.csv'    # written by atlantis_rename_table.py
+ISO_BUILDSHEET = OUTPUT_DIR / 'Atlantis_81Z_ISO_Buildsheet_raw.csv'        # written by buildsheet_issues.py
+TAPE_IN_STATUS = 'Configured for Tape-in'     # owner WW45: only these rows (and only if in the superflow) are changed
 
 # --------------------------------------------------------------------------------------
 # BKM constants (StructureNameNomenclature_WW19'26_DeviceBKMs.pptx)
@@ -65,7 +69,7 @@ SLOT_ORDER = {
     'ROS':     ['DIFF', 'LEGS', 'VT', 'STYLE', 'STG', 'FO', 'HEIGHT', 'ROUTING'],
     'ROSPFT':  ['DIFF', 'LEGS', 'VT', 'STYLE', 'NEST', 'ISO', 'HEIGHT', 'ROUTING'],
     'PFT':     ['DIFF', 'LEGS', 'VT', 'ENV', 'NEST', 'ISO', 'HEIGHT', 'ROUTING'],
-    'BITCELL': ['DIFF', 'LEGS', 'DUT', 'LIB', 'NEST', 'ISO', 'HEIGHT', 'ROUTING'],   # DUT sits in the VT position
+    'BITCELL': ['DIFF', 'LEGS', 'DUT', 'LIB', 'NEST', 'ISO', 'HEIGHT', 'ROUTING'],   # DUT in the VT position; HEIGHT = SR/RF type
     'MLR':     ['DIFF', 'ADF', 'VT', 'ENV', 'NEST', 'ISO', 'HEIGHT', 'ROUTING'],   # padded to PFT grid
 }
 OPTIONAL_SLOTS = {'ROUTING'}
@@ -76,25 +80,42 @@ SLOT_DEFAULTS = {
     'PFT':    {'NEST': '0X0', 'ISO': 'IXI'},
     'ROSPFT': {'NEST': '0X0', 'ISO': 'IXI'},
     'MLR':    {'NEST': '0X0', 'ISO': 'IXI', 'HEIGHT': 'SH'},
-    'BITCELL': {'HEIGHT': 'NH'},               # NH = no height; keeps Nest/Iso at 6/7 and the skew at field 9
 }
 NOM_FAMILIES = {'ROS', 'ROSPFT', 'PFT', 'BITCELL', 'MLR'}
+FROZEN_FAMILIES = {'BE', 'QREL'}             # owner WW45: no changes to BE and QnR names (findings kept as INFO)
+DEVICE_ROWS: set[str] = set()                # device tracker rows (lower case): BE-pattern names there are changed
+ATL_ROWS: dict[str, set] = {}                # Atlantis-only name -> Atlantis rows (device rows not in superflow/Etest)
+CDPP_NOM: set[str] = set()                   # original bases: NOM point of a PLY CD + pitch series (PLY:..:NOM:44PP)
+XTRCAP_BASES: set[str] = set()               # bases that occur only in XTRCAP superflow rows
+XTRPFX_BASES: set[str] = set()               # bases that occur only in XTRPFX superflow rows
+LLE_REF: set[str] = set()                    # original bases in LLE rows with REF; REF is their sub-family NOM
+BUILT_SKEW: dict[str, str] = {}              # original base -> FTI skew as built (DIR:KIND:MAG) when it differs
+FTI_POS = [('OGD', 'CD'), ('PGD', 'CD'), ('OGD', 'REG'), ('PGD', 'REG')]   # ISO FTICdMisregSkew value order (um)
+FTI_NAME_RX = re.compile(r'(?<=[-:_])([A-Z]*FTI[A-Z]*):(OGD|PGD):(CD|REG):([NP]\d+(?:D\d+)?)')
 DEFAULT_VT = {'VTKLV': 'L'}                  # owner: VTKLV structures are LVT
-HIGHLIGHT_CODES = {'ROUTING_REMOVED', 'LLE_TAG', 'DR_PENDING', 'VT_DEFAULT', 'ISO_DIR_PENDING', 'SKEW_DIR_SET'}
-DR_DECISIONS: dict[str, str] = {}             # original base -> 'Y' / 'N' (DR_to_NOM_Decisions.csv)
+HIGHLIGHT_CODES = {'ROUTING_REMOVED', 'VT_DEFAULT', 'ISO_DIR_PENDING', 'SKEW_DIR_SET',
+                   'ADT_HEIGHT', 'HV_FROM_PAIR', 'BUILDSHEET_NAME', 'ANALOG_ENV', 'TCNVCR_NUB', 'JOG_PATH',
+                   'KLV_DUP_INSTANCE', 'DFT_NAME_LENGTH'}
 ISO_DIR_DECISIONS: dict[str, dict] = {}       # original base -> {DIR, SKEW, Approve} (ISO_Skew_Direction_Decisions.csv)
 NEIGHBOUR_DIR: dict[str, tuple] = {}          # original base -> (DIR, SKEW, neighbour name) from row layout
+HV_FROM_PAIR: set[str] = set()                # original P-row bases written NOM whose N-row twin is HV (owner WW45)
 # Additional-section tokens that make a structure a non-POR variant (no NOM added)
-VARIANT_RX = re.compile(r'^(?:NODBI|YDBI|NOIMPLANT|YIMPLANT|TAPNODBI|NOVCR|NOVCRNUB|VCRNUB|HV|5T|\d+G|GNAC\w*'
+VARIANT_RX = re.compile(r'^(?:NODBI|YDBI|NOIMPLANT|YIMPLANT|TAPNODBI|NOVCR|NOVCRNUB|NVCR|NVCRNUB|VCRNUB|HV|5T|\d+G|GNAC\w*'
                         r'|STK|SHRD|SHRS|SHD|\d+GANG|DEPOP)$')
 POR_ALIASES = {'POR', 'REF', 'SDR'}          # additional-section tokens meaning POR -> NOM
 ISO_QUALIFIERS = {'NDBI', 'YDBI'}            # moved to a trailing ':' chunk in ISO skews
 # TSDR skew grammar shared by all families: TYPE:LAYER:DIR:SKEW:MAG[:extra]
-SKEW_KINDS = {'CD', 'REG', 'REF', 'DEN', 'ESD', 'ENC', 'EC', 'NES'}
+SKEW_KINDS = {'CD', 'CDPP', 'REG', 'REF', 'DEN', 'ESD', 'ENC', 'EC', 'NES', 'REM', 'KEP'}
+# layer-removal variants -> A:{layers joined /}:Z:REM:ALL, removed layer written N<layer> (owner WW45)
+REMOVAL_LAYERS = {'NODBI': 'NDBI', 'NOIMPLANT': 'NIMP', 'NOVCR': 'NVCR', 'NOVCRNUB': 'NVCRNUB',
+                  'TAPNODBI': 'TAPNDBI', 'NPXLNGLK': 'NPXL/NGLK', 'NGLK': 'NGLK'}
+PRESENT_LAYERS = {'YDBI': 'YDBI', 'YIMPLANT': 'YIMP'}   # explicitly present layers, kept in the layer list
+# IMPLANT is written IMP so the MLR nnnnG:NOIMPLANT variants fit 64 chars (owner WW45)
+KLV_ENVS = {'UNI', 'CMOS', '/D'}             # KLV environment: N/P = UNI, NP = CMOS, ND = /D (owner WW45)
 TSDR_DIRS = {'OGD', 'PGD', 'Z'}
 LAYER_DIR = {'PXL': 'PGD', 'PLY': 'OGD', 'TCN': 'OGD', 'FTI': 'OGD', 'FKTCN': 'OGD'}   # owner WW44
 MERGED_LAYER_SKEW = re.compile(r'^(PLY|TCN|PXL|FTI)(CD|REG)(PP)?$')
-MAG_RX = re.compile(r'^(?:[NP]\d+(?:D\d+)?[A-Z]?|NOM|\d+(?:D\d+)?)$')
+MAG_RX = re.compile(r'^(?:[NP]\d+(?:D\d+)?[A-Z]?|NOM|ALL|\d+(?:D\d+)?)$')
 # nm; absolute CD magnitudes are expressed relative to these (owner values; TCN KLV = series centre)
 SKEW_NOMINAL = {('VCRNUB', 'OGD'): 44, ('VCR', 'PGD'): 12, ('TCN', 'OGD'): 12}
 VCRNUB_PGD_NOMINAL = {110: 8.4, 132: 13.4, 165: 13.4}   # single-sided, by cell height (double-sided = 2x)
@@ -110,13 +131,13 @@ KLV_DETAIL_MAP = [(re.compile(r'^CD(\d+)$'), r'CD:\1'),
 TEMPLATES = {
     'ROS':     '[W]X81ZROS{CH}-{Z}-{#L}-{VT}-{STYLE}-STG{n}-FO{n}-{SH|DH}-{NOM|skew}-(M#)-{ADD}',
     'ROSPFT':  '[W]ROS{N|P}{CH}-{Z}-{#L}-{VT}-{STYLE}-{NEST}-{ISO}-{SH|DH}-{NOM|skew}-(M#)-{ADD}',
-    'PFT':     '[W][M]{N|P}S{CH}-{Z}-{#L}-{VT}-{ENV[/NP|/PP]}-{NEST}-{ISO}-{SH|DH}-{NOM|skew}-{ADD}',
-    'BITCELL': '[W]{SR|RF}{N|P}{CH}-{DIFF}-{#L}-{DUT}-{LIB}-{NEST}-{ISO}-NH-{NOM|skew}-{ADD}',
+    'PFT':     '[W][M]{N|P}S{CH}-{Z}-{#L}-{VT}-{ENV}-{NEST}-{ISO}-{SH|DH}-{NOM|skew}-{ADD}',
+    'BITCELL': '[W]{SR|RF}{N|P}{CH}-{DIFF}-{#L}-{DUT}-{LIB}-{NEST}-{ISO}-{SR|RF}-{NOM|skew}-{ADD}',
     'BCLA':    '{SR|RF}{CH}-{LIB}BCLA-{ADD}',
     'MLR':     '[W]{N|P|X}M{CH}-{Z}-{#ADF}-{VT}-{ENV|/D}-{NEST}-{ISO}-{SH|DH}-{NOM|skew}-{ADD}',
     'ISO':     '{FAILMODE}{CH}-{POL}{Z}-NL-{VT}-{TYPE}:{LAYER|NOM}:{DIR}:{SKEW}:{MAG}[:extra][_inst]',
-    'KLV':     '{FAILMODE}KLV{CH}-{POL}{Z}-NL-{VT}-{DETAIL|NOM}[_inst]   (ISO layout)',
-    'FK':      '{N|P}S{CH}-{Z}-1L-{VT}-CMOS-1X1-IXI-SH-A:FKTCN:{DIR}:{SKEW}:{MAG}:44PP   (PFT style)',
+    'KLV':     '{FAILMODE}KLV{CH}-{POL}{Z}-NL-{VT}-{UNI|CMOS|/D}-{DETAIL|NOM}[_inst]   (ISO layout + environment)',
+    'FK':      '[W]FK{N|P}S{CH}-{Z}-1L-{VT}-CMOS-1X1-IXI-SH-A:TCN:{DIR}:{SKEW}:{MAG}   (PFT layout, FK prefix, 44PP implied)',
     'QREL':    'QnR - minimal fixes; Proposed: {QFAM}{CH}-{Z}-{VT}-{ENV}-{NEST}-{ISO}-R{rev}:{MOS}:{VAR}:{GEOM}:..-{LOC}',
     'BE':      '{VIA}{TEST}{CH}-{LAYERS}-{W/S}-{W/S}-{DIM}-{SKEW}:{N|P|NOM}{MAG}',
 }
@@ -124,15 +145,15 @@ TEMPLATES = {
 _STYLE = r'INV|NAN\d*|NAND\d*|NOR\d*|AOI\w*|OAI\w*|XOR\d*|XNOR\d*|BUF\w*|MUX\w*'
 _VT_ALT = '|'.join(sorted(VT_ANY, key=len, reverse=True))
 _NEST_ISO = re.compile(r'^[A-Z0-9]{1,4}X[A-Z0-9]{1,4}$')   # 0X1, 10X10, SXS, IXI, I2XI2, SNXSN
-BKM_ENVS = {'CMOS', 'BCMOS', 'LCMOS', 'OCMOS', 'ADTUNI', '/D'}
+BKM_ENVS = {'CMOS', 'BCMOS', 'LCMOS', 'OCMOS', 'ANALOG', 'ADTUNI', '/D'}
 RX = {
     'DIFF': re.compile(r'^Z\d+$'),
     'DIFF_NUM': re.compile(r'^\d{2}(?::\d{2})?$'),
     'LEGS': re.compile(r'^\d+L$'),
     'ADF': re.compile(r'^\d+ADF$'),
     'VT': re.compile(rf'^(?:{_VT_ALT})(?::(?:{_VT_ALT}))*$'),   # HVT:LVT = mixed-VT ROS
-    # /D = no diffusion; /NP,/PP = matching-pair qualifier
-    'ENV': re.compile(r'^(?:(?:[BLO]?CMOS|UNI|ADT|ADTUNI|ADTCMOS|ANALOG)(?:/(?:NP|PP))?|/D)$'),
+    # /D = no diffusion
+    'ENV': re.compile(r'^(?:(?:[BLO]?CMOS|UNI|ADT|ADTUNI|ADTCMOS|ANALOG)|/D)$'),
     'STYLE': re.compile(rf'^(?:{_STYLE})$'),
     'NEST': _NEST_ISO,
     'ISO': _NEST_ISO,
@@ -147,7 +168,7 @@ def _slot_rx(fam: str, slot: str):
     if fam == 'BITCELL' and slot == 'DIFF':
         return RX['DIFF_NUM']
     if fam == 'BITCELL' and slot == 'HEIGHT':
-        return re.compile(r'^NH$')
+        return re.compile(r'^(?:SR|RF)$')
     return RX[slot]
 
 
@@ -156,7 +177,7 @@ SLOT_RX = {fam: [(s, _slot_rx(fam, s)) for s in order] for fam, order in SLOT_OR
 HEAD_RX = {
     'ROS':     re.compile(r'^(?P<WID>W?)(?P<CAT>X81ZROS)(?P<CH>\d{3})$'),
     'ROSPFT':  re.compile(r'^(?P<WID>W?)(?P<CAT>ROS)(?P<POL>[NP])(?P<CH>\d{3})$'),
-    'PFT':     re.compile(r'^(?P<WID>W?)(?P<MAT>M?)(?P<POL>[NP])(?P<CAT>[SP])(?P<CH>\d{3})$'),
+    'PFT':     re.compile(r'^(?P<WID>W?)(?P<FK>FK)?(?P<MAT>M?)(?P<POL>[NP])(?P<CAT>[SP])(?P<CH>\d{3})$'),
     'BITCELL': re.compile(r'^(?P<WID>W?)(?P<CAT>SR|RF)(?P<POL>[NP])(?P<CH>\d{3})$'),
     'MLR':     re.compile(r'^(?P<WID>W?)(?P<POL>N|P|X|XN|XP)(?P<CAT>M)(?P<CH>\d{3})$'),
 }
@@ -243,7 +264,12 @@ def parse_slotted(base: str, fam: str, res: Result):
         new = re.sub(r':([+-])(\d)', lambda m: ':' + ('N' if m.group(1) == '-' else 'P') + m.group(2), base)
         res.add('WARN', 'SKEW_CLEANUP', "Signed value after ':' ('-n' splits the field) -> N/P", True)
         base = new
+    base = base.replace('NOM_LLE', 'NOM')             # normalize legacy LLE marker to its sub-family NOM
     toks = base.split('-')
+    for i, token in enumerate(toks):
+        if token == 'CMOS_A':
+            toks[i] = 'ANALOG'
+            res.add('WARN', 'ANALOG_ENV', "Environment 'CMOS_A' -> 'ANALOG' (analog style belongs in ENV)", True)
     head = toks.pop(0)
     if re.fullmatch(r'[A-Z]+', head) and toks and re.fullmatch(r'\d{3}', toks[0]):
         res.add('WARN', 'CAT_CH_SPLIT', f"Extra '-' between category and cell height ('{head}-{toks[0]}')", True)
@@ -260,10 +286,16 @@ def parse_slotted(base: str, fam: str, res: Result):
     # --- token normalisation before slot assignment ---
     if 'WID' in toks:
         toks = [t for t in toks if t != 'WID']
-        if not wid:
-            res.add('WARN', 'WID_PREFIX', "'-WID' suffix removed; WID structures are prefixed with 'W' (slide 10/11)",
-                    True)
         wid = True
+    if wid:
+        res.add('WARN', 'WID_PREFIX', "Within-die: 'W' head prefix / '-WID' suffix replaced by WID in the TSDR skew "
+                                      'position (A:WID)', True)
+    if base in HV_FROM_PAIR and 'NOM' in toks:
+        toks = ['HV' if t == 'NOM' else t for t in toks]
+        res.add('WARN', 'HV_FROM_PAIR', "POR 'NOM' -> 'HV': the paired N-row structure is HV (owner WW45)", True)
+    res.fields['_cdpp_nom'] = base in CDPP_NOM
+    res.fields['_lle_ref'] = base in LLE_REF
+    res.fields['_xtrpfx'] = base in XTRPFX_BASES
     if '/D' in toks:
         envs = [t for t in toks if t != '/D' and RX['ENV'].match(t)]
         if envs:
@@ -320,6 +352,10 @@ def parse_slotted(base: str, fam: str, res: Result):
         if s not in filled:
             filled[s] = v
             res.add('WARN', 'DEFAULT_FILL', f'{s} not specified - default {v} inserted for grid alignment', True)
+    if fam == 'BITCELL' and 'HEIGHT' not in filled:
+        filled['HEIGHT'] = g['CAT']
+        res.add('WARN', 'DEFAULT_FILL', f"SRAM bitcell type {g['CAT']} inserted in the height position (placeholder)",
+                True)
     missing = [s for s in order if s not in filled and s not in OPTIONAL_SLOTS]
     for s in missing:
         res.add('ERROR', 'MISSING_FIELD', f'Mandatory BKM field {s} not found ({TEMPLATES[fam]})')
@@ -337,11 +373,19 @@ def parse_slotted(base: str, fam: str, res: Result):
         filled['ENV'] = 'ADT' + env
         res.add('WARN', 'ADT_ENV', f"ADT structure: environment '{env}' -> '{filled['ENV']}', 'ADT:' prefix "
                                    'removed from additional detail', True)
-    if env and pair and '/' not in env:
-        filled['ENV'] = f"{filled['ENV']}/{g['POL']}P"
+    hv = any('HV' in t.split(':') for _, t in adds)
+    if (adt or hv) and fam != 'BITCELL' and 'HEIGHT' in filled:
+        want = 'SH' if any('1GANG' in t.split(':') for _, t in adds) else 'DH'
+        if filled['HEIGHT'] != want:
+            res.add('WARN', 'ADT_HEIGHT', f"{'ADT' if adt else 'HV'} structure: height {filled['HEIGHT']} -> {want} ("
+                                          + ('1 GANG structure' if want == 'SH' else 'all ADT and HV structures are '
+                                                                                  'double height')
+                                          + ')', True)
+            filled['HEIGHT'] = want
+    if pair:
         mat = True
-        res.add('WARN', 'MATCHING_PREFIX', f"Matching pair: head '{g['POL']}P' -> 'M{g['POL']}S', pair moved to "
-                                           f"environment '{filled['ENV']}'", True)
+        res.add('WARN', 'MATCHING_PREFIX', f"Matching pair: head '{g['POL']}P' -> 'M{g['POL']}S' (NMOS/PMOS pair = M + "
+                                           'polarity; environment unchanged)', True)
     env = filled.get('ENV')
     if env and env.split('/')[0] not in {e.split('/')[0] for e in BKM_ENVS} and env != '/D':
         res.add('INFO', 'ENV_VALUE', f"Environment '{env}' is not in the BKM list {sorted(BKM_ENVS)}")
@@ -360,14 +404,23 @@ def parse_slotted(base: str, fam: str, res: Result):
     addtoks = []
     lego = DEFAULT_SKEW_TYPE
     for t in joined:
+        if base in XTRCAP_BASES:
+            new = re.sub(r'(?<![A-Z])NOVCRNUB(?=$|[-_:])', 'NVCRNUB', t)
+            new = re.sub(r'(?<![A-Z])NOVCR(?=$|[-_:])', 'NVCR', new)
+            if new != t:
+                res.add('WARN', 'NVCR_VARIANT', f"XTRCAP VCR-present variant '{t}' -> '{new}' (not a TSDR skew)", True)
+                t = new
         if re.fullmatch(r'[A-Z]:NOM', t):
             lego, t = t[0], 'NOM'
         if ':' in t:
             t = clean_add_token(t, res)
         if ':' in t or MERGED_LAYER_SKEW.match(t.split(':')[0]):
             t = norm_tsdr(t, res)
-        if fam in ('PFT', 'MLR'):
+        if fam in ('PFT', 'MLR') and res.family != 'FK':
             t = ply_tcn_vocab(t, res)
+        if t == 'REF' and res.fields.get('_lle_ref'):
+            t = 'NOM'
+            res.add('WARN', 'LLE_REF', "LLE reference 'REF' -> 'NOM' (nominal reference for the LLE sub-family)", True)
         if t in POR_ALIASES:
             res.add('WARN', 'POR_TO_NOM', f"POR token '{t}' -> 'NOM'", True)
             t = 'NOM'
@@ -391,15 +444,35 @@ def parse_slotted(base: str, fam: str, res: Result):
         addtoks[addtoks.index('NOM')] = f'{lego}:NOM'
         if f'{lego}:NOM' not in base:
             res.add('WARN', 'NOM_LEGO', f"Lego type added to NOM -> '{lego}:NOM' (TYPE first, as in skews)", True)
+    if wid:
+        k = next((i for i, t in enumerate(addtoks) if t == f'{lego}:NOM'), None)
+        if k is not None:
+            addtoks[k] = f'{lego}:WID'
+        elif addtoks:
+            addtoks[0] += ':WID'
+        else:
+            addtoks.append(f'{lego}:WID')
 
     if fam == 'MLR' and len(addtoks) > 1 and not any(':' in t for t in addtoks):
         res.add('WARN', 'ADD_FOLD', f"Variant tokens {addtoks} joined into one ':' field (uniform field count)", True)
         addtoks = [':'.join(addtoks)]
+    if fam in NOM_FAMILIES:
+        for k, t in enumerate(addtoks):
+            if not re.match(r'[A-Z]:', t) and all(VARIANT_RX.match(c) for c in t.split(':')):
+                addtoks[k] = f'{lego}:{t}'
+                res.add('WARN', 'LEGO_PREFIX', f"Lego type added to variant '{t}' -> '{addtoks[k]}'", True)
+    if base in XTRCAP_BASES:
+        for k, t in enumerate(addtoks):
+            if m := re.fullmatch(r'A:(\d+G)', t):
+                addtoks[k] = f'A:YIMP:Z:KEP:ALL:{m.group(1)}'
+                res.add('WARN', 'GATE_KEEP', f"XTRCAP gate-count variant '{t}' -> '{addtoks[k]}' (implant kept)", True)
+    addtoks = [removal_tsdr(t, res) for t in addtoks]
     if fam == 'PFT':
-        new_head = f"{'W' if wid else ''}{'M' if mat else ''}{g['POL']}{'S' if pair else g['CAT']}{g['CH']}"
+        new_head = (f"{'FK' if g.get('FK') else ''}{'M' if mat else ''}{g['POL']}"
+                    f"{'S' if pair else g['CAT']}{g['CH']}")
     else:
-        new_head = ('W' if wid else '') + (head[1:] if g.get('WID') else head)
-    res.fields['PFX'] = ('W' if wid else '') + ('M' if mat else '')
+        new_head = head[1:] if g.get('WID') else head
+    res.fields['PFX'] = ('FK' if g.get('FK') else '') + ('M' if mat else '')
     res.fields.update(filled)
     res.fields['ADD'] = '-'.join(addtoks)
     if trailing:
@@ -493,6 +566,19 @@ def parse_iso(base: str, fam: str, res: Result):
     else:
         res.add('ERROR', 'MISSING_FIELD', f'VT (metal gate) field missing after diffusion ({TEMPLATES[fam]})')
         fixable = False
+    env = ''
+    if fam == 'KLV':
+        if rest and rest[0] in KLV_ENVS:
+            env, rest = rest[0], rest[1:]
+        if pol in ('ND', 'PD'):
+            res.add('WARN', 'KLV_ENV', f"'{pol}' = no diffusion: polarity '{pol[0]}' and environment '/D'", True)
+            pol, env = pol[0], '/D'
+        elif not env:
+            env = 'CMOS' if pol == 'NP' else 'UNI'
+            res.add('WARN', 'KLV_ENV', f"Environment '{env}' added (KLV: N/P = UNI, NP = CMOS, ND = /D)", True)
+        elif env != '/D' and env != ('CMOS' if pol == 'NP' else 'UNI'):
+            res.add('WARN', 'KLV_ENV', f"Environment '{env}' unexpected for polarity '{pol}' (N/P = UNI, NP = CMOS)")
+        res.fields.update(POL=pol, ENV=env)
     if not rest:
         res.add('ERROR', 'MISSING_FIELD', 'Skew/detail field missing')
         return
@@ -553,6 +639,10 @@ def parse_iso(base: str, fam: str, res: Result):
             res.add('WARN', 'SKEW_SCHEME', f"Skew TYPE missing '{tail}' -> '{new}'", True)
             tail = new
         tail = norm_tsdr(tail, res, relative=True)
+        if re.match(r'^[A-Z]:PLYFTCN:OGD:CD:', tail):
+            new = re.sub(r'^([A-Z]:)PLYFTCN:OGD:CD:', r'\1PLYPP:OGD:CDPP:', tail)
+            res.add('WARN', 'PLY_TCN_VOCAB', f"'{tail}' -> '{new}' (PLY CD + pitch = PLYPP:..:CDPP)", True)
+            tail = new
         sk0 = tail.split(':')
         if len(sk0) >= 5 and sk0[4] == '0':
             new = ':'.join(sk0[:4] + ['NOM'] + sk0[5:])
@@ -561,6 +651,8 @@ def parse_iso(base: str, fam: str, res: Result):
     if tail == 'NOM':
         tail = f'{DEFAULT_SKEW_TYPE}:NOM'
         res.add('WARN', 'NOM_LEGO', f"Lego type added to NOM -> '{tail}'", True)
+    if fam == 'KLV':
+        tail = removal_tsdr(tail, res)
     sk = tail.split(':')
     if fam == 'ISO' and len(sk) == 3 and re.fullmatch(r'[A-Z]', sk[0]) and sk[2] == 'NOM':
         res.fields['_isodir'] = True
@@ -572,12 +664,20 @@ def parse_iso(base: str, fam: str, res: Result):
         elif dec.get('Approve') != 'N' and nb:
             d, s, src = nb[0], nb[1], nb[2]
         if src:
+            # several directions / skew types in the series: NOM placeholder (owner WW45)
+            d, s = ('NOM' if '/' in d else d), ('NOM' if '/' in s else s)
             new = f'{sk[0]}:{sk[1]}:{d}:{s}:NOM'
             res.add('WARN', 'SKEW_DIR_SET', f"Direction/skew type from {src}: '{tail}' -> '{new}'", True)
             tail = new
         else:
             res.add('WARN', 'ISO_DIR_PENDING', f"'{tail}' has no direction/skew type - no same-device neighbour; "
                                                'set it in ISO_Skew_Direction_Decisions.csv')
+    if base in BUILT_SKEW and (m := FTI_NAME_RX.search(tail)):
+        new = tail[:m.start(2)] + BUILT_SKEW[base] + tail[m.end(4):]
+        res.add('WARN', 'BUILDSHEET_NAME', f"FTI skew '{m.group(0)}' is built as '{m.group(1)}:{BUILT_SKEW[base]}' "
+                                           f"(FTICdMisregSkew); name follows the build - structure needs correction",
+                True)
+        tail = new
     res.fields['SKEW'] = tail
     res.fields['INST'] = inst
     chunks = tail.split(':')
@@ -596,13 +696,14 @@ def parse_iso(base: str, fam: str, res: Result):
         else:
             if not re.fullmatch(r'[A-Z]', chunks[0]):
                 res.add('WARN', 'SKEW_FORMAT', f"Skew type '{chunks[0]}' should be a single letter")
-            if not _is_dir(chunks[2]):
+            if not _is_dir(chunks[2]) and chunks[2] != 'NOM':
                 res.add('WARN', 'SKEW_FORMAT', f"Skew direction '{chunks[2]}' not in {sorted(ISO_DIRS)}")
     elif fam == 'KLV' and ':' not in tail:
         res.add('INFO', 'KLV_DETAIL', "KLV detail is a free token (no ':' chunks); consider "
                                       "LAYER:DIR:SKEW:MAG chunks to align with ISO")
     if fixable:
-        res.corrected = f'{cat}{ch}-{pol}{diff}-NL-{vt}-{tail}' + (f'_{inst}' if inst else '')
+        res.corrected = (f'{cat}{ch}-{pol}{diff}-NL-{vt}-' + (f'{env}-' if env else '') + tail
+                         + (f'_{inst}' if inst else ''))
 
 
 def _is_dir(c: str) -> bool:
@@ -624,13 +725,56 @@ def _is_skew_token(t: str) -> bool:
 def clean_add_token(t: str, res: Result) -> str:
     """Best-effort clean-up of PFT/MLR additional colon tokens before TSDR normalisation."""
     old = t
+    special_code = ''
     c = [(('N' if x[0] == '-' else 'P') + x[1:]) if re.fullmatch(r'[+-]\d+(?:\.\d+)?', x) else x
          for x in t.split(':')]
     c = [re.sub(r'^([NP]?\d+)\.(\d+)$', r'\1D\2', x) for x in c]
     if len(c) > 1 and c[-1] in ('REF', 'POR') and not re.fullmatch(r'[A-Z]', c[0]):
+        lle = c[-1] == 'REF' and res.fields.get('_lle_ref')
         c[-1] = 'NOM'
+        if lle:
+            res.add('WARN', 'LLE_REF', "LLE reference 'REF' -> 'NOM' (nominal reference for the LLE sub-family)", True)
+    if c[0] == 'NPOGD':
+        c[0] = 'NPT'
+        res.add('WARN', 'DESCRIPTOR_ABBR', "Descriptor 'NPOGD' -> 'NPT' (64-character limit, owner WW45)", True)
     t = ':'.join(c)
-    if m := re.fullmatch(r'PCD:([^:]+):TCD:([^:]+)((?::.*)?)', t):
+    if res.fields.get('_xtrpfx') and (m := re.match(r'^(GLK|PFE)RST(?=:)', t)):
+        t = re.sub(r'^(GLK|PFE)RST(?=:)', r'\1RT', t, count=1)
+        special_code = 'DFT_NAME_LENGTH'
+        res.add('WARN', special_code, f"DFT length: '{old}' -> '{t}' (remove S from RST descriptor)", True)
+    elif res.fields.get('_xtrpfx') and (m := re.fullmatch(r'(FTIRST:[^:]+:FXF:)L(\d+)C(\d+)R(\d+)', t)):
+        t = f'{m.group(1)}{m.group(2)}C{m.group(3)}{m.group(4)}'
+        special_code = 'DFT_NAME_LENGTH'
+        res.add('WARN', special_code, f"DFT length: '{old}' -> '{t}' (remove L/R path markers)", True)
+    elif res.fields.get('_xtrpfx') and (m := re.fullmatch(r'(FDPR:FXF:.*:OFF):R(\d+)', t)):
+        t = f'{m.group(1)}{m.group(2)}'
+        special_code = 'DFT_NAME_LENGTH'
+        res.add('WARN', special_code, f"DFT length: '{old}' -> '{t}' (compress OFF:Rn to OFFn)", True)
+    elif res.fields.get('_xtrpfx') and (m := re.fullmatch(r'TCNVCR:NONUB:(\d+(?:\.\d+)?)', t, re.IGNORECASE)):
+        t = 'A:TCNVCR:PGDNUB:NONUB'
+        special_code = 'TCNVCR_NUB'
+        res.add('WARN', special_code, f"TCNVCR no-Nub pullback '{old}' -> '{t}' (stable descriptor across heights)", True)
+    elif res.fields.get('_xtrpfx') and (m := re.fullmatch(r'TCNVCR:NONUB(?::(.*))?', t, re.IGNORECASE)):
+        extra = m.group(1)
+        suffix = ':' + extra.replace('_', ':').upper() if extra else ''
+        t = 'A:TCNVCR:NONUB' + suffix
+        special_code = 'TCNVCR_NUB'
+        res.add('WARN', special_code, f"XTRPFX TCNVCR no-Nub descriptor '{old}' -> '{t}'", True)
+    elif res.fields.get('_xtrpfx') and (m := re.fullmatch(r'TCNVCR:(PGD|OGD)NUB:(\d+)', t, re.IGNORECASE)):
+        direction, absolute = m.group(1).upper(), float(m.group(2))
+        nominal = VCRNUB_PGD_NOMINAL.get(int(res.fields.get('CH') or 0)) if direction == 'PGD' else 44
+        if nominal is not None:
+            delta = absolute - nominal
+            magnitude = 'NOM' if delta == 0 else f"{'N' if delta < 0 else 'P'}{abs(delta):g}".replace('.', 'D')
+            t = f'A:TCNVCR:{direction}NUB:{magnitude}'
+            special_code = 'TCNVCR_NUB'
+            res.add('WARN', special_code, f"XTRPFX absolute TCNVCR {direction}NUB size {absolute:g} nm -> "
+                                          f"relative magnitude {magnitude} from {nominal:g} nm", True)
+    elif m := re.fullmatch(r'JOG:(\d)A(\d)(\d)?', t, re.IGNORECASE):
+        t = f'JOG:{m.group(1)}/Z{m.group(2)}' + (f'/{m.group(3)}' if m.group(3) else '')
+        special_code = 'JOG_PATH'
+        res.add('WARN', special_code, f"Diffusion jog '{old}' -> '{t}' (start / active diffusion / end)", True)
+    elif m := re.fullmatch(r'PCD:([^:]+):TCD:([^:]+)((?::.*)?)', t):
         p, q, rest = m.groups()
         mirror = {'N': 'P', 'P': 'N'}
         if (q == p == 'NOM' or q == mirror.get(p[0], '') + p[1:]) and rest in ('', ':44PP'):
@@ -645,36 +789,54 @@ def clean_add_token(t: str, res: Result) -> str:
         t = f"{DEFAULT_SKEW_TYPE}:PLY:OGD:EC:NOM{':FTI' if m.group(1) else ''}"
     elif m := re.fullmatch(r'PLYITCN:([NP]\d+(?:D\d+)?|NOM)((?::.*)?)', t):
         t = f'{DEFAULT_SKEW_TYPE}:PLYITCN:OGD:CD:{m.group(1)}{m.group(2)}'
-    if t != old:
+    if t != old and not special_code:
         res.add('WARN', 'SKEW_CLEANUP', f"Additional token '{old}' -> '{t}' (sign/decimal/REF, best-effort skew)",
                 True)
     return t
 
 
 def ply_tcn_vocab(t: str, res: Result) -> str:
-    """PLY/TCN CD skews: the layer code states what happens to TCN and the poly pitch (POR PP = 44).
-    PLYFTCN = PLY skewed, TCN fixed, PP = 44+MAG; PLYFPP = PLY only at fixed 44PP (TCN nominal);
-    PLYITCN = PLY skewed, TCN inverse, fixed 44PP; TCNFPP = TCN only at fixed 44PP."""
-    m = re.fullmatch(r'([A-Z]):(PLY|TCN|PLY/TCN|PLYITCN):OGD:CD:([NP]\d+(?:D\d+)?|NOM)(?::(\d*)PP)?', t)
+    """PLY/TCN CD skews: PLYPP..CDPP = PLY CD with TCN fixed, so the poly pitch moves too (PP = 44+MAG; the series
+    NOM at 44PP is PLYPP..CDPP too); PLY..CD = PLY CD only at fixed 44PP; TCN..CD = TCN CD only at fixed 44PP;
+    PLYITCN = PLY CD with inverse TCN CD at fixed 44PP."""
+    m = re.fullmatch(r'([A-Z]):(PLY|TCN|PLY/TCN|PLYITCN|PLYPP):OGD:CD:([NP]\d+(?:D\d+)?|NOM)(?::(\d*)PP)?', t)
     if not m:
         return t
     typ, lay, mag, pp = m.groups()
+    tail, kind = '', 'CD'
     if lay in ('PLY/TCN', 'PLYITCN'):
         lay = 'PLYITCN'
     elif lay == 'TCN':
-        lay = 'TCNFPP' if pp in (None, '44') else lay
-    elif pp is None or pp == '44':
-        lay = 'PLYFPP'
-    else:
-        if pp:
-            v = 0 if mag == 'NOM' else float(mag[1:].replace('D', '.')) * (-1 if mag[0] == 'N' else 1)
-            if abs(int(pp) - 44 - v) > 1e-6:
-                res.add('WARN', 'PLY_PITCH', f"Pitch {pp}PP does not equal 44+{mag} for PLY with TCN fixed")
-                return t
-        lay = 'PLYFTCN'
-    new = f'{typ}:{lay}:OGD:CD:{mag}'
+        tail = '' if pp in (None, '44') else f':{pp}PP'
+    elif lay == 'PLYPP':
+        lay, kind = 'PLY', 'CDPP'
+    elif pp is not None and pp != '44':
+        v = 0 if mag == 'NOM' else float(mag[1:].replace('D', '.')) * (-1 if mag[0] == 'N' else 1)
+        if pp and abs(int(pp) - 44 - v) > 1e-6:
+            res.add('WARN', 'PLY_PITCH', f"Pitch {pp}PP does not equal 44+{mag} for PLY with TCN fixed")
+            return t
+        kind = 'CDPP'
+    elif mag == 'NOM' and res.fields.get('_cdpp_nom'):
+        kind = 'CDPP'                      # NOM point of a PLY CD + pitch series
+    if kind == 'CDPP':
+        lay = 'PLYPP'
+    new = f'{typ}:{lay}:OGD:{kind}:{mag}{tail}'
     if new != t:
-        res.add('WARN', 'PLY_TCN_VOCAB', f"'{t}' -> '{new}' (PLYFTCN/PLYFPP/PLYITCN/TCNFPP vocabulary)", True)
+        res.add('WARN', 'PLY_TCN_VOCAB', f"'{t}' -> '{new}' (PLYPP:..:CDPP / PLY:..:CD / TCN:..:CD / PLYITCN)", True)
+    return new
+
+
+def removal_tsdr(t: str, res: Result) -> str:
+    """Layer-removal variants as TSDR: A:NOM:NPXLNGLK -> A:NPXL/NGLK:Z:REM:ALL, A:NODBI:NOIMPLANT ->
+    A:NDBI/NIMP:Z:REM:ALL; other chunks (15750G, C2, WID) follow as extra chunks."""
+    c = t.split(':')
+    if 'REM' in c or not any(x in REMOVAL_LAYERS for x in c):
+        return t
+    typ = c.pop(0) if re.fullmatch(r'[A-Z]', c[0]) else DEFAULT_SKEW_TYPE
+    layers = [REMOVAL_LAYERS.get(x) or PRESENT_LAYERS[x] for x in c if x in REMOVAL_LAYERS or x in PRESENT_LAYERS]
+    extra = [x for x in c if x not in REMOVAL_LAYERS and x not in PRESENT_LAYERS and x != 'NOM']
+    new = ':'.join([typ, '/'.join(layers), 'Z', 'REM', 'ALL'] + extra)
+    res.add('WARN', 'REMOVAL_TSDR', f"Layer-removal variant '{t}' -> '{new}' (TYPE:LAYERS:Z:REM:ALL)", True)
     return new
 
 
@@ -763,18 +925,20 @@ def _fix_skew_chunk(chunk: str) -> str:
 
 def parse_fk(base: str, res: Result):
     toks = base.split('-')
+    if re.match(r'^W?FK[NP]S\d{3}$', toks[0]):      # FK prefix + cell height: already the PFT layout
+        parse_slotted(base, 'PFT', res)
+        return
     m = re.match(r'^FK(?P<POL>[NP])S(?P<PP>\d+)$', toks[0])
     if not m or len(toks) < 5:
         res.add('ERROR', 'HEAD', f"FK name does not match FK{{N|P}}S{{PP}}-{{CH}}-{{Z}}-{{VT}}-{{skew}}")
         return
     ch, z, vt = toks[1:4]
     chunks = '-'.join(toks[4:]).split(':')
-    chunks[0] = 'FK' + chunks[0] if chunks[0] == 'TCN' else chunks[0]
-    if f"{m.group('PP')}PP" not in chunks:
+    if m.group('PP') != '44' and f"{m.group('PP')}PP" not in chunks:     # 44PP is the POR pitch: implied
         chunks.append(f"{m.group('PP')}PP")
-    pft = f"{m.group('POL')}S{ch}-{z}-1L-{vt}-CMOS-1X1-IXI-SH-{':'.join(chunks)}"
-    res.add('WARN', 'FK_TO_PFT', "Full-KTCN structure re-expressed in PFT style (1L, CMOS, 1X1, IXI, SH; skew "
-                                 f"layer FKTCN; '{m.group('PP')}' -> {m.group('PP')}PP)", True)
+    pft = f"FK{m.group('POL')}S{ch}-{z}-1L-{vt}-CMOS-1X1-IXI-SH-{':'.join(chunks)}"
+    res.add('WARN', 'FK_TO_PFT', "Full-KTCN structure re-expressed in PFT layout with FK as head prefix (FK{N|P}S{CH}, "
+                                 f"1L, CMOS, 1X1, IXI, SH; pitch {m.group('PP')}PP implied when 44)", True)
     parse_slotted(pft, 'PFT', res)
 
 
@@ -878,6 +1042,10 @@ def parse_be(base: str, res: Result):
                                           f"'{toks[k]}/{toks[k + 1]}' like its peers", True)
         toks[k:k + 2] = [toks[k] + '/' + toks[k + 1]]
     for i, t in enumerate(toks):
+        if 'POL' in t.split('/'):
+            toks[i] = '/'.join('PLY' if p == 'POL' else p for p in t.split('/'))
+            res.add('WARN', 'BE_PLY', f"Poly layer '{t}' -> '{toks[i]}' (PLY, as in the front-end names)", True)
+    for i, t in enumerate(toks):
         m = BE_CH.match(t)
         if m:
             res.fields['CH'] = m.group(1)
@@ -885,8 +1053,7 @@ def parse_be(base: str, res: Result):
                 res.add('WARN', 'BE_CH_FORMAT', f"Cell height '{t}' -> '{m.group(1)}H' (peers use NNNH)", True)
                 toks[i] = m.group(1) + 'H'
         elif t == 'DR' and dr_decision(base, res):
-            res.add('WARN', 'SDR_TO_NOM', "Design-rule token 'DR' -> 'NOM' (approved in DR_to_NOM_Decisions.csv)",
-                    True)
+            res.add('WARN', 'SDR_TO_NOM', "Design-rule token 'DR' -> 'NOM' (DR = design rule = POR)", True)
             toks[i] = 'NOM'
     res.fields['_toks'] = toks
     res.add('WARN', 'BE_SCHEME', "BE scheme aligned to BKM: '_' field delimiter -> '-', cell height moved after "
@@ -894,16 +1061,9 @@ def parse_be(base: str, res: Result):
 
 
 def dr_decision(base: str, res: Result) -> bool:
-    """DR -> NOM only after per-structure approval; otherwise DR is kept and flagged."""
+    """DR = design rule = POR (owner WW45): always written NOM; recorded for the DR list."""
     res.fields['_dr'] = True
-    d = DR_DECISIONS.get(base, '')
-    if d == 'Y':
-        return True
-    if d == 'N':
-        res.add('INFO', 'DR_KEPT', "'DR' kept (rejected in DR_to_NOM_Decisions.csv)")
-    else:
-        res.add('WARN', 'DR_PENDING', "'DR' -> 'NOM' awaiting confirmation in DR_to_NOM_Decisions.csv")
-    return False
+    return True
 
 
 def compute_iso_neighbours(et: pd.DataFrame):
@@ -929,6 +1089,121 @@ def compute_iso_neighbours(et: pd.DataFrame):
             s = '/'.join(sorted(kinds, key=lambda k: (order.get(k, 9), k)))
             NEIGHBOUR_DIR[base] = (d, s, f'{r.dev} {r.layer} series in row: ' +
                                    ', '.join(f'{k} x{v}' for k, v in sorted(kinds.items())) + f'; DIR {d}')
+
+
+def compute_pair_hv(sf: pd.DataFrame):
+    """P-row POR (NOM) structures whose N-row twin (X81ZS_NCLnn / X81ZS_PCLnn) is HV are HV too (owner WW45)."""
+    rows = defaultdict(set)
+    for row, struct in zip(sf.row, sf.struct):
+        m = TC_SUFFIX.match(struct)
+        rows[re.sub(r'_TC\d+[A-Z]?_\d+$', '', row)].add(m.group('base') if m else struct)
+    for row, names in rows.items():
+        m = re.fullmatch(r'(.*_)N(CL\d+)', row)
+        if not m:
+            continue
+        for n in names:
+            p = 'P' + n[1:]
+            if n.startswith('NS') and n.endswith('-HV') and p[:-3] + '-NOM' in rows.get(f'{m.group(1)}P{m.group(2)}', ()):
+                HV_FROM_PAIR.add(p[:-3] + '-NOM')
+
+
+def compute_cdpp_nom(sf: pd.DataFrame):
+    """PLY:..:NOM:44PP is the NOM point of a CD + pitch series when the same device in the row has PLY skews at other
+    pitches (42PP..50PP); it is then written CDPP like its series."""
+    rows = defaultdict(set)
+    for row, struct in zip(sf.row, sf.struct):
+        m = TC_SUFFIX.match(struct)
+        rows[row].add(m.group('base') if m else struct)
+    for names in rows.values():
+        moving = {n.split('PLY:OGD:CD:')[0] for n in names
+                  if (m := re.search(r'PLY:OGD:CD:[NP][\d.D]+:(\d+)PP', n)) and m.group(1) != '44'}
+        for n in names:
+            if 'PLY:OGD:CD:NOM:44PP' in n and n.split('PLY:OGD:CD:')[0] in moving:
+                CDPP_NOM.add(n)
+
+
+def compute_lle_ref(sf: pd.DataFrame):
+    """In LLE rows 'REF' is the reference of the LLE structures (e.g. 9X9 for FTI roosting), not the POR (owner WW45)."""
+    for row, struct in zip(sf.row, sf.struct):
+        base = TC_SUFFIX.sub(r'\g<base>', struct)
+        if 'LLE' in row.upper() and 'REF' in re.split(r'[-_:]', base):
+            LLE_REF.add(base)
+
+
+def compute_xtrcap_bases(sf_info: pd.DataFrame):
+    """Bases used only in XTRCAP library rows; scope XTRCAP-specific variant rules to these structures."""
+    XTRCAP_BASES.clear()
+    if not ATLANTIS_STRUCTS.exists():
+        return
+    at = pd.read_csv(ATLANTIS_STRUCTS, dtype=str, keep_default_na=False)
+    rows = {row_key(r) for r, lib in zip(at.TestRowName, at.Library) if lib.lower().startswith('xtrcap')}
+    for name, info in sf_info.iterrows():
+        members = {row_key(r) for r in info.row.split('; ') if r}
+        if members and members <= rows:
+            XTRCAP_BASES.add(TC_SUFFIX.sub(r'\g<base>', name))
+
+
+def compute_xtrpfx_bases(sf_info: pd.DataFrame):
+    """Bases used only in XTRPFX library rows; scope TCNVCR token cleanup to the PFT LLE rows."""
+    XTRPFX_BASES.clear()
+    if not ATLANTIS_STRUCTS.exists():
+        return
+    at = pd.read_csv(ATLANTIS_STRUCTS, dtype=str, keep_default_na=False)
+    rows = {row_key(r) for r, lib in zip(at.TestRowName, at.Library) if lib.lower().startswith('xtrpfx')}
+    for name, info in sf_info.iterrows():
+        members = {row_key(r) for r in info.row.split('; ') if r}
+        if members and members <= rows:
+            XTRPFX_BASES.add(TC_SUFFIX.sub(r'\g<base>', name))
+
+
+def compute_built_skew(et: pd.DataFrame):
+    """ISO FTI skews whose buildsheet (FTICdMisregSkew) builds another direction / kind / size than the name says;
+    the name follows the build (owner WW45). Value-count errors (5 numbers) keep the name."""
+    if not ISO_BUILDSHEET.exists():
+        return
+    b = pd.read_csv(ISO_BUILDSHEET, dtype=str, keep_default_na=False)
+    val = {(r.lower(), s.upper()): v for r, s, v in zip(b.TestRowName, b.StructureName, b.FTICdMisregSkew) if v}
+    for tested, row, sname in zip(et.STRUCTURE_NAME_AS_TESTED, et.ATLANTIS_ROW_NAME, et.ATLANTIS_STRUCTURE_NAME):
+        v = val.get((row.strip().lower(), sname.strip().upper()))
+        m = FTI_NAME_RX.search(tested)
+        if not v or not m:
+            continue
+        nums = [float(x) for x in v.rstrip(';').split(',') if re.fullmatch(r'[+-]?\d*\.?\d+', x.strip())]
+        nz = [(i, x) for i, x in enumerate(nums) if x]
+        if len(nums) != 4 or len(nz) != 1:
+            continue
+        (i, x), (d, k) = nz[0], FTI_POS[nz[0][0]]
+        mag = ('N' if x < 0 else 'P') + f'{abs(x) * 1000:g}'.replace('.', 'D')
+        if (m.group(2), m.group(3), m.group(4)) != (d, k, mag):
+            BUILT_SKEW[TC_SUFFIX.sub(r'\g<base>', tested)] = f'{d}:{k}:{mag}'
+
+
+def load_device_rows():
+    """Device tracker rows; back-end-pattern names in these rows are front-end structures and are changed."""
+    if TRACKER_FILE.exists():
+        t = pd.read_excel(TRACKER_FILE, sheet_name='X81Z_Row_Tracker', dtype=str).fillna('')
+        DEVICE_ROWS.update(r.strip().lower() for r in t['Test Row Name'] if r.strip())
+
+
+def row_key(row: str) -> str:
+    return re.sub(r'_TC\d+[A-Z]?_\d+$', '', row).lower()
+
+
+def atlantis_only_names(sf: pd.DataFrame, et: pd.DataFrame) -> list[str]:
+    """Names in device-tracker rows of the Atlantis pull that are neither in the superflow nor in the Etest report;
+    only rows Configured for Tape-in that are in the superflow (the rename scope)."""
+    if not ATLANTIS_STRUCTS.exists() or not DEVICE_ROWS:
+        return []
+    a = pd.read_csv(ATLANTIS_STRUCTS, dtype=str, keep_default_na=False)
+    sf_rows = {row_key(r) for r in sf.row}
+    known = {(row_key(r), TC_SUFFIX.sub(r'\g<base>', s).upper()) for r, s in zip(sf.row, sf.struct)}
+    known |= {(r.strip().lower(), s.strip().upper()) for r, s in zip(et.ATLANTIS_ROW_NAME, et.ATLANTIS_STRUCTURE_NAME)}
+    for row, name, status in zip(a.TestRowName, a.TestStructName, a.RowStatus):
+        key = (row.strip().lower(), name.strip().upper())
+        if (key[0] in DEVICE_ROWS and key[0] in sf_rows and status == TAPE_IN_STATUS and key[1]
+                and not key[1].startswith('GNAC') and key not in known):
+            ATL_ROWS.setdefault(key[1], set()).add(key[0])
+    return sorted(ATL_ROWS)
 
 
 def parse(base: str) -> Result:
@@ -966,8 +1241,9 @@ def generic_checks(name: str, base: str, tc: str, res: Result):
         res.add('ERROR', 'EMPTY_FIELD', 'Empty field (doubled or dangling delimiter)')
     if res.family != 'BE' and any('/' in t and not RX['ENV'].match(t) for t in re.sub(
             r'(?<=:)(?:OGD|PGD|CD|REG|REF|DEN|ESD|ENC)(?:/(?:OGD|PGD|CD|REG|REF|DEN|ESD|ENC))+(?=:)', 'X',
-            base).split('-')):
-        res.add('ERROR', 'SLASH', "'/' is only allowed in the environment field (/D, CMOS/NP, CMOS/PP)")
+                 re.sub(r'(?<=:)[A-Z0-9]+(?:/[A-Z0-9]+)+(?=:Z:REM:)', 'X',
+                     re.sub(r'(?<=:JOG:)\d/Z\d(?:/\d)?(?=$|[-_:])', 'X', base))).split('-')):
+        res.add('ERROR', 'SLASH', "'/' is only allowed in the environment field (/D)")
 
 
 # --------------------------------------------------------------------------------------
@@ -997,13 +1273,20 @@ def validate(sf: pd.DataFrame, et: pd.DataFrame, al: pd.DataFrame | None, includ
                                        cfgs=('cfg', lambda s: sorted(set(s))),
                                        n_tests=('cfg', 'size'))
     et_map = {r.STRUCTURE_NAME_AS_TESTED: r for r in et.itertuples(index=False)}
+    compute_xtrcap_bases(sf_info)
+    compute_xtrpfx_bases(sf_info)
     compute_iso_neighbours(et)
+    compute_pair_hv(sf)
+    compute_cdpp_nom(sf)
+    compute_lle_ref(sf)
+    compute_built_skew(et)
 
     names = [(n, 'Superflow') for n in sf_info.index]
     if include_etest_only:
         sf_set = set(sf_info.index)
         names += [(n, 'EtestReportOnly') for n in sorted(set(et.STRUCTURE_NAME_AS_TESTED) - sf_set)
                   if n and not n.startswith('EMPTY_')]
+    names += [(n, 'AtlantisOnly') for n in atlantis_only_names(sf, et) if n not in sf_info.index]
 
     results = {}
     for name, src in names:
@@ -1011,6 +1294,8 @@ def validate(sf: pd.DataFrame, et: pd.DataFrame, al: pd.DataFrame | None, includ
         base, tc = (m.group('base'), m.group('tc')) if m else (name, '')
         res = parse(base)
         generic_checks(name, base, tc, res)
+        if src == 'AtlantisOnly':                      # Atlantis names carry no seat suffix
+            res.issues = [i for i in res.issues if i[1] != 'NO_TC_SUFFIX']
         res.fields['TC'] = tc
         results[name] = (src, base, tc, res)
 
@@ -1089,9 +1374,8 @@ def validate(sf: pd.DataFrame, et: pd.DataFrame, al: pd.DataFrame | None, includ
             extras = parts[core:si] + parts[si + 1:]
             head = parts[0]
             if 'WID' in extras:
-                extras.remove('WID')
-                head = 'W' + head
-                r.add('WARN', 'WID_PREFIX', "'-WID' removed; 'W' prefix added to the head", True)
+                extras = ['WID'] + [e for e in extras if e != 'WID']
+                r.add('WARN', 'WID_PREFIX', "Within-die: '-WID' suffix replaced by WID as first additional chunk", True)
             new = parts[1:core]
             new = [head] + new + [parts[si]] + ([':'.join(extras)] if extras else [])
             if len(extras) > 1 or si != core:
@@ -1099,24 +1383,22 @@ def validate(sf: pd.DataFrame, et: pd.DataFrame, al: pd.DataFrame | None, includ
                                             "':' field (uniform field count)", True)
             r.corrected = '-'.join(new)
 
-    # --- LLE rows: names whose additional descriptor type also occurs outside LLE rows carry ':LLE' ---
-    def add_key(res):
-        tok = res.fields.get('ADD', '').split('-')[0]
-        return ':'.join(tok.split(':')[:2])
+    # --- BE / QnR: names stay as they are; what the rules would change is kept as INFO ---
+    def rows_of(n):
+        if n in sf_info.index:
+            return set(sf_info.loc[n].row.split('; '))
+        if n in ATL_ROWS:
+            return set(ATL_ROWS[n])
+        return {et_map[n].ROW_NAME} if n in et_map else {n}
 
-    in_lle, out_lle = set(), set()
     for name, (src, base, tc, res) in results.items():
-        if src == 'Superflow' and res.family in ('PFT', 'MLR') and res.corrected is not None:
-            rows = sf_info.loc[name].row.split('; ')
-            (in_lle if all('LLE' in r for r in rows) else out_lle).add(add_key(res))
-    shared = in_lle & out_lle
-    for name, (src, base, tc, res) in results.items():
-        if (src == 'Superflow' and res.family in ('PFT', 'MLR') and res.corrected is not None
-                and all('LLE' in r for r in sf_info.loc[name].row.split('; ')) and add_key(res) in shared):
-            head, sep, tail = res.corrected.partition('_')
-            res.corrected = f'{head}:LLE{sep}{tail}'
-            res.add('WARN', 'LLE_TAG', f"LLE-row structure without an LLE-only layout descriptor ({add_key(res)}) - "
-                                       "':LLE' appended", True)
+        device = res.family == 'BE' and DEVICE_ROWS and all(row_key(r) in DEVICE_ROWS for r in rows_of(name))
+        if res.family in FROZEN_FAMILIES and not device:
+            res.issues = [('INFO', code, f'{msg} - not applied (no changes to BE / QnR names)', False)
+                          if fixed or sev != 'INFO' else (sev, code, msg, fixed)
+                          for sev, code, msg, fixed in res.issues if code != 'QNR_PROPOSED']
+            res.corrected, res.proposed = base, None
+            res.fields.pop('_dr', None)
 
     # --- cross-reference checks ---
     for name, (src, base, tc, res) in results.items():
@@ -1143,30 +1425,58 @@ def validate(sf: pd.DataFrame, et: pd.DataFrame, al: pd.DataFrame | None, includ
                 if (e.ATLANTIS_STRUCTURE_NAME or '').upper() + tc != name:
                     res.add('WARN', 'ATLANTIS_MISMATCH', f"Atlantis name '{e.ATLANTIS_STRUCTURE_NAME}' + TC "
                                                          'differs from STRUCTURE_NAME_AS_TESTED')
-        if res.corrected is not None:
+        if res.corrected is not None and fam not in FROZEN_FAMILIES | {'BE'} or (fam == 'BE' and res.corrected != base):
             full = res.corrected + tc
             if len(full) > MAX_NAME_LEN:
                 res.add('ERROR', 'FIX_LEN', f'Corrected name is {len(full)} chars > {MAX_NAME_LEN}')
         if res.proposed and len(res.proposed + tc) > MAX_NAME_LEN:
             res.add('INFO', 'PROPOSED_LEN', f'Proposed name is {len(res.proposed + tc)} chars > {MAX_NAME_LEN}')
 
+    # --- a name that follows the buildsheet build and duplicates a name in its row gets instance _2 ---
+    in_row = defaultdict(Counter)
+    for name, (src, base, tc, res) in results.items():
+        for r in rows_of(name):
+            in_row[r][res.corrected if res.corrected is not None else base] += 1
+    for name, (src, base, tc, res) in results.items():
+        if any(i[1] == 'BUILDSHEET_NAME' for i in res.issues) and any(in_row[r][res.corrected] > 1
+                                                                     for r in rows_of(name)):
+            res.add('WARN', 'BUILDSHEET_NAME', f"'{res.corrected}' already exists in the row - duplicate marked _2",
+                    True)
+            res.corrected += '_2'
+
+    # Gate KLV DR and SDR/POR twins in separate rows normalize to the same NOM name.
+    klv_targets = defaultdict(list)
+    for name, (src, base, tc, res) in results.items():
+        if src == 'Superflow' and res.family == 'KLV' and res.corrected:
+            klv_targets[res.corrected].append((name, base, res))
+    for target, members in klv_targets.items():
+        dr = [m for m in members if re.search(r'-DR(?:_\d+)?$', m[1])]
+        sdr = [m for m in members if re.search(r'-SDR(?:_\d+)?$', m[1])]
+        if dr and sdr:
+            for name, base, res in dr:
+                if not res.fields.get('INST'):
+                    res.corrected += '_2'
+                    res.add('WARN', 'KLV_DUP_INSTANCE', f"DR twin shares '{target}' with an SDR/POR structure; "
+                                                        "instance suffix '_2' added per BKM", True)
+
     # --- self-check: corrected names must re-parse to themselves ---
     for name, (src, base, tc, res) in results.items():
-        if res.corrected is None or res.family in ('QREL', 'UNKNOWN'):
+        if res.corrected is None or res.family in {'QREL', 'UNKNOWN'} or res.corrected == base:
             continue
         again = parse(res.corrected).corrected
         if again != res.corrected:
             res.add('ERROR', 'NOT_IDEMPOTENT', f"Corrected name re-validates to '{again}' - rule conflict")
 
-    # --- collisions after correction ---
+    # --- collisions after correction (two different names that share a row) ---
     final = defaultdict(list)
     for name, (src, base, tc, res) in results.items():
         final[(res.corrected if res.corrected is not None else base) + tc].append(name)
     for tgt, origs in final.items():
         if len(origs) > 1:
             for o in origs:
-                others = [x for x in origs if x != o]
-                results[o][3].add('ERROR', 'COLLISION', f'Corrected name {tgt} collides with {others}')
+                others = [x for x in origs if x != o and rows_of(x) & rows_of(o)]
+                if others:
+                    results[o][3].add('ERROR', 'COLLISION', f'Corrected name {tgt} collides with {others}')
 
     return results, sf_info, by_fam
 
@@ -1221,7 +1531,7 @@ def build_frames(results, sf_info, al, by_fam):
         cand = res.corrected + tc if res.corrected is not None else ''
         corr_full, draft = ('', cand) if status == 'MANUAL' else (cand, '')
         rec = {
-            'Source': src, 'Row': info.row if info is not None else '',
+            'Source': src, 'Row': info.row if info is not None else '; '.join(sorted(ATL_ROWS.get(name, ()))),
             'Configs': '; '.join(info.cfgs) if info is not None else '',
             'N_Tests': int(info.n_tests) if info is not None else 0,
             'Family': res.family, 'Template': TEMPLATES.get(res.family, ''),
@@ -1232,7 +1542,7 @@ def build_frames(results, sf_info, al, by_fam):
             'Changed': bool(corr_full) and corr_full != name,
             'Draft_Name_Manual': draft,
             'Proposed_Name': (res.proposed + tc) if res.proposed else '',
-            'Highlight': ', '.join(sorted({i[1] for i in res.issues} & HIGHLIGHT_CODES)),
+            'Highlight': ', '.join(sorted({i[1] for i in res.issues if i[0] != 'INFO'} & HIGHLIGHT_CODES)),
         }
         for c in GRID_COLS:
             rec[c] = res.fields.get(c, '')
@@ -1288,13 +1598,15 @@ RECOMMENDATIONS = [
                     '"Move VT after diff width" is superseded (WW43 decision).'),
     ('VT code', 'Single-letter metal-gate codes (H/S/L/U/UL/E) everywhere, including ROS, ISO and QnR names that '
                 'still use HVT/LVT/ULVTLL. Slide 5 symbol table updated.'),
-    ('Fixed slot grid', 'Logic families share one slot index: 0=[W][M]CAT+CH 1=DIFF 2=LEGS/#ADF 3=VT 4=ENV/STYLE/DUT '
-                        '5=NEST/STG 6=ISO/FO 7=SH/DH 8=NOM|skew 9+=ADD (ROS/ROSPFT carry M# right after the NOM/skew field where needed; '
-                        'needed; PFT/MLR/BITCELL carry no metal routing). MLR is padded with 0X0-IXI-SH; PFT/ROSPFT '
-                        'default 0X0/IXI.'),
+    ('Fixed slot grid', 'Logic families share one slot index: 0=[M]CAT+CH 1=DIFF 2=LEGS/#ADF 3=VT 4=ENV/STYLE/DUT '
+                        '5=NEST/STG 6=ISO/FO 7=SH/DH (bitcell: SR/RF type) 8=NOM|skew 9+=ADD (ROS/ROSPFT carry M# right '
+                        'after the NOM/skew field where needed; PFT/MLR/BITCELL carry no metal routing). MLR is padded '
+                        'with 0X0-IXI-SH; PFT/ROSPFT default 0X0/IXI.'),
     ('NOM', "POR structures (no ':' skew and no variant token such as NODBI/NOIMPLANT/HV/5T/nnnnG/GNAC/NOVCR or ADT "
-            'STK/SHRD/SHRS) carry A:NOM (lego type A) as the first additional token. POR/REF/SDR -> NOM; ISO SDR '
-            'layer -> NOM; DR -> NOM only after per-structure approval in DR_to_NOM_Decisions.csv.'),
+            'STK/SHRD/SHRS) carry A:NOM (lego type A) as the first additional token. POR/SDR -> NOM; LLE-row REF '
+            '(nominal reference for its LLE sub-family) -> A:NOM / A:{descriptor}:NOM; ISO SDR '
+            'layer -> NOM; DR (design rule) -> NOM. Layer-removal variants are TSDR skews, not NOM: '
+            'A:NPXL/NGLK:Z:REM:ALL, A:NDBI:Z:REM:ALL, A:NDBI/NIMP:Z:REM:ALL, A:TAPNDBI:Z:REM:ALL (IMPLANT = IMP).'),
     ('TSDR skew', "Every family uses the ISO grammar TYPE:LAYER:DIR:SKEW:MAG[:extra]. TYPE defaults to 'A'; DIR from "
                   'layer when absent (PXL=PGD, PLY/TCN/FTI=OGD); merged PLYCDPP/PLYCD/TCNCD split; decimals as D '
                   '(N1D2); VCRNUB OGD CD absolute -> relative to 44 nm (36 -> N8); KLV details and BE magnitudes use '
@@ -1307,24 +1619,33 @@ RECOMMENDATIONS = [
     ('Underscore', "'_' is reserved for seat/row instance. Inline underscores (CMOS_A, NDBI_SDR, 2TRK_1PP, QCNP "
                    "fields, BE names) break '_' splitting in CNAI/SLR. Use ':' for ISO detail chunks and '-' for fields."),
     ('Environment qualifiers', "'/' is allowed only inside the environment field: '/D' = no diffusion (replaces "
-                               "CMOS/UNI), 'CMOS/NP' / 'CMOS/PP' = matching pair, 'ADTUNI' = ADT environment."),
-    ('Matching / WID', "Matching pairs: head M{N|P}S + ENV '{env}/NP|PP'. WID: 'W' prefix on the head (W before M), "
-                       "'-WID' suffix removed (WMNS132-..., WROSN132-..., WSRN192-..., WNM132-...)."),
-    ('FK structures', 'Full-KTCN re-expressed in PFT style: {N|P}S{CH}-{Z}-1L-{VT}-CMOS-1X1-IXI-SH-'
-                      'FKTCN:OGD:CD:{MAG}:44PP (no point-count token).'),
-    ('PLY/TCN skews', 'One vocabulary across ISO/PFT/MLR: PLYFTCN = PLY CD skew, TCN fixed, PP = 44+MAG (ISO PLYFTCN, '
-                      'PFT PLY:..:43PP, MLR PLYCDPP); PLYFPP = PLY only at fixed 44PP, TCN nominal (PFT PLY:..:44PP, '
-                      'MLR PLYCD); PLYITCN = PLY skew with inverse TCN skew at fixed 44PP (PFT PCD:..:TCD:.., MLR '
-                      'PLYiTCN); TCNFPP = TCN only at fixed 44PP (PFT TCN:..:44PP, MLR TCNCD). ISO/KLV TCN stays '
-                      'A:TCN:OGD:CD. Pitch is implied by the layer code to stay within 64 chars.'),
-    ('BE uniform layout', 'Per {VIA}{TEST} group: core fields (mode count) - skew field (A:.. / A:NOM / DR) - one '
-                          "':'-joined additional field. Extra tokens (CUT, PWR, DEN, WL, TOP, NUB:0, 1VCR) moved "
-                          "after the skew; '-WID' -> W head prefix."),
-    ('BE families', "Scheme {VIA}{TEST}{CH}-{LAYERS}-{W/S}-{W/S}-{DIM}-{SKEW|NOM}-{N|P|NOM}{MAG}. TEST (KLV, MV, "
-                    "VCHN, ECD, SRP, ...) is kept and joined to the category exactly like the front-end KLV family "
-                    "(VT_KLV_..._132H -> VTKLV132-..., cf. VTKLV132-NZ5-L-...). '/' kept in layer pairs and W/S."),
-    ('QnR', 'Corrected_Name only fixes delimiters/VT; Proposed_Name is a best-effort BKM ordering pending a decoder '
-            'for geometry/style/topology codes.'),
+                       "CMOS/UNI), 'ADTUNI' = ADT environment. Legacy CMOS_A maps to ENV ANALOG."),
+    ('Matching / WID', "Matching pairs (NMOS pair / PMOS pair): head M{N|P}S, environment unchanged (CMOS, UNI, ...). "
+                       "Within-die (WID) is written in the TSDR skew position, no 'W' prefix: "
+                   "NS132-Z5-1L-U-CMOS-1X1-IXI-SH-A:WID (A:WID replaces A:NOM). Atlantis entries in WID rows "
+                   "also replace a trailing A:NOM with A:WID, without changing the same shared name in its BE row."),
+        ('JOG diffusion path', 'JOG:nAm[k] shorthand is written JOG:n/Zm[/k]: starting Z, active-device diffusion jog, '
+                   'then ending Z when present (e.g. JOG:2A52 -> A:JOG:2/Z5/2; one-sided 2A5 -> A:JOG:2/Z5).'),
+        ('TCNVCR Nub', 'Preserve the TCNVCR label. In XTRPFX LLE rows, NONUB:6 becomes '
+                  'A:TCNVCR:PGDNUB:NONUB; absolute PGD/OGD Nub sizes become relative magnitudes.'),
+    ('ADT / HV height', 'All ADT and HV structures are double height (DH). Exception: the four ADT structures with 1 GANG '
+                        'carry the 1GANG token and stay single height (SH). P-row POR structures whose N-row twin is HV '
+                        '(X81ZS_PCL95) are HV too.'),
+    ('FK structures', 'Full-KTCN: FK is a head prefix, PFT layout, TCN CD skew; the POR pitch 44PP is implied (not '
+                      'written): FK{N|P}S{CH}-{Z}-1L-{VT}-CMOS-1X1-IXI-SH-A:TCN:{DIR}:CD:{MAG}.'),
+    ('PLY/TCN skews', 'PLY CD and poly pitch both change (TCN fixed, PP = 44+MAG): layer PLYPP, skew kind CDPP: '
+                      'A:PLYPP:OGD:CDPP:N1 (PFT PLY:..:43PP, MLR PLYCDPP, ISO PLYFTCN); the NOM point of such a '
+                      'series is A:PLYPP:OGD:CDPP:NOM. '
+                      'CD = CD only at fixed 44PP: A:PLY:OGD:CD:N0D4 (PFT PLY:..:44PP, MLR PLYCD), A:TCN:OGD:CD:P0D4 '
+                      '(PFT TCN:..:44PP, MLR TCNCD). PLYITCN = PLY CD with inverse TCN CD at fixed 44PP.'),
+    ('BE and QnR', 'No changes to back-end (BE) and QnR names (owner WW45): Corrected_Name = original name; the checks '
+                   'still run and list what would change as INFO ("not applied"). BE-pattern names in device-tracker '
+                   'rows (front-end via chains, e.g. x81zs_tcn_ply_chn) are changed.'),
+    ('Row scope', 'Only rows Configured for Tape-in in Atlantis AND present in the superflow are changed (owner WW45); '
+                  'Atlantis rows outside the superflow or in another status keep their names.'),
+    ('KLV environment', 'KLV names carry an environment after VT (owner WW45): N/P = UNI, NP = CMOS, ND (no diffusion) '
+                        '= /D with polarity N: GATEKLV132-NZ5-NL-L-/D-A:NOM, GATEKLV132-NPZ5-NL-L-CMOS-A:NOM.'),
+    ('Via chains', "Poly layer is written PLY (not POL): VGVCHN132-PLY/M0B-12/32-15/9-12X15-A:NOM."),
     ('Length budget', f'Hard limit {MAX_NAME_LEN} chars incl. _TCxx_y (7-8 chars). Keep base names <= 56 to survive '
                       'TC11B-style seat names; see Corrected_Len.'),
     ('Library tables', 'Bitcell diffusion widths in names (e.g. RFN315-42-PG, RFN315-54-RP) differ from slide 8; '
@@ -1340,30 +1661,54 @@ CODE_DOC = {
     'SKEW_CLEANUP': ('Non-standard PFT/MLR skew tokens (+5, 10.4, trailing REF/POR, PCD:..:TCD:.., PLYEC, PLYITCN)',
                      'Sign/decimal fixed, REF/POR/0 -> NOM, PCD/TCD inverse pair -> A:PLYITCN:OGD:CD:{mag}, '
                      'PLYEC -> A:PLY:OGD:EC, PLYITCN -> A:PLYITCN:OGD:CD'),
-    'LEGO_PREFIX': ('Colon descriptor / skew without lego type (VTMX:CRL:H)', "Lego type prefixed (A:VTMX:CRL:H)"),
+    'LEGO_PREFIX': ('Colon descriptor / skew / variant (NODBI, HV, STK, 1GANG, ...) without lego type',
+                    "Lego type prefixed (A:VTMX:CRL:H, A:HV, A:NODBI:NOIMPLANT)"),
     'NOM_MISSING': ('POR structure without TSDR skew lacks NOM', 'A:NOM inserted as first additional token'),
+    'LLE_REF': ("'REF' in an LLE row = nominal reference for its LLE sub-family (e.g. 9X9 for FTI roosting)",
+                "Written A:NOM / A:{descriptor}:NOM; no `_LLE` suffix"),
+    'DESCRIPTOR_ABBR': ("LLE descriptor NPOGD too long for 64 characters", "Written NPT"),
+    'ANALOG_ENV': ("Environment 'CMOS_A' encoded analog style as a suffix", "Moved to ENV as ANALOG"),
+    'TCNVCR_NUB': ('XTRPFX TCNVCR no-Nub / absolute Nub size uses a free token',
+                   'Preserve TCNVCR: NONUB:6 -> A:TCNVCR:PGDNUB:NONUB; SRC_ViaT -> '
+                   'A:TCNVCR:NONUB:SRC:VIAT; PGD/OGD Nub sizes -> relative magnitudes'),
+    'JOG_PATH': ('JOG diffusion jog shorthand JOG:nAm[k]', 'Written as start/active diffusion/end path JOG:n/Zm[/k]'),
+    'DFT_NAME_LENGTH': ('XTRPFX structure name exceeds Atlantis DFT 55-character limit',
+                        'Applied the DFT owner-approved descriptor abbreviation for listed structures'),
+    'KLV_DUP_INSTANCE': ('Gate KLV DR and SDR/POR structures normalize to the same NOM name',
+                         "DR twin gets '_2' before the TC suffix per BKM instance-index convention"),
+    'BUILDSHEET_NAME': ('ISO FTI skew in the name differs from the build (FTICdMisregSkew)',
+                        'Name follows the build, _2 when that name already exists in the row; comment: structure '
+                        'needs correction - highlighted'),
     'NOM_LEGO': ('NOM without lego type', "Written TYPE:NOM (A:NOM) - lego type first, as in skews"),
     'ISO_DIR_PENDING': ('ISO POR skew has no direction / skew type and no same-device neighbour',
                         'Pending ISO_Skew_Direction_Decisions.csv - highlighted'),
+    'KLV_DUP_INSTANCE': ('Gate KLV DR and SDR/POR twins normalize to one NOM target across rows',
+                         "DR copy gets '_2' before the TC suffix per the BKM instance-index convention"),
     'SKEW_DIR_SET': ('ISO POR skew without direction (A:FTIML:SDR)',
-                     'POR reference of its series: all DIR / SKEW used by the same device+layer in the row '
-                     '(e.g. OGD/PGD:CD/REG) - highlighted'),
+                     'POR reference of its series: DIR / SKEW used by the same device+layer in the row; NOM '
+                     'placeholder when the series uses several (A:FTIML:NOM:NOM:NOM) - highlighted'),
     'NOM_POSITION': ('NOM not in first additional position', 'Moved to first additional position'),
     'POR_TO_NOM': ("POR synonyms 'POR' / 'REF' / 'SDR' in the additional section", "Replaced with 'NOM'"),
-    'SDR_TO_NOM': ("ISO/KLV 'SDR' (and approved 'DR') used for POR", "Replaced with 'NOM'"),
-    'DR_PENDING': ("'DR' token whose NOM equivalence is not confirmed", 'Kept as DR; listed in DR_to_NOM_Decisions.csv'),
-    'DR_KEPT': ("'DR' rejected for NOM conversion", 'Kept as DR'),
-    'DEFAULT_FILL': ('Nesting / isolation / layout height not specified', '0X0 / IXI / SH inserted for grid alignment'),
+    'SDR_TO_NOM': ("ISO/KLV 'SDR' and design-rule 'DR' used for POR", "Replaced with 'NOM' (DR = design rule = POR, "
+                                                                     'owner WW45)'),
+    'REMOVAL_TSDR': ('Layer-removal variant written as a free token (NOM:NPXLNGLK, NODBI, NOVCR, NOIMPLANT)',
+                     'TSDR A:{N<layer>/..}:Z:REM:ALL (A:NPXL/NGLK:Z:REM:ALL, A:NDBI/NIMP:Z:REM:ALL; IMPLANT = IMP)'),
+    'KLV_ENV': ('KLV name without environment', 'UNI for N/P, CMOS for NP, /D for ND (no diffusion; polarity N)'),
+    'BE_PLY': ("Poly layer written 'POL' in via chains", "Written 'PLY' like the front-end names"),
+    'DEFAULT_FILL': ('Nesting / isolation / layout height not specified (bitcell: SRAM type)', '0X0 / IXI / SH inserted '
+                                                                                              'for grid alignment; bitcell SR / RF'),
     'ROUTING_REMOVED': ('Metal routing (M1/M2) in a PFT, MLR or BITCELL name', 'Removed (kept only for ROS/ROSPFT) '
                                                                                '- highlighted'),
-    'LLE_TAG': ('LLE-row structure without an LLE-only layout descriptor (A:NOM, A:PXL are shared with non-LLE rows)',
-                "':LLE' appended (local layout effects) - highlighted"),
     'ADD_FOLD': ('MLR variant tokens in two fields (NODBI-NOIMPLANT)', "Joined into one ':' field"),
-    'MATCHING_PREFIX': ("Matching pair used NP/PP head", "Head M{N|P}S; pair moved to environment (CMOS/NP, CMOS/PP)"),
-    'WID_PREFIX': ("WID structures used a '-WID' suffix", "Suffix removed; 'W' prefix added to the head"),
+    'MATCHING_PREFIX': ("Matching pair used NP/PP head (NMOS pair / PMOS pair)", "Head M{N|P}S; environment unchanged"),
+    'WID_PREFIX': ("Within-die structures used a '-WID' suffix or 'W' head prefix", "WID written in the TSDR skew "
+                                                                                     "position (A:WID replaces A:NOM)"),
+    'HV_FROM_PAIR': ("P-row POR structure whose N-row twin is HV (NCL95 / PCL95)", "NOM -> HV (then DH) - highlighted"),
     'NODIFF_ENV': ("'/D' (no diffusion) coexisted with CMOS/UNI", "'/D' kept as the environment, CMOS/UNI dropped"),
     'ADT_ENV': ("ADT structures used UNI environment plus 'ADT:' additional prefix", "Environment 'ADTUNI'; 'ADT:' "
                                                                                      'prefix removed'),
+    'ADT_HEIGHT': ('ADT or HV structure written single height (SH)', 'Double height (DH); stays SH only for the '
+                                                                       "1GANG ADT structures - highlighted"),
     'DUP_FIELD': ('Same field given twice (ADT VT repeated)', 'Identical repeat dropped; conflicting repeat = manual'),
     'SKEW_SCHEME': ('TSDR skew not in TYPE:LAYER:DIR:SKEW:MAG form (no TYPE, merged PLYCDPP/TCNCD, decimal N1.2, '
                     'KLV CD10/SDRENCN2, BE CD-P1)', "Rewritten to TYPE:LAYER:DIR:SKEW:MAG (TYPE 'A' when absent, "
@@ -1380,8 +1725,8 @@ CODE_DOC = {
                      "Folded into one ':' skew; extra detail as trailing ':' chunks"),
     'DIFF_NUMERIC': ('ISO diffusion given as width (N27, P46)', 'Converted to Z code via slide 7 (NZ1, PZ5)'),
     'POL_POSITION': ('KLV polarity in the category (NDGATEKLV132-Z5)', 'Moved to the diffusion field (GATEKLV132-NDZ5)'),
-    'FK_TO_PFT': ('Full-KTCN names followed no BKM template', 'Re-expressed in PFT style (1L, CMOS, 1X1, IXI, SH, '
-                                                              'FKTCN skew layer, 44PP)'),
+    'FK_TO_PFT': ('Full-KTCN names followed no BKM template', 'Re-expressed in PFT layout with FK as head prefix '
+                                                              '(FKNS132-Z5-1L-L-CMOS-1X1-IXI-SH-A:TCN:OGD:CD:N1; 44PP implied)'),
     'BE_SCHEME': ("BE names used '_' as field delimiter, CH at the end and signed magnitudes",
                   "'-' delimiter, {VIA}{TEST}{CH} head, +n/-n/0 -> Pn/Nn/NOM"),
     'BE_CH_FORMAT': ("BE cell height written NNNCH", "Normalised to NNN (head)"),
@@ -1391,8 +1736,8 @@ CODE_DOC = {
                                                                 'decoder'),
     'BE_UNIFORM': ('BE extra tokens between/after core fields gave a different field count',
                    "Moved after the skew field as one ':'-joined field"),
-    'PLY_TCN_VOCAB': ('PLY/TCN CD skews written several ways (PLY:..:43PP, PLYCDPP, PCD:..:TCD, PLYCD, TCNCD)',
-                      'Mapped to PLYFTCN / PLYFPP / PLYITCN / TCNFPP'),
+    'PLY_TCN_VOCAB': ('PLY/TCN CD skews written several ways (PLY:..:43PP, PLYCDPP, PCD:..:TCD, PLYCD, TCNCD, '
+                      'ISO PLYFTCN)', 'Mapped to A:PLYPP:OGD:CDPP / A:PLY:OGD:CD / A:TCN:OGD:CD / A:PLYITCN:OGD:CD'),
     'PLY_PITCH': ('PLY pitch is not 44+MAG', 'Flagged'),
     'LIB_BITCELL_DIFF': ('Bitcell diffusion width differs from slide 8 table', 'Flagged - verify against PDK'),
     'LIB_CH_Z': ('CH/Z combination not in slide 7 library', 'Flagged'),
@@ -1407,33 +1752,17 @@ CODE_DOC = {
 
 
 def dr_review(results) -> pd.DataFrame:
-    """One row per superflow structure (base name) containing a DR token."""
-    finals = {(r.corrected if r.corrected is not None else b) + tc for _, (s, b, tc, r) in results.items()}
+    """One row per superflow structure (base name) whose design-rule token DR is written NOM."""
     rows = defaultdict(lambda: {'tcs': []})
     for name, (src, base, tc, res) in results.items():
         if src != 'Superflow' or not res.fields.get('_dr') or res.corrected is None:
             continue
-        cand = re.sub(r'(?<=[-:])DR(?=$|[-:_])', 'NOM', res.corrected)
-        if res.family == 'KLV':
-            cand = re.sub(r'(?<=-)NOM(?=$|_)', f'{DEFAULT_SKEW_TYPE}:NOM', cand)
         rec = rows[base]
-        rec.update(Family=res.family, Original_Base=base, Corrected_Keep_DR=res.corrected, Corrected_If_NOM=cand)
+        rec.update(Family=res.family, Original_Base=base, Corrected=res.corrected)
         rec['tcs'].append(tc)
-        if cand != res.corrected and cand + tc in finals:
-            rec['Conflict'] = f'{cand}{tc} already exists'
-    out = []
-    for base, rec in sorted(rows.items()):
-        tcs = rec.pop('tcs')
-        out.append({**rec, 'Instances': ' '.join(sorted(tcs)), 'Conflict': rec.get('Conflict', ''),
-                    'Approve_Y_N': DR_DECISIONS.get(base, '')})
-    cols = ['Family', 'Original_Base', 'Instances', 'Corrected_Keep_DR', 'Corrected_If_NOM', 'Conflict', 'Approve_Y_N']
-    return pd.DataFrame(out, columns=cols)
-
-
-def load_dr_decisions(path: Path):
-    if path.exists():
-        d = pd.read_csv(path, dtype=str, keep_default_na=False)
-        DR_DECISIONS.update({b: v.strip().upper()[:1] for b, v in zip(d.Original_Base, d.Approve_Y_N) if v.strip()})
+    out = [{**{k: v for k, v in rec.items() if k != 'tcs'}, 'Instances': ' '.join(sorted(rec['tcs']))}
+           for _, rec in sorted(rows.items())]
+    return pd.DataFrame(out, columns=['Family', 'Original_Base', 'Instances', 'Corrected'])
 
 
 def load_iso_dir_decisions(path: Path):
@@ -1493,15 +1822,15 @@ def _md_table(df: pd.DataFrame) -> str:
 SUMMARY_THEMES = [
     ('Field order, VT and diffusion', ['ORDER', 'VT_FORMAT', 'VT_SPLIT', 'VT_DEFAULT', 'DUP_FIELD', 'CAT_CH_SPLIT',
                                        'POL_POSITION', 'DIFF_NUMERIC']),
-    ('Delimiters and default padding', ['UNDERSCORE_IN_BODY', 'UNDERSCORE_DELIM', 'DEFAULT_FILL', 'ROUTING_REMOVED', 'LLE_TAG',
+    ('Delimiters and default padding', ['UNDERSCORE_IN_BODY', 'UNDERSCORE_DELIM', 'DEFAULT_FILL', 'ROUTING_REMOVED',
                                         'EXTRA_FIELDS', 'NONBKM_TOKEN_POS']),
     ('NOM / POR / DR', ['NOM_LEGO', 'NOM_MISSING', 'NOM_POSITION', 'POR_TO_NOM', 'SDR_TO_NOM', 'LEGO_PREFIX',
-                        'DR_PENDING', 'DR_KEPT']),
+                        'REMOVAL_TSDR', 'KLV_DUP_INSTANCE']),
     ('TSDR skew grammar (incl. PLY/TCN)', ['SKEW_SCHEME', 'SKEW_CLEANUP', 'SKEW_SPLIT', 'SKEW_DIR_SET',
                                            'ISO_DIR_RULE', 'ISO_DIR_PENDING', 'PLY_TCN_VOCAB']),
-    ('Environment, matching, WID, ADT, FK', ['MATCHING_PREFIX', 'WID_PREFIX', 'NODIFF_ENV', 'ADT_ENV', 'FK_TO_PFT']),
-    ('Back-end and QnR layout', ['BE_SCHEME', 'BE_CH_FORMAT', 'BE_LAYER_DELIM', 'BE_UNIFORM', 'BE_MISSING_CH',
-                                 'DELIM_COUNT']),
+    ('Environment, matching, WID, ADT, FK', ['MATCHING_PREFIX', 'WID_PREFIX', 'NODIFF_ENV', 'ADT_ENV', 'ADT_HEIGHT',
+                                             'HV_FROM_PAIR', 'FK_TO_PFT', 'ANALOG_ENV']),
+    ('Layout path descriptors', ['TCNVCR_NUB', 'JOG_PATH']),
 ]
 
 
@@ -1510,6 +1839,9 @@ def write_report(path: Path, st: pd.DataFrame, iss: pd.DataFrame, drdf: pd.DataF
     sf = st[st.Source == 'Superflow']
     sfi = iss[iss.Original_Name.isin(set(sf.Original_Name))]
     final = sf.Corrected_Name.where(sf.Corrected_Name != '', sf.Draft_Name_Manual)
+    per_row = sf.assign(r=sf.Row.str.split('; '), c=final).explode('r')
+    dups = int(per_row.duplicated(['r', 'c']).sum())
+    shared = int(final.duplicated().sum())
     status = sf.Status.value_counts()
     L = ['# X81Z Structure Name Validation - Summary', '',
          f'Superflow names: **{len(sf)}** ({sf.Original_Name.str.replace(r"_TC.*", "", regex=True).nunique()} '
@@ -1518,7 +1850,8 @@ def write_report(path: Path, st: pd.DataFrame, iss: pd.DataFrame, drdf: pd.DataF
          '## Result', '',
          f'- Auto-fixed **{status.get("AUTO-FIX", 0)}**, already compliant **{status.get("OK", 0)}**, '
          f'manual **{status.get("MANUAL", 0)}**',
-         f'- Duplicates after correction: **{int(final.duplicated().sum())}**; longest name '
+         f'- Duplicates within a row after correction: **{dups}**; the same corrected name used by different original '
+         f'names in different rows: {shared}; longest name '
          f'**{int(final.str.len().max())}** of {MAX_NAME_LEN} characters', '',
          '## What changed', '', '| Theme | Names | Example |', '|---|---|---|']
     seen = set()
@@ -1536,18 +1869,18 @@ def write_report(path: Path, st: pd.DataFrame, iss: pd.DataFrame, drdf: pd.DataF
     fam = sf.pivot_table(index='Family', columns='Status', values='Original_Name', aggfunc='count', fill_value=0)
     fam['Total'] = fam.sum(axis=1)
     L += [_md_table(fam.reset_index()), '', '## Open items', '',
-          f'- DR -> NOM: **{len(drdf)}** structures (BE/KLV) keep DR until `Approve_Y_N` = Y in `{DR_FILE.name}`; '
-          f'{int((drdf.Conflict != "").sum())} would collide with an existing NOM name',
+          f'- DR -> NOM: **{len(drdf)}** structures (KLV, BE in device rows) - DR = design rule = POR (owner WW45); '
+          f'listed in `{DR_FILE.name}`',
           f'- ISO POR skews given a direction from their device series: **{len(isodf)}** '
           f'(`{ISO_DIR_FILE.name}`)',
           f'- Highlighted changes to confirm: **{int((sf.Highlight != "").sum())}** (yellow rows in the Structures '
           'sheet)',
           f'- Bitcell widths differing from BKM slide 8: **{int(sf.Issue_Codes.str.contains("LIB_BITCELL_DIFF").sum())}**'
           ' (kept)',
-          '- QnR names are a draft until the code decoder is available', '',
+          '- BE and QnR names are not changed (owner WW45); rule findings for them are INFO only', '',
           '## Files', '',
           f'- `{DEFAULT_OUT.name}` / `.csv`: every name with original, corrected, status and issue codes',
-          f'- `{DR_FILE.name}`, `{ISO_DIR_FILE.name}`: decisions to approve',
+          f'- `{DR_FILE.name}`: DR names written NOM; `{ISO_DIR_FILE.name}`: decisions to approve',
           '- `StructureNameNomenclature_WW43_rev_DeviceBKMs.pptx`: revised BKM, changes highlighted', '']
     path.write_text('\n'.join(L), encoding='utf-8')
 
@@ -1590,8 +1923,8 @@ def main():
     if args.alias.exists():
         al = pd.read_csv(args.alias, dtype=str, keep_default_na=False)
         al.columns = [c.strip() for c in al.columns]
-    load_dr_decisions(DR_FILE)
     load_iso_dir_decisions(ISO_DIR_FILE)
+    load_device_rows()
 
     results, sf_info, by_fam = validate(sf, et, al, include_etest_only=not args.superflow_only)
     st, iss, fs, summ, codes, coll, rowdf = build_frames(results, sf_info, al, by_fam)

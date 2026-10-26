@@ -12,7 +12,7 @@ Checks (name -> expected LVS value):
     VT         model vt (hvt..elvt)                = VT code H/S/L/U/UL/E
     diff       diffusion width nm                  = Z code at that cell height (slide 7 library)
     gangs      number of gangs                     = SH -> 1, DH in CMOS -> 2, BCMOS DH -> 1 (PFT, FK)
-    poly CD    poly CD nm                          = 12, or 12 + PLY CD skew (PLYFTCN/PLYFPP/PLYITCN); PP skews not checked
+    poly CD    poly CD nm                          = 12, or 12 + PLY CD skew (PLY:CD, PLYPP:CDPP, PLYITCN); PP skews not checked
 
 Usage:
     python lvs_name_check.py --lvs <LVS data .xlsx/.xlsm/.csv>      (default: any *LVS* data file next to this script)
@@ -44,7 +44,7 @@ MODEL_FAMILIES = {'PFT', 'ROSPFT', 'MLR', 'FK', 'ROS', 'ISO', 'KLV'}
 GANG_FAMILIES = {'PFT', 'FK'}
 POLY_CD_NOMINAL = 12
 SKEW_RX = re.compile(r'A:([A-Z0-9]+):(OGD|PGD|Z):([A-Z]+):(NOM|[NP]\d+(?:D\d+)?)')
-PLY_CD_LAYERS = {'PLY', 'PLYFTCN', 'PLYFPP', 'PLYITCN'}
+PLY_CD_LAYERS = {'PLY', 'PLYPP', 'PLYITCN'}
 CHECKS = ['POL', 'CELL', 'BAL', 'VT', 'DIFF', 'GANGS', 'POLYCD']
 
 
@@ -110,7 +110,7 @@ def expected_poly(corrected: str) -> float | None:
     if not m:
         return POLY_CD_NOMINAL
     layer, _, kind, mag = m.groups()
-    if layer in PLY_CD_LAYERS and kind == 'CD':
+    if layer in PLY_CD_LAYERS and kind in ('CD', 'CDPP'):
         return POLY_CD_NOMINAL + signed(mag)
     if layer.startswith('PLY'):
         return None                      # PP / other poly skews: not defined in the LVS document
@@ -180,9 +180,9 @@ def check(name: str, lvs: str) -> dict:
         st['DIFF'] = 'OK' if (width in widths and widths <= allowed) else 'MISMATCH'
 
     gangs = None
-    if res.family in GANG_FAMILIES and re.fullmatch(r'(A:NOM(:LLE)?)?', f.get('ADD', '')):
+    if res.family in GANG_FAMILIES and re.fullmatch(r'(A:(NOM|WID|HV|1GANG))?', f.get('ADD', '')):
         h = f.get('HEIGHT', '')
-        gangs = 1 if h == 'SH' else (2 if h == 'DH' and env == 'CMOS' else (1 if h == 'DH' and env.startswith('BCMOS') else None))
+        gangs = 1 if h == 'SH' else (1 if h == 'DH' and env.startswith('BCMOS') else (2 if h == 'DH' else None))
     rec.update(Name_Height=f.get('HEIGHT', ''), Exp_Gangs=gangs or '', LVS_Gangs=uniq(d['gangs'] for d in good))
     if gangs and good:
         st['GANGS'] = 'OK' if all(d['gangs'] == gangs for d in good) else 'MISMATCH'
@@ -214,8 +214,8 @@ RULES = [
     ('Model', 'n|p + hp (or uhp for BCMOS balanced) + cell letter (110H c, 132H b, 165H a) + vt (hvt, svt, lvt, ulvt, ulvtll, elvt).'),
     ('Diff width', 'From Z and cell height (slide 7 library): 110: Z1 27 Z2 31 Z3 35 Z4 40 Z8 72; 132: Z2 31 Z3 35 Z4 40 Z5 46 Z6 49 '
                    'Z8 72 Z9 86; 165: Z2 31 Z4 40 Z6 52 Z7 62 Z9 86 (nm).'),
-    ('Gangs', 'SH cell 1, DH cell in CMOS 2, BCMOS DH-balanced 1 (slide 5 table).'),
-    ('Poly CD', '12 nm for most skews; PLY CD skews (PLYFTCN, PLYFPP, PLYITCN) 12 + signed skew; PP and other poly skews are not '
+    ('Gangs', 'SH cell 1, DH cell 2 (BCMOS DH-balanced 1). Checked for POR / WID / HV / 1GANG names (slide 5 table).'),
+    ('Poly CD', '12 nm for most skews; PLY CD skews (A:PLY:OGD:CD / A:PLYPP:OGD:CDPP, PLYITCN) 12 + signed skew; PP and other poly skews are not '
                 'defined in the document and are not checked.'),
     ('Legs / instances', 'Name legs (#L) versus stacked / shared / instances are NOT checked (rule not in the document); see '
                          'Legs_Crosstab to derive it from the data.'),
@@ -244,6 +244,8 @@ def main():
     snv.VALIDATE_DIR.mkdir(exist_ok=True)
 
     lvs = load_lvs(path)
+    if snv.DEFAULT_SUPERFLOW.exists():
+        snv.compute_pair_hv(snv.load_superflow(snv.DEFAULT_SUPERFLOW))   # P-row POR names that are HV (owner WW45)
     lvs = lvs[~lvs.StructureName.str.upper().str.startswith('GNAC')].reset_index(drop=True)   # GNAC names carry no device parameters
     rows = []
     for r in lvs.itertuples(index=False):
@@ -288,6 +290,11 @@ def main():
                       'LVS_Cell', 'Name_VT', 'LVS_VT', 'Name_Z', 'Exp_Diff_nm', 'LVS_Diff_nm', 'Exp_Gangs', 'LVS_Gangs',
                       'Exp_PolyCD', 'LVS_PolyCD', 'lvsDeviceData']].copy()
     review['Name_Is_Wrong_Y_N'] = ''
+    review['Correct_Name_If_Wrong'] = ''
+    lvs_wrong = review.Mismatches.str.fullmatch(r'(POLYCD|DIFF)(, (POLYCD|DIFF))*')
+    review['Name_Is_Wrong_Y_N'] = lvs_wrong.map({True: 'N', False: ''})
+    review['LVS_Data_To_Correct'] = lvs_wrong.map({True: 'Y - PLY CD / UDEG LVS data to be corrected separately (owner WW45)',
+                                                  False: ''})
     review['Correct_Name_If_Wrong'] = ''
     review.to_csv(FLAG_CSV, index=False)
     print(f'{len(df)} LVS strings checked from {path.name}: {len(flagged)} structures flagged')

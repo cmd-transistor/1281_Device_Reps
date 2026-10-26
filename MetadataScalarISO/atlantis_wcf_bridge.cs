@@ -325,6 +325,8 @@ internal static class AtlantisWcfBridge
                     { "TestStructId", item.TestStructId },
                     { "TestStructName", item.TestStructName },
                     { "TestStructSeq", item.TestStructSeq },
+                    { "TestStructComment", item.TestStructComment },
+                    { "TSDescription", item.TSDescription },
                     { "TemplateName", item.TemplateName },
                     { "TemplateLib", item.TemplateLib },
                     { "Instance", item.Instance }

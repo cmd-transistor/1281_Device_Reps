@@ -1,0 +1,10 @@
+LIBRARY,Rows_To_Edit,Structures_To_Rename,OpenCal_To_Update,Comments_To_Add,Rows_In_Library,Templates
+isox81z_x81_lay,23,2180,0,404,28,ISO_X81Z
+xtrpfx81z_x81_lay,121,2016,0,432,121,MOS_PFT_X81Z
+xtrcapx81z_x81_lay,33,882,602,574,37,MOS_MLR_X81Z
+rosx81z_x81_lay,15,383,0,0,15,X81_ROS_CTM
+xtrmiscx81z_x81_lay,10,282,0,282,13,CTM_PFT_X81Z
+xtrmatx81z_x81_lay,19,170,0,170,19,MOS_PFT_X81Z
+conx81z_x81_lay,8,170,0,0,11,"FE_ECD_X81Z, VIA_CHN_X81Z, VIA_KLV_X81Z"
+widx81z_x81_lay,3,47,8,12,3,"BE_ECD_X81Z, CTM_PFT_X81Z, MOS_MLR_X81Z, MOS_PFT_X81Z, VIA_KLV_X81Z"
+bitsx81z_x81_lay,4,36,0,0,7,CTM_PFT_X81Z
