@@ -5,3 +5,9 @@ snapshots/
 ai_layouts/
 iso_ai_memory.json
 iso_ai_memory.tmp
+extracted/pft/
+extracted/pft.tmp/
+extracted/catalog/
+extracted/*_rows.json
+81Z Catalog/
+p1281_1_opt97_X81A_26WW41.3.xlsx

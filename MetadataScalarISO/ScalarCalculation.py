@@ -147,15 +147,25 @@ def segments(pattern: str) -> list[str]:
     return [s.strip() for s in (pattern or "").split(";") if s.strip()]
 
 
+# Miller (MLR) buildsheets tag a via/VCR axis with its terminal, e.g. ``vg,1:3,3?GF``.
+NET_TAG_RE = re.compile(r"\?([A-Za-z][A-Za-z0-9_]*)")
+
+
 def strip_shift(seg: str) -> str:
-    """Drop a trailing ``|d1,d2,d3,d4`` ResizeShift marker."""
-    return seg.split("|", 1)[0].strip()
+    """Drop a trailing ``|d1,d2,d3,d4`` ResizeShift marker and any ``?NET`` terminal tag."""
+    return NET_TAG_RE.sub("", seg.split("|", 1)[0]).strip()
+
+
+def net_tag(seg: str) -> str:
+    """``vt,1:3[1],1?DF`` -> ``DF`` (empty when the segment carries no terminal tag)."""
+    match = NET_TAG_RE.search(seg.split("|", 1)[0])
+    return match[1].upper() if match else ""
 
 
 def int_list(spec: str) -> list[int]:
     """``"6;14"`` / ``"6; 16"`` / ``"9;11;"`` -> [6, 14] ..."""
     out: list[int] = []
-    for tok in re.split(r"[;,/\s]+", spec or ""):
+    for tok in re.split(r"[;,/\s]+", NET_TAG_RE.sub("", spec or "")):
         tok = _MODIFIER.sub("", tok.strip())
         if tok.lstrip("-").isdigit():
             out.append(int(tok))
@@ -276,6 +286,7 @@ class Geometry:
     poly_plug_cols: set[int] = field(default_factory=set)
     lo_tracks: set[int] = field(default_factory=set)
     hi_tracks: set[int] = field(default_factory=set)
+    terminals: dict[str, set[int]] = field(default_factory=dict)  # Miller DF/SF/GF/TAP -> M0 tracks
     device_cells: set[int] = field(default_factory=set)         # cells carrying device diff
     open_cal: bool = False
     track_note: str = ""
@@ -311,6 +322,12 @@ class Geometry:
         return plug_spans(self.tcn_plugs.get(slot % self.ogd, set()), self.n_cells)
 
 
+def via_track_list(spec: str, extent: int) -> list[int]:
+    """Via M0 tracks: plain lists (``6;14``), ranges / strides (``3:6[2]``) and ``rK`` (from the last track)."""
+    tracks = [t for part in re.split(r"[;,]+", NET_TAG_RE.sub("", spec or "")) for t in expand_axis(part, extent)]
+    return tracks or int_list(spec)
+
+
 def _vcx_cols(row: dict[str, str], prefix: str, ogd: int, tiled: bool = True) -> dict[int, set[int]]:
     """Columns (within one Ogd unit) carrying ``prefix`` vias -> set of Y tracks.
 
@@ -322,11 +339,12 @@ def _vcx_cols(row: dict[str, str], prefix: str, ogd: int, tiled: bool = True) ->
     is folded back; for a single-unit structure it is the real right edge.
     """
     out: dict[int, set[int]] = {}
+    m0_extent = m0_tracks_per_height(row) * max(1, as_int(row.get("UnitCellSizePgd"), 1))
     for seg in segments(row.get("VcxPatternUnit", "")):
         toks = [t.strip() for t in strip_shift(seg).split(",")]
         if len(toks) < 3 or toks[0].lower() != prefix:
             continue
-        tracks = set(int_list(toks[2]))
+        tracks = set(via_track_list(toks[2], m0_extent))
         # TCN slots run 0..ogd-1, so ``rK`` on the VT axis counts from the last slot.
         for c in expand_axis(toks[1], ogd - 1 if prefix == "vt" else ogd):
             if tiled or not 0 <= c <= ogd:
@@ -371,6 +389,15 @@ def _fti(row: dict[str, str], ogd: int, n_cells: int) -> tuple[set[int], list[tu
     return cols_all, segs
 
 
+MILLER_TERMINALS = {"DF": ("DF",), "SF": ("SF",), "GF": ("GF", "G2"), "TAP": ("TAP", "TAP2")}
+
+
+def is_miller_row(row: dict[str, str]) -> bool:
+    """MLR (Miller capacitance, Atlantis XTRCAP) buildsheet: DF/SF/GF terminals instead of LO1/HI1."""
+    return any(row.get(f"{name}ActiveTracks", "").strip() for name in ("DF", "SF", "GF")) \
+        or bool(re.search(r"\?(?:DF|SF|GF)\b", row.get("VcxPatternUnit", ""), re.IGNORECASE))
+
+
 def geometry_from_row(row: dict[str, str]) -> Geometry:
     ogd = as_int(row.get("UnitCellSizeOgd"), 1) or 1
     pgd = as_int(row.get("UnitCellSizePgd"), 1) or 1
@@ -406,6 +433,11 @@ def geometry_from_row(row: dict[str, str]) -> Geometry:
             g.track_note = (f"CH165 signal-track numbering: LO1 {sorted(g.lo_tracks)} -> M0 {sorted(mapped['LO1'])}, "
                             f"HI1 {sorted(g.hi_tracks)} -> M0 {sorted(mapped['HI1'])} (power rails not counted)")
             g.lo_tracks, g.hi_tracks = mapped["LO1"], mapped["HI1"]
+    for name, fields in MILLER_TERMINALS.items():
+        tracks = {t for f in fields for spec in segments(row.get(f"{f}ActiveTracks", ""))
+                  for t in expand_axis(spec, per_height * pgd) if 0 <= t <= per_height * pgd}
+        if tracks:
+            g.terminals[name] = tracks
     g.device_cells = _device_cells(row, n_cells)
     g.open_cal = bool(re.search(r"[:_-]OC\d+\b", row.get("StructureName", ""), re.IGNORECASE))
     g.ymap = TrackMap(row, n_cells, g.device_cells, g.vg_cols, g.vt_cols)

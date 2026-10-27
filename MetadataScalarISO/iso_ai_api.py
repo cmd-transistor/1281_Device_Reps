@@ -8,6 +8,10 @@ Run ``python iso_ai_api.py`` (default http://127.0.0.1:8765). Endpoints:
 * ``POST /structures/<id>/feedback`` {"action": "revise"|"accept"|"reject", "text"}
 * ``GET  /structures/<id>/buildsheet.csv``  -> one-row buildsheet CSV
 * ``GET  /structures/<id>/layout.png``      -> unit-cell layout preview
+* ``POST /tce/<tool>``           {args}     -> any TCE template tool (all templates), same arguments as
+  the tce-mcp-server tools: list_templates, describe_template, search_parameters, create_buildsheet,
+  generate_sweep, read_buildsheet, validate_buildsheet, search_docs, read_doc, list_example_rows,
+  search_example_structures, get_example_structure. File arguments must be bare names in TCE_OUTPUT_DIR.
 
 If ``ISO_AI_API_TOKEN`` is set, every request needs ``Authorization: Bearer <token>``.
 Binding to a non-loopback host requires the token.
@@ -22,18 +26,27 @@ from __future__ import annotations
 
 import argparse
 import hmac
+import inspect
 import json
 import os
 import re
 import sys
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from pathlib import PurePath
 from urllib.parse import urlparse
 
 from iso_structure_ai import StructureDesigner, UnknownDesign
 
 MAX_BODY_BYTES = 64 * 1024
+MAX_TCE_BODY_BYTES = 4 * 1024 * 1024
 ROUTE_RE = re.compile(r"^/structures/(?P<id>[0-9a-f]{12})(?P<sub>/feedback|/buildsheet\.csv|/layout\.png)?$")
+TCE_ROUTE_RE = re.compile(r"^/tce/(?P<tool>[a-z_]+)$")
+TCE_TOOLS = ("list_templates", "describe_template", "search_parameters", "create_buildsheet", "generate_sweep",
+             "read_buildsheet", "validate_buildsheet", "search_docs", "read_doc", "list_example_rows",
+             "search_example_structures", "get_example_structure")
+TCE_FILE_ARGS = ("reference_csv", "filename")
+TCE_SHEET_TOOLS = ("read_buildsheet", "validate_buildsheet")
 LOOPBACK = {"127.0.0.1", "localhost", "::1"}
 
 
@@ -43,7 +56,23 @@ class ApiError(Exception):
         self.status = status
 
 
-def make_handler(designer: StructureDesigner, token: str):
+def _tce_call(tce, tool: str, args: dict):
+    if tool not in TCE_TOOLS:
+        raise ApiError(HTTPStatus.NOT_FOUND, f"unknown TCE tool; use one of {', '.join(TCE_TOOLS)}")
+    for key in (*TCE_FILE_ARGS, *(("path",) if tool in TCE_SHEET_TOOLS else ())):
+        value = args.get(key)
+        # Remote callers may only touch files inside the TCE output directory.
+        if value is not None and (not isinstance(value, str) or PurePath(value).name != value or value in (".", "..")):
+            raise ApiError(HTTPStatus.BAD_REQUEST, f"'{key}' must be a bare file name in the TCE output directory")
+    fn = getattr(tce, tool)
+    try:
+        inspect.signature(fn).bind(**args)
+    except TypeError as exc:
+        raise ApiError(HTTPStatus.BAD_REQUEST, str(exc)) from None
+    return fn(**args)
+
+
+def make_handler(designer: StructureDesigner, token: str, tce=None):
     class Handler(BaseHTTPRequestHandler):
         server_version = "ISOStructureAI/1.0"
 
@@ -69,15 +98,15 @@ def make_handler(designer: StructureDesigner, token: str):
             if not hmac.compare_digest(supplied.encode("utf-8"), f"Bearer {token}".encode("utf-8")):
                 raise ApiError(HTTPStatus.UNAUTHORIZED, "missing or invalid bearer token")
 
-        def _body(self) -> dict:
+        def _body(self, max_bytes: int = MAX_BODY_BYTES) -> dict:
             if "application/json" not in self.headers.get("Content-Type", ""):
                 raise ApiError(HTTPStatus.UNSUPPORTED_MEDIA_TYPE, "Content-Type must be application/json")
             try:
                 length = int(self.headers.get("Content-Length", "0"))
             except ValueError:
                 raise ApiError(HTTPStatus.BAD_REQUEST, "invalid Content-Length") from None
-            if length <= 0 or length > MAX_BODY_BYTES:
-                raise ApiError(HTTPStatus.REQUEST_ENTITY_TOO_LARGE, f"body must be 1..{MAX_BODY_BYTES} bytes")
+            if length <= 0 or length > max_bytes:
+                raise ApiError(HTTPStatus.REQUEST_ENTITY_TOO_LARGE, f"body must be 1..{max_bytes} bytes")
             try:
                 data = json.loads(self.rfile.read(length))
             except (UnicodeDecodeError, json.JSONDecodeError):
@@ -91,7 +120,15 @@ def make_handler(designer: StructureDesigner, token: str):
                 self._authorize()
                 path = urlparse(self.path).path.rstrip("/") or "/"
                 if method == "GET" and path == "/health":
-                    return self._json(HTTPStatus.OK, {"status": "ok", **designer.stats()})
+                    return self._json(HTTPStatus.OK, {"status": "ok", "tce": tce is not None, **designer.stats()})
+                tce_match = TCE_ROUTE_RE.match(path)
+                if tce_match:
+                    if tce is None:
+                        raise ApiError(HTTPStatus.SERVICE_UNAVAILABLE, "TCE template service is not available")
+                    if method != "POST":
+                        raise ApiError(HTTPStatus.METHOD_NOT_ALLOWED, "use POST with a JSON object of arguments")
+                    result = _tce_call(tce, tce_match["tool"], self._body(MAX_TCE_BODY_BYTES))
+                    return self._json(HTTPStatus.OK, {"result": result} if isinstance(result, list) else result)
                 if method == "POST" and path == "/structures":
                     prompt = self._body().get("prompt")
                     if not isinstance(prompt, str):
@@ -126,7 +163,7 @@ def make_handler(designer: StructureDesigner, token: str):
                 self._json(exc.status, {"error": str(exc)})
             except UnknownDesign:
                 self._json(HTTPStatus.NOT_FOUND, {"error": "unknown design id"})
-            except ValueError as exc:
+            except (ValueError, FileNotFoundError) as exc:
                 self._json(HTTPStatus.UNPROCESSABLE_ENTITY, {"error": str(exc)})
             except Exception:
                 self.log_error("unhandled error on %s %s", method, self.path)
@@ -142,11 +179,11 @@ def make_handler(designer: StructureDesigner, token: str):
 
 
 def create_server(designer: StructureDesigner, host: str = "127.0.0.1", port: int = 8765,
-                  token: str | None = None) -> ThreadingHTTPServer:
+                  token: str | None = None, tce=None) -> ThreadingHTTPServer:
     token = os.environ.get("ISO_AI_API_TOKEN", "") if token is None else token
     if host not in LOOPBACK and not token:
         raise ValueError("Set ISO_AI_API_TOKEN before binding the API to a non-loopback host")
-    server = ThreadingHTTPServer((host, port), make_handler(designer, token))
+    server = ThreadingHTTPServer((host, port), make_handler(designer, token, tce))
     server.daemon_threads = True
     return server
 
@@ -158,7 +195,13 @@ def main() -> None:
     ap.add_argument("--no-llm", action="store_true", help="ignore ISO_AI_ENDPOINT; rule-based interpretation only")
     args = ap.parse_args()
     designer = StructureDesigner(use_llm=not args.no_llm)
-    server = create_server(designer, args.host, args.port)
+    try:
+        from tce_bridge import make_service
+        tce = make_service()
+    except ImportError as exc:
+        tce = None
+        print(f"TCE template endpoints disabled: {exc}")
+    server = create_server(designer, args.host, args.port, tce=tce)
     print(f"ISO structure API on http://{args.host}:{server.server_address[1]}  {designer.stats()}")
     try:
         server.serve_forever()
