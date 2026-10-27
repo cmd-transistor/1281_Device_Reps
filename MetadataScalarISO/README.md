@@ -2,6 +2,8 @@
 
 Automated parser, geometric fail-mode scalar calculator, snapshot renderer, and PowerPoint catalog generator for 1281 technology Isolation (ISO) E-Test test structures.
 
+Detailed documentation (buildsheet DSL, renderers, ISO generator and training, other template builders, Atlantis, design rules, catalogs, GUI and development history) is in [docs/](docs/README.md).
+
 ---
 
 ## Table of Contents

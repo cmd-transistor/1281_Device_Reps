@@ -1259,11 +1259,23 @@ class App(tk.Tk):
         self.protocol("WM_DELETE_WINDOW", self._close)
 
     # -- layout --------------------------------------------------------------
+    def _add_tce_workbench(self) -> None:
+        """Buildsheets for every TCE template (tce-mcp-server); skipped when the package is unavailable."""
+        try:
+            from tce_workbench import TceWorkbench
+        except ImportError as exc:
+            self.tce_workbench = None
+            print(f"TCE templates tab disabled: {exc}")
+            return
+        self.tce_workbench = TceWorkbench(self.workspace_tabs)
+        self.workspace_tabs.add(self.tce_workbench, text="TCE templates")
+
     def _build(self) -> None:
         self.workspace_tabs = ttk.Notebook(self)
         self.workspace_tabs.pack(fill="both", expand=True)
         self.structure_workspace = ttk.Frame(self.workspace_tabs)
         self.workspace_tabs.add(self.structure_workspace, text="Structure viewer")
+        self._add_tce_workbench()
         top = ttk.Frame(self.structure_workspace, padding=6)
         top.pack(fill="x")
         self.search_toggle = ttk.Button(top, text="Hide search", command=self._toggle_search)

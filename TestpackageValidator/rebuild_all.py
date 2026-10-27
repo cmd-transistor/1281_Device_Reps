@@ -25,11 +25,14 @@ STEPS = [
     ['atlantis_rename_table.py', '--cached'],
     ['dft_check_audit.py'],
     ['buildsheet_update_files.py'],
+    ['carry_packages.py'],
+    ['package_test_cartesian.py'],
+    ['package_test_cartesian.py', '--superflow', '1X281Z_SUPER_FLOW_R2 - FE_26WW43p1_v2.csv'],
 ]
 # inputs or hand-maintained files, not produced by the steps above
 NOT_GENERATED = {'Atlantis_81Z_TapeIn_LVS.csv', 'Atlantis_81Z_TapeIn_LVS.sql', 'Atlantis_81Z_TapeIn_Structures_raw.csv',
                  'Atlantis_81Z_MLR_OpenCal_raw.csv', 'Atlantis_81Z_ISO_Buildsheet_raw.csv',
-                 'Structure_Nomenclature_Learnings.md'}
+                 'Structure_Nomenclature_Learnings.md', 'X81Z Structure Names (split).jmp'}
 
 
 def main():

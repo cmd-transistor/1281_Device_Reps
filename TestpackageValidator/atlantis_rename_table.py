@@ -131,6 +131,9 @@ def corrected_maps():
     v = v[v.Corrected_Name != '']
     tc = v.TC.str.len()
     v['new'] = [n[:len(n) - k] if k else n for n, k in zip(v.Corrected_Name, tc)]
+    # the validator's row-specific A:WID is re-applied below per Atlantis row (shared BE-row names stay A:NOM)
+    wid_row = v.Issue_Codes.str.contains(r'\bWID_ROW\b')
+    v.loc[wid_row, 'new'] = v.loc[wid_row, 'new'].str.replace(r'-A:WID(?=$|[-_])', '-A:NOM', n=1, regex=True)
     v['old'] = [n[:len(n) - k] if k else n for n, k in zip(v.Original_Name, tc)]
     frozen = v.Family.isin(FROZEN_FAMILIES) & (v.new.str.upper() == v.old.str.upper())
     v.loc[frozen, 'new'] = KEEP          # BE / QnR kept: keep the Atlantis name exactly as it is

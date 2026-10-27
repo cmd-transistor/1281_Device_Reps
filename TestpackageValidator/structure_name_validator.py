@@ -93,6 +93,8 @@ BUILT_SKEW: dict[str, str] = {}              # original base -> FTI skew as buil
 FTI_POS = [('OGD', 'CD'), ('PGD', 'CD'), ('OGD', 'REG'), ('PGD', 'REG')]   # ISO FTICdMisregSkew value order (um)
 FTI_NAME_RX = re.compile(r'(?<=[-:_])([A-Z]*FTI[A-Z]*):(OGD|PGD):(CD|REG):([NP]\d+(?:D\d+)?)')
 DEFAULT_VT = {'VTKLV': 'L'}                  # owner: VTKLV structures are LVT
+WID_ROW = re.compile(r'x81zs_wid\d+')        # row_key of within-die rows
+WID_NOM = re.compile(r'-A:NOM(?=$|[-_])')
 HIGHLIGHT_CODES = {'ROUTING_REMOVED', 'VT_DEFAULT', 'ISO_DIR_PENDING', 'SKEW_DIR_SET',
                    'ADT_HEIGHT', 'HV_FROM_PAIR', 'BUILDSHEET_NAME', 'ANALOG_ENV', 'TCNVCR_NUB', 'JOG_PATH',
                    'KLV_DUP_INSTANCE', 'DFT_NAME_LENGTH'}
@@ -1394,6 +1396,8 @@ def validate(sf: pd.DataFrame, et: pd.DataFrame, al: pd.DataFrame | None, includ
     for name, (src, base, tc, res) in results.items():
         device = res.family == 'BE' and DEVICE_ROWS and all(row_key(r) in DEVICE_ROWS for r in rows_of(name))
         if res.family in FROZEN_FAMILIES and not device:
+            if res.family == 'BE' and res.corrected and any(row_key(r) in DEVICE_ROWS for r in rows_of(name)):
+                res.fields['_device_name'] = res.corrected     # name used in the shared device rows
             res.issues = [('INFO', code, f'{msg} - not applied (no changes to BE / QnR names)', False)
                           if fixed or sev != 'INFO' else (sev, code, msg, fixed)
                           for sev, code, msg, fixed in res.issues if code != 'QNR_PROPOSED']
@@ -1466,6 +1470,26 @@ def validate(sf: pd.DataFrame, et: pd.DataFrame, al: pd.DataFrame | None, includ
         again = parse(res.corrected).corrected
         if again != res.corrected:
             res.add('ERROR', 'NOT_IDEMPOTENT', f"Corrected name re-validates to '{again}' - rule conflict")
+
+    # WID rows: a final A:NOM becomes A:WID row-specifically, as in the Atlantis rename table / new superflow;
+    # a name shared with a non-WID row keeps Corrected_Name and gets the WID-row name in Row_Specific_Names
+    for name, (src, base, tc, res) in results.items():
+        if src != 'Superflow' or res.corrected is None:
+            continue
+        rows = rows_of(name)
+        wid_rows = sorted(r for r in rows if WID_ROW.fullmatch(row_key(r)))
+        if not wid_rows:
+            continue
+        dev = res.fields.get('_device_name', res.corrected)
+        new = WID_NOM.sub('-A:WID', dev, count=1)
+        if len(wid_rows) == len(rows) and new != res.corrected:
+            res.corrected = new
+            res.add('WARN', 'WID_ROW', 'Structure in a WID row: A:NOM replaced by A:WID (row-specific, as in '
+                                       'the Atlantis rename table)', True)
+        elif len(wid_rows) < len(rows) and new != res.corrected:
+            res.fields['_row_names'] = {r: new + tc for r in wid_rows}
+            res.add('WARN', 'WID_ROW', f"Shared with a non-WID row; in {', '.join(wid_rows)} the name is "
+                                       f"'{new + tc}' (Row_Specific_Names)", True)
 
     # --- collisions after correction (two different names that share a row) ---
     final = defaultdict(list)
@@ -1540,6 +1564,7 @@ def build_frames(results, sf_info, al, by_fam):
             'Issues': ' | '.join(f'[{i[0]}] {i[2]}' for i in res.issues),
             'Corrected_Name': corr_full, 'Corrected_Len': len(corr_full) if corr_full else '',
             'Changed': bool(corr_full) and corr_full != name,
+            'Row_Specific_Names': '; '.join(f'{r}={n}' for r, n in res.fields.get('_row_names', {}).items()),
             'Draft_Name_Manual': draft,
             'Proposed_Name': (res.proposed + tc) if res.proposed else '',
             'Highlight': ', '.join(sorted({i[1] for i in res.issues if i[0] != 'INFO'} & HIGHLIGHT_CODES)),
@@ -1703,6 +1728,8 @@ CODE_DOC = {
     'MATCHING_PREFIX': ("Matching pair used NP/PP head (NMOS pair / PMOS pair)", "Head M{N|P}S; environment unchanged"),
     'WID_PREFIX': ("Within-die structures used a '-WID' suffix or 'W' head prefix", "WID written in the TSDR skew "
                                                                                      "position (A:WID replaces A:NOM)"),
+    'WID_ROW': ('Structure in a within-die row (X81ZS_WIDnn) without WID in its name',
+                'Final A:NOM replaced by A:WID for that row, as in the Atlantis rename table and the new superflow'),
     'HV_FROM_PAIR': ("P-row POR structure whose N-row twin is HV (NCL95 / PCL95)", "NOM -> HV (then DH) - highlighted"),
     'NODIFF_ENV': ("'/D' (no diffusion) coexisted with CMOS/UNI", "'/D' kept as the environment, CMOS/UNI dropped"),
     'ADT_ENV': ("ADT structures used UNI environment plus 'ADT:' additional prefix", "Environment 'ADTUNI'; 'ADT:' "
@@ -1828,7 +1855,7 @@ SUMMARY_THEMES = [
                         'REMOVAL_TSDR', 'KLV_DUP_INSTANCE']),
     ('TSDR skew grammar (incl. PLY/TCN)', ['SKEW_SCHEME', 'SKEW_CLEANUP', 'SKEW_SPLIT', 'SKEW_DIR_SET',
                                            'ISO_DIR_RULE', 'ISO_DIR_PENDING', 'PLY_TCN_VOCAB']),
-    ('Environment, matching, WID, ADT, FK', ['MATCHING_PREFIX', 'WID_PREFIX', 'NODIFF_ENV', 'ADT_ENV', 'ADT_HEIGHT',
+    ('Environment, matching, WID, ADT, FK', ['MATCHING_PREFIX', 'WID_PREFIX', 'WID_ROW', 'NODIFF_ENV', 'ADT_ENV', 'ADT_HEIGHT',
                                              'HV_FROM_PAIR', 'FK_TO_PFT', 'ANALOG_ENV']),
     ('Layout path descriptors', ['TCNVCR_NUB', 'JOG_PATH']),
 ]

@@ -144,3 +144,12 @@ row-owner summary, LVS name check (GNAC excluded; 63 flagged), Atlantis rename t
   184 export entries), all at or below 55 characters excluding TC suffix. Shortenings: `GLKRST`/`PFERST` ->
   `GLKRT`/`PFERT`, FTIRST path removes `L`/`R` markers, FDPR `OFF:Rn` -> `OFFn`, and LLE reference suffixes are
   removed consistently. No proposed-name collisions; no other library appeared in the supplied export.
+- Validator WID rows (`WID_ROW`): superflow names in `X81ZS_WIDnn` rows now get the same row-specific `A:WID` as the
+  Atlantis rename table / R3 superflow. 460 BE names only in WID rows: `Corrected_Name` final `A:NOM` -> `A:WID`.
+  19 names shared with a BE / KLV row keep `Corrected_Name` and list the WID-row name in the new
+  `Row_Specific_Names` column (`row=name`). All 479 R3 differences now match the validator; rename table unchanged.
+- Cartesian `<TARGET>`: filled with the OPT_LVT leakage target, UL0 (uplift-0) values only, from
+  `p1281_idoff_VCC_0p75V_25C_tttt.csv` via `p1281_OPT_LVT_model_mapping.csv` (model -> OPT_LVT model,
+  `<MODEL>_<diff nm>_UL0`, A -> nA). No multi-leg scaling (done in official Ieff@opt targets). New columns
+  `Target_Source`, `Model`, `OPT_LVT_Model`, `Diff_Width_nm`, `OPT_LVT_UL0_nA`. M1IL_01 R3: 1,350 / 1,350 filled.
+- `rebuild_all.py` also runs `carry_packages.py` and the M1IL_01 cartesian (R3 and R2).
